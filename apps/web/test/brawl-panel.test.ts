@@ -1,0 +1,126 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { BrawlPanel } from '../src/BrawlPanel.js';
+import type { SelfBrawlView, BrawlBattleEvent } from '@avalon/contracts';
+
+test('BrawlPanel: renders Heixiong Jing non-blocking choice banner when decision pending', () => {
+  const selfBrawl: SelfBrawlView = {
+    roleId: 'heixiong_jing',
+    roleName: '黑熊精',
+    roleTitle: '黑风大王 / 守山大神',
+    camp: 'neutral',
+    skill: {
+      skillId: 'shenmo_yinian',
+      skillName: '神魔一念',
+      triggerPhase: 'team_building',
+      actionType: 'camp_choice',
+      maxUses: 1,
+      description: '首轮必投成功；R1 结算后私下抉择加入蓝方或红方。',
+    },
+    skillAvailable: true,
+    skillUsed: false,
+    neutralDecisionPending: true,
+  };
+
+  const html = renderToStaticMarkup(createElement(BrawlPanel, { selfBrawl }));
+
+  assert.match(html, /黑熊精 · 天命抉择（纯私下决定，全场不通报）/);
+  assert.match(html, /皈依佛门 · 守山大神/);
+  assert.match(html, /啸聚为妖 · 黑风大王/);
+  assert.match(html, /第2轮投票前随时可定/);
+});
+
+test('BrawlPanel: does not render neutral choice banner for regular players or already decided', () => {
+  const selfBrawl: SelfBrawlView = {
+    roleId: 'sun_wukong',
+    roleName: '孙悟空',
+    roleTitle: '齐天大圣',
+    camp: 'blue',
+    skill: {
+      skillId: 'huoyan_jinjing',
+      skillName: '火眼金睛',
+      triggerPhase: 'game_start',
+      actionType: 'passive',
+      maxUses: 1,
+      description: '开局见红方妖气。',
+    },
+    skillAvailable: false,
+    skillUsed: false,
+    neutralDecisionPending: false,
+  };
+
+  const html = renderToStaticMarkup(createElement(BrawlPanel, { selfBrawl }));
+
+  assert.doesNotMatch(html, /天命抉择/);
+  assert.match(html, /【孙悟空】/);
+  assert.match(html, /火眼金睛/);
+});
+
+test('BrawlPanel: renders peeked intelligence for blind box reconnaissance (Erlang Shen)', () => {
+  const selfBrawl: SelfBrawlView = {
+    roleId: 'erlang_shen',
+    roleName: '二郎神',
+    roleTitle: '清源妙道真君',
+    camp: 'blue',
+    skill: {
+      skillId: 'tianyan_zhaoxu',
+      skillName: '天眼照虚',
+      triggerPhase: 'game_start',
+      actionType: 'passive',
+      maxUses: 1,
+      description: '开局私密得知本局红方随机盲盒中抽中的 1 位妖魔名号。',
+    },
+    skillAvailable: false,
+    skillUsed: false,
+    peekedRoles: [{ roleId: 'niu_mowang', roleName: '牛魔王', camp: 'red' }],
+  };
+
+  const html = renderToStaticMarkup(createElement(BrawlPanel, { selfBrawl }));
+
+  assert.match(html, /盲盒天机：本局敌对潜伏底牌包含【牛魔王】/);
+});
+
+test('BrawlPanel: renders battle events strictly obeying Event Public Player Anonymous', () => {
+  const selfBrawl: SelfBrawlView = {
+    roleId: 'zhu_bajie',
+    roleName: '猪八戒',
+    roleTitle: '天蓬元帅',
+    camp: 'blue',
+    skill: {
+      skillId: 'daoda_yipa',
+      skillName: '倒打一耙',
+      triggerPhase: 'team_voting',
+      actionType: 'single_button',
+      maxUses: 1,
+      description: '倒打一耙反转最后 1 张反对票！',
+    },
+    skillAvailable: true,
+    skillUsed: false,
+  };
+
+  const events: BrawlBattleEvent[] = [
+    {
+      id: 'e1',
+      roleId: 'rulai_fozu',
+      roleName: '如来佛祖',
+      skillName: '五行山掌',
+      summary: '如来佛祖降下五行山：3号玩家被镇压一轮，本轮禁止入选车队与参与表决！',
+      timestamp: new Date().toISOString(),
+    },
+    {
+      id: 'e2',
+      roleId: 'wangmu_niangniang',
+      roleName: '王母娘娘',
+      skillName: '九转仙桃',
+      summary: '王母娘娘赐下瑶池仙桃护体：本次出征任务需【至少 2 张失败牌】方算失败！',
+      timestamp: new Date().toISOString(),
+    },
+  ];
+
+  const html = renderToStaticMarkup(createElement(BrawlPanel, { selfBrawl, events }));
+
+  assert.match(html, /天机战报记录 \(2条\)/);
+  assert.doesNotMatch(html, /施法者/);
+});

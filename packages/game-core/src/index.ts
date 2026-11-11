@@ -561,3 +561,7 @@ export function projectGame(g: GameState, userId?: string): GameView {
     } } : {}),
   };
 }
+
+export * from './brawl-registry.js';
+export * from './brawl-engine.js';
+

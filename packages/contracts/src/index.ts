@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { brawlCommandPayloadSchema, type BrawlGameState, type SelfBrawlView } from './brawl.js';
 
 export const settingsSchema = z.object({
   playerCount: z.number().int().min(5).max(12),
@@ -12,6 +13,7 @@ export const settingsSchema = z.object({
   autoRevealRoleEnabled: z.boolean().default(false),
   treasuresEnabled: z.boolean().default(false),
   rolePreferenceEnabled: z.boolean().default(false),
+  brawlModeEnabled: z.boolean().default(false),
 }).strict();
 export type Settings = z.infer<typeof settingsSchema>;
 export const specialCodeSchema = z.string().regex(/^[1-9]\d{5}$/);
@@ -49,6 +51,7 @@ export const defaultSettings: Settings = {
   autoRevealRoleEnabled: false,
   treasuresEnabled: false,
   rolePreferenceEnabled: false,
+  brawlModeEnabled: false,
 };
 export const defaultAnonymousTeamVote = (playerCount: number) => playerCount < 8;
 export type TeamBallot = boolean | 'abstain';
@@ -97,6 +100,7 @@ export const commandSchema = z.discriminatedUnion('type', [
       z.object({ action: z.literal('heartBell'), targetId: z.string().uuid(), advice: z.enum(['protect', 'sabotage']) }).strict(),
     ]),
   }).strict(),
+  z.object({ ...base, type: z.literal('brawlCommand'), payload: brawlCommandPayloadSchema }).strict(),
   z.object({ ...base, type: z.literal('voteAbort'), payload: z.object({ approve: z.boolean() }).strict() }).strict(),
   z.object({ ...base, type: z.literal('leaveRoom'), payload: z.object({}).strict() }).strict(),
   z.object({ ...base, type: z.literal('kickMember'), payload: z.object({ userId: z.string().uuid() }).strict() }).strict(),
@@ -358,6 +362,8 @@ export interface GameView {
   bananaFanNotice?: string;
   result?: GameResult; revealedRoles?: Record<string, Role>;
   abortPoll?: { requestedBy: string; approvals: number; required: number; voted: boolean };
+  brawl?: BrawlGameState;
+  selfBrawl?: SelfBrawlView;
   self?: { role: Role; loyalGuardian?: LoyalGuardian; femaleDemon?: FemaleDemon; team: Team; evilIds: string[]; merlinCandidates: string[]; guinevereCandidates?: string[];
     guardianClue?: GuardianClue;
     confirmed: boolean; teamVoted: boolean; missionVoted: boolean;
@@ -398,3 +404,5 @@ export interface Replay extends GameSummary {
   roleAssignmentAudit?: RoleAssignmentAudit;
 }
 export interface SettingPreset { id:string; name:string; settings:Settings; updatedAt:string }
+export * from './brawl.js';
+

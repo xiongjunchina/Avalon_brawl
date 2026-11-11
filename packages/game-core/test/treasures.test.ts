@@ -14,6 +14,7 @@ const defaultSettings: Settings = {
   autoRevealRoleEnabled: false,
   treasuresEnabled: true,
   rolePreferenceEnabled: false,
+  brawlModeEnabled: false,
 };
 
 function makePlayers(count: number): Player[] {

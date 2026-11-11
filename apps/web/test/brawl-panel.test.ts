@@ -124,3 +124,31 @@ test('BrawlPanel: renders battle events strictly obeying Event Public Player Ano
   assert.match(html, /天机战报记录 \(2条\)/);
   assert.doesNotMatch(html, /施法者/);
 });
+
+test('GuideRoles(mode="brawl"): renders all 31 all-star Journey to the West characters', async () => {
+  const { GuideRoles, GuideRules, GuidePanel } = await import('../src/GuidePanel.js');
+  const rolesHtml = renderToStaticMarkup(createElement(GuideRoles, { mode: 'brawl' }));
+  const rulesHtml = renderToStaticMarkup(createElement(GuideRules, { mode: 'brawl' }));
+  const panelHtml = renderToStaticMarkup(createElement(GuidePanel, { onBack: () => {} }));
+
+  // Check 31 roles exist in brawl guide
+  for (const name of [
+    '孙悟空', '唐三藏', '如来佛祖', '玉皇大帝', '王母娘娘', '太上老君', '菩提祖师',
+    '观音菩萨', '镇元大仙', '二郎神', '哪吒三太子', '托塔李天王', '猪八戒', '沙悟净', '白龙马',
+    '红孩儿', '六耳猕猴', '白骨精', '蜘蛛精', '玉兔精', '老鼠精', '牛魔王', '铁扇公主',
+    '黄眉老怪', '金角大王', '银角大王', '黄风怪', '百眼魔君', '青毛狮子怪', '金翅大鹏雕',
+    '黑熊精',
+  ]) {
+    assert.match(rolesHtml, new RegExp(name), `Missing brawl role in guide: ${name}`);
+  }
+
+  // Check key brawl mechanics in rules
+  assert.match(rulesHtml, /31位全明星神魔/);
+  assert.match(rulesHtml, /黑熊精专属暗身中立机制/);
+  assert.match(rulesHtml, /天机战报“公法不公人”原则/);
+
+  // Check GuidePanel includes mode switch and defaults to brawl
+  assert.match(panelHtml, /仙魔大乱斗（31位全明星）/);
+  assert.match(panelHtml, /经典原版（真假猴王）/);
+  assert.match(panelHtml, /如来佛祖/);
+});

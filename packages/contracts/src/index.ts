@@ -51,7 +51,7 @@ export const defaultSettings: Settings = {
   autoRevealRoleEnabled: false,
   treasuresEnabled: false,
   rolePreferenceEnabled: false,
-  brawlModeEnabled: false,
+  brawlModeEnabled: true,
 };
 export const defaultAnonymousTeamVote = (playerCount: number) => playerCount < 8;
 export type TeamBallot = boolean | 'abstain';

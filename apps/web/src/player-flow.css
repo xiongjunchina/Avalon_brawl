@@ -1,0 +1,169 @@
+/* Preserve the established palette and type scale; prioritize the current action. */
+.handoff-shell { min-height: 100dvh; display: grid; place-items: center; padding: 16px; }
+.handoff-sheet { width: min(100%, 560px); padding: 20px; }
+.handoff-sheet h1 { margin: 0 0 16px; font-size: 24px; }
+.handoff-sheet p { font: 400 16px/1.65 var(--sans); text-wrap: pretty; }
+.handoff-actions { display: grid; gap: 10px; }
+.handoff-actions button { min-height: 44px; white-space: normal; font: 600 16px/1.5 var(--sans); }
+.room-voice-hint { margin: 4px 0; width: 100%; text-wrap: pretty; }
+.flow-details { border: 1px solid rgba(212,163,89,.4); border-radius: 12px; padding: 10px 12px; background: rgba(34,11,10,.85); }
+.flow-details > summary { cursor: pointer; color: #ffd875; font: 600 13px/1.5 var(--sans); }
+.flow-details[open] > summary { margin-bottom: 10px; }
+.flow-details > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.mp-setup-screen { justify-content: flex-start !important; gap: 12px !important; }
+.mp-setup-screen .room-creation-options { width: 100%; margin: 0; padding: 10px 12px !important; }
+.room-creation-options > summary > span { display: block; color: var(--muted); font-size: 11px; }
+.room-access-editor { display: grid; gap: 6px; }
+.mp-setup-screen .mp-setup-footer { gap: 6px; padding: 4px 0 !important; background: none; }
+.mp-setup-screen .mp-setup-footer .mp-cyan-pill { width: min(100%,220px); min-height: 44px; padding: 8px 16px; font: 700 15px/1.4 var(--sans); letter-spacing: .5px; }
+.mp-setup-screen .mp-setup-footer .mp-subtle-link { min-height: 32px; padding: 4px 8px; font: 500 12px/1.5 var(--sans); }
+.mp-setup-screen .setup-role-preview { width: 100%; }
+.setup-role-preview > h2 { margin: 0; color: #ffd875; font: 600 14px/1.5 var(--sans); }
+.setup-role-preview .mp-factions-stack { margin-top: 10px; }
+.setup-role-preview .mp-portrait-card { position: relative; }
+.setup-role-preview .mp-portrait-label strong { white-space: nowrap; }
+.setup-role-preview .mp-count-tag { position: absolute; top: 6px; right: 6px; }
+/* Waiting and active tables use the same spacing in every display mode. */
+main.app-shell.is-live-table { --table-gap: 8px; }
+.is-live-table .room-table-screen { justify-content: flex-start; margin: 0; padding: 0; gap: var(--table-gap) !important; }
+.is-live-table :is(.waiting-play-priority, .table-game-screen.game-play-priority) { min-height: 0 !important; gap: var(--table-gap) !important; }
+.is-live-table .waiting-play-priority > :is(.waiting-settings-summary, .scheme3-middle-zone) { flex: 0 0 auto; margin: 0 !important; }
+.is-live-table .waiting-settings-summary { width: 100%; min-height: 30px; margin: 0; padding: 5px 8px; font: 600 12px/1.4 var(--sans); }
+.is-live-table .waiting-play-priority .waiting-dock { margin: 0 !important; }
+.is-live-table .waiting-mission-preview { width: 100%; margin-top: 2px; }
+.is-live-table .waiting-play-priority .waiting-voice-social-row { margin: 0 !important; }
+/* Scroll details inside the sheet while keeping the current decision reachable. */
+.table-modal-sheet.flow-editor-sheet,
+.table-modal-sheet.vote-flow-sheet,
+.table-modal-sheet.mission-report-sheet.report-flow-sheet { display: flex; flex-direction: column; overflow: hidden !important; max-height: calc(100dvh - 28px); gap: 10px; }
+.table-modal-sheet.flow-editor-sheet { width: min(100%,570px); padding: 16px; }
+.flow-editor-sheet > .table-modal-head,
+.vote-flow-sheet > .table-modal-head,
+.mission-report-sheet.report-flow-sheet > .table-modal-head { flex-shrink: 0; margin-bottom: 0 !important; }
+.flow-editor-sheet > .table-modal-head strong { font-size: 18px !important; }
+.flow-scroll-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 2px; }
+.flow-fixed-actions { flex: 0 0 auto; padding-top: 8px; border-top: 1px solid #d4a35966; }
+.flow-fixed-actions > button { width: 100%; min-height: 44px; margin: 0; font: 700 15px/1.4 var(--sans); }
+.vote-flow-sheet .vote-rule-prompt { flex-shrink: 0; margin: 0 !important; }
+.vote-flow-sheet .vote-scroll-body { display: flex; flex-direction: column; gap: 10px; }
+.vote-flow-sheet .vote-scroll-body > * { flex-shrink: 0; margin: 0 !important; }
+.vote-flow-sheet .vote-actions-section { padding-top: 8px; border-top: 1px solid #d4a35966; }
+.vote-flow-sheet .vote-actions-form, .vote-flow-sheet .vote-choices-fieldset { margin: 0 !important; padding: 0 !important; }
+.vote-flow-sheet .dedicated-choices-grid { margin: 0 0 8px !important; gap: 8px !important; }
+.vote-flow-sheet .dedicated-submit-btn { margin: 0 !important; }
+.vote-flow-sheet .vote-submitted-card { margin: 0 !important; }
+.vote-flow-sheet .vote-history-drawer { max-height: none !important; overflow: visible !important; }
+.vote-flow-sheet .vote-history-heading { margin: 0 0 6px; color: #ffd875; font: 600 12px/1.4 var(--sans); }
+.vote-flow-sheet .imperial-expedition-panel { box-shadow: none !important; }
+.vote-flow-sheet .imperial-slots-section { padding: 8px 10px 10px !important; }
+.vote-flow-sheet .vote-member-card.imperial-ruyi-card { aspect-ratio: auto !important; height: 92px !important; }
+.game-play-priority .game-result-actions { margin: 0; padding: 12px; border-radius: 18px; background: #280e0df5; border: 1px solid #d4a359; }
+.game-result-actions .result-summary-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.game-result-actions h3 { font: 700 18px/1.4 var(--display); margin: 0 0 4px; }
+.game-result-actions p { font: 500 13px/1.5 var(--sans); margin: 0; }
+.game-result-actions .result-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.game-result-actions button { min-height: 44px; margin: 0; padding: 7px 12px; font: 700 14px/1.4 var(--sans); }
+.mission-report-sheet.report-flow-sheet .mission-report-hero { padding: 10px !important; margin: 0 0 8px !important; }
+.mission-report-sheet.report-flow-sheet .mission-report-outcome { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; text-align: left; }
+.mission-report-sheet.report-flow-sheet .mission-report-hero-emblem { font-size: 24px !important; width: 28px; margin: 0; flex-shrink: 0; }
+.mission-report-sheet.report-flow-sheet .mission-report-kicker { font-size: 10px; letter-spacing: .6px; }
+.mission-report-sheet.report-flow-sheet .mission-report-title { font-size: 17px !important; line-height: 1.3; letter-spacing: .5px; margin: 2px 0 0 !important; }
+.mission-report-sheet.report-flow-sheet .mission-report-card-stats { gap: 6px; margin-bottom: 6px; }
+.mission-report-sheet.report-flow-sheet .stat-card { flex-direction: row; justify-content: center; gap: 4px; padding: 6px !important; }
+.mission-report-sheet.report-flow-sheet .stat-card .stat-icon { font-size: 14px; }
+.mission-report-sheet.report-flow-sheet .stat-val { font-size: 17px !important; white-space: nowrap; }
+.mission-report-sheet.report-flow-sheet .mission-report-rule-note { margin: 0; font-size: 11px; line-height: 1.4; }
+.mission-report-sheet.report-flow-sheet .mission-report-section { padding: 8px; margin-bottom: 8px; }
+.mission-report-sheet.report-flow-sheet .mission-report-section-title { font-size: 13px; margin-bottom: 6px; }
+.mission-report-sheet.report-flow-sheet .mission-report-section-title .emblem { width: 22px; height: 22px; }
+.mission-report-sheet.report-flow-sheet .mission-report-footer { flex-shrink: 0; margin: 0 !important; padding-top: 8px !important; }
+.mission-report-sheet.report-flow-sheet .report-captain-compact { margin: 0 0 6px; font: 600 12px/1.4 var(--sans); color: #ffd875; }
+.mission-report-sheet.report-flow-sheet .mission-report-team-tray { display: block; padding: 0 !important; }
+.mission-report-sheet.report-flow-sheet .report-party-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; }
+.mission-report-sheet.report-flow-sheet .report-party-member-chip { min-width: 0; padding: 3px 6px 3px 3px; }
+.mission-report-sheet.report-flow-sheet .report-party-member-chip .token-portrait { width: 26px !important; height: 26px !important; }
+.mission-report-sheet.report-flow-sheet .report-party-member-chip .token-caption { min-width: 0; font: 600 12px/1.35 var(--sans) !important; }
+.mission-report-sheet.report-flow-sheet .report-party-member-chip .token-caption small { font: inherit; }
+.mission-report-sheet.report-flow-sheet .report-party-member-chip .token-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.game-play-priority .mission-card { min-height: 54px !important; margin: 0; padding: 8px !important; }
+.game-play-priority .mission-card-inner { flex-direction: row !important; justify-content: center; gap: 6px !important; }
+.game-play-priority .mission-card-icon { font-size: 20px !important; margin: 0 !important; }
+.game-play-priority .mission-vote-fieldset { gap: 6px !important; }
+.game-play-priority .mission-submit-btn { margin-top: 0 !important; }
+/* Recover phone viewport space through spacing, preserving text and avatar sizes. */
+@media (max-width: 600px) {
+  main.app-shell.is-live-table { --table-gap: 4px; padding-top: 4px !important; }
+  .is-live-table .waiting-play-priority .scheme3-ink-ribbon { min-height: 36px !important; }
+  .is-live-table .waiting-play-priority .table-seats-grid { margin: 0 !important; row-gap: 12px !important; }
+  .is-live-table .waiting-play-priority .waiting-dock { padding: 6px 8px !important; }
+  .is-live-table .game-play-priority .slim-game-status-bar { min-height: 36px !important; padding: 4px 10px !important; }
+  .is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena { padding: 14px 8px 8px !important; }
+  .is-live-table .game-play-priority .scheme-a-flank { gap: 10px !important; }
+  .is-live-table .game-play-priority .table-action-dock,
+  .is-live-table .game-play-priority .table-action-dock .dock-panel { padding: 6px 8px !important; }
+}
+/* Account actions share the existing button typography and a compact header. */
+.account-flow .profile-bar { padding: 12px; margin-bottom: 10px; gap: 10px; }
+.account-flow .profile-heading { gap: 10px; }
+.account-flow .profile-heading > .avatar { width: 56px; height: 56px; min-width: 56px; }
+.account-flow .profile-heading h1 { font-size: 22px; }
+.account-flow .profile-bar .compact-button { min-height: 38px; padding: 6px 10px; font-size: 12px; }
+.account-quick-tools { display: flex; gap: 8px; margin: 8px 0; }
+.account-quick-tools > button { flex: 1; min-width: 0; min-height: 40px; padding: 6px; margin: 0; font: 600 13px/1.4 var(--sans); }
+.account-flow .account-tabs { margin-top: 10px; }
+.account-flow .history-list article { padding: 12px; }
+.history-game-details { margin-top: 8px; padding: 6px 10px; }
+.profile-editor form { margin: 0; }
+.profile-editor { font: 500 14px/1.5 var(--sans); }
+.profile-editor :is(label, legend), .profile-editor #profile-nickname, .profile-editor .hint { font: inherit; }
+.profile-editor #profile-nickname { min-height: 44px; padding: 8px 12px; }
+.profile-editor .profile-preset-fieldset { margin-top: 16px; }
+.profile-preset-fieldset > legend { margin: 0; padding: 0; }
+.profile-preset-fieldset > .hint { margin: 4px 0 8px; }
+.profile-avatar-options { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 8px; }
+.profile-editor .profile-avatar-option { position: relative; margin: 0; min-width: 0; cursor: pointer; }
+.profile-avatar-option > input { min-height: 1px; margin: 0; }
+.profile-avatar-option-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-height: 86px; height: 100%; padding: 6px 3px; border: 1px solid #d4a35966; border-radius: 12px; background: #26100edb; color: #fff3d6; text-align: center; font: 500 12px/1.4 var(--sans); }
+.profile-avatar-option-card img { display: block; width: 52px; height: 52px; border-radius: 50%; object-fit: cover; }
+.profile-avatar-option input:checked + .profile-avatar-option-card { border-color: #79f2ff; background: #124b53; color: #d9ffff; }
+.profile-avatar-option input:focus-visible + .profile-avatar-option-card { outline: 2px solid #ffd875; outline-offset: 2px; }
+@media (max-width: 360px) {
+  .profile-avatar-options { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+.profile-editor .profile-vip-details { margin-top: 10px; }
+.presets > .preset-new-button { margin: 6px 0 10px; width: 100%; min-height: 44px; font-size: 14px; }
+.flow-editor-sheet .preset-form fieldset { margin: 0; }
+.flow-editor-sheet .preset-form { padding: 0 4px; }
+.replay-metadata, .replay-identities { margin: 8px 0; }
+.replay-favorite-action button { width: auto; min-height: 40px; font-size: 13px; }
+/* Keep all records mounted; navigation only scrolls to the requested proposal. */
+.round-jump-nav { display: flex; align-items: center; gap: 6px; overflow-x: auto; position: sticky; top: 0; z-index: 3; padding: 6px; border: 1px solid #d4a35966; border-radius: 10px; background: #260e0df5; scrollbar-width: thin; }
+.round-jump-nav > button { flex: 0 0 auto; width: auto; min-height: 36px; padding: 5px 10px; margin: 0; white-space: nowrap; font: 600 12px/1.4 var(--sans); }
+.round-jump-nav [aria-pressed="true"] { border-color: #ffd875; background: #67231e; }
+.battle-round-anchor { scroll-margin-top: 62px; }
+.guide-flow .guide-navigation { position: sticky; top: 0; z-index: 5; padding: 4px; background: #260e0d; border: 1px solid #d4a35980; border-radius: 12px; }
+.guide-flow .guide-controls { display: flex; align-items: center; gap: 4px; }
+.guide-controls > button { flex: 0 0 auto; width: auto; height: 40px; min-height: 40px; margin: 0; padding: 4px 6px; font: 600 12px/1.4 var(--sans); white-space: nowrap; }
+.guide-controls .guide-nav { flex: 0 0 auto; display: flex; gap: 4px; margin: 0; }
+.guide-controls .guide-nav > button { flex: 0 0 auto; width: auto; height: 40px; min-height: 40px; margin: 0; padding: 4px 8px; font: 600 12px/1.4 var(--sans); white-space: nowrap; }
+.guide-controls .guide-chapter-select { flex: 1 1 0; width: 0; min-width: 0; height: 40px; min-height: 40px; margin: 0; padding: 4px 6px; border: 1px solid #d4a359; border-radius: 10px; font: 600 12px/1.4 var(--sans); }
+.guide-flow .guide-heading { padding: 10px 12px; margin-top: 8px; }
+/* Only the single-row toolbar follows scrolling; the full index stays in flow. */
+.guide-directory { padding: 8px; border: 1px solid #d4a35966; border-radius: 12px; background: #260e0df5; }
+.guide-index-heading { margin: 0 0 6px; font: 600 12px/1.4 var(--sans); color: #ffd875; }
+.guide-index { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; margin: 4px 0 0; }
+.guide-index > button { width: 100%; min-width: 0; min-height: 40px; padding: 6px 4px; margin: 0; white-space: nowrap; font: 600 12px/1.4 var(--sans); }
+.guide-flow :is(.guide-directory, .guide-section, .guide-role) { scroll-margin-top: calc(var(--guide-navigation-height, 50px) + 12px); }
+@media (max-width: 380px) {
+  .account-flow .profile-bar { flex-direction: column; align-items: stretch; }
+  .game-result-actions .result-actions { width: 100%; }
+  .game-result-actions .result-actions button { flex: 1; }
+}
+.table-modal-sheet.battle-sheet { display: flex; flex-direction: column; overflow: hidden; gap: 8px; }
+.battle-sheet > .table-modal-head { flex-shrink: 0; margin-bottom: 0; }
+.battle-sheet > .battle-history { flex: 1; min-height: 0; overflow-y: auto; display: block; }
+.battle-sheet .battle-round-anchor { margin-top: 12px; }
+.panel.replay > .section-head { position: sticky; top: 0; z-index: 5; padding: 8px; background: #260e0df5; border-radius: 12px; }
+.replay .round-jump-nav { top: 72px; }
+.replay .battle-round-anchor { scroll-margin-top: 136px; }
+.flow-fixed-actions > :is(.error,.notice) { margin: 0 0 6px; padding: 6px 8px; font: 500 13px/1.4 var(--sans); }

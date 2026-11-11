@@ -1,0 +1,32 @@
+[
+  {
+    "id": "avalon",
+    "name": "嘻游 · 真假猴王",
+    "label": "AVALON",
+    "hook": "两个悟空，你信哪一个？",
+    "description": "组队、表决、暗中试探，找出取经路上的妖。",
+    "genre": "西游身份推理",
+    "action": "进入取经局",
+    "players": "5–12 人",
+    "status": "好友同玩",
+    "path": "/avalon/",
+    "upstream": "avalon-ingress:8080",
+    "network": "game-avalon-ingress",
+    "healthPath": "/avalon/api/health"
+  },
+  {
+    "id": "mafia",
+    "name": "暗局",
+    "label": "MAFIA",
+    "hook": "天黑以后，谁还值得信任？",
+    "description": "听发言、找破绽，在昼夜交替中辨出隐藏身份。",
+    "genre": "昼夜发言博弈",
+    "action": "进入暗局",
+    "players": "6–12 人",
+    "status": "试玩中",
+    "path": "/mafia/",
+    "upstream": "mafia-ingress:8080",
+    "network": "mafia-ingress",
+    "healthPath": "/mafia/api/health"
+  }
+]

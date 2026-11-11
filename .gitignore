@@ -1,0 +1,20 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+coverage/
+__pycache__/
+*.pyc
+*.log
+.DS_Store
+/tmp/
+/.playwright-mcp/
+deploy/backups/
+deploy/certs/
+deploy/evidence/
+deploy/runtime/
+
+# Process artifacts and intermediate design drafts
+design/
+artwork/huajian_logo/

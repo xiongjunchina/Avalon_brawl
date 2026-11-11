@@ -1,0 +1,122 @@
+import { build } from 'esbuild';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
+const { chromium } = await import(process.env.MINIGAME_PLAYWRIGHT_PATH
+  ? pathToFileURL(process.env.MINIGAME_PLAYWRIGHT_PATH).href : 'playwright');
+const result = await build({ stdin: { contents: `
+export {ScrollRasterCache} from './apps/minigame/src/ui/scroll-raster-cache.ts';
+export {createScrollLayoutCache} from './apps/minigame/src/ui/scroll-layout-cache.ts';
+export { setWebFonts } from './apps/minigame/src/ui/web-render.ts';
+export { layoutWebScreen } from './apps/minigame/src/ui/web-layout.ts';
+export { PlayerPanel } from './apps/minigame/src/screens/player-panel.ts';
+export { parityFixture, parityPlayerData, parityAdminData, parityAdminReplay } from './apps/minigame/scripts/parity-fixture.ts';
+export { renderScreen } from './apps/minigame/src/ui/widgets.ts';
+export { entryScreen } from './apps/minigame/src/screens/entry.ts';
+export { joinScreen } from './apps/minigame/src/screens/join.ts';
+export { lobbyScreen } from './apps/minigame/src/screens/lobby.ts';
+export { guideScreen } from './apps/minigame/src/screens/guide.ts';
+export { abortConfirmation } from './apps/minigame/src/screens/abort-confirm.ts';
+export { gameScreen } from './apps/minigame/src/screens/game.ts';
+export { AdminPanel } from './apps/minigame/src/screens/admin/panel.ts';
+export { adminOverviewScreen } from './apps/minigame/src/screens/admin/views.ts';
+export { PracticeSession } from './apps/minigame/src/screens/practice.ts';
+export { settingsScreen } from './apps/minigame/src/screens/settings.ts';
+export { defaultSettings } from './packages/contracts/src/index.ts';
+`, resolveDir: root }, bundle: true, format: 'iife', globalName: 'AvalonPreview', define:{__MINIGAME_VOICE_ENABLED__:JSON.stringify(process.env.WECHAT_MINIGAME_VOICE_ENABLED!=='false')}, write: false });
+const assets = {};
+const packageRoot=join(root,'dist/minigame');
+for(const folder of ['scenes','roles','avatars'])for(const name of await readdir(join(packageRoot,'art',folder))){
+ if(!name.endsWith('.jpg'))continue;
+ const logical=folder+'/'+name.replace(/\.jpg$/,'.webp'),data='data:image/jpeg;base64,'+(await readFile(join(packageRoot,'art',folder,name))).toString('base64');assets[logical]=data;
+ if(folder==='avatars'){assets['/art/'+logical+'?v=artifact1']=data;const i=Number(/wx-(\d+)/.exec(name)?.[1])-1,legacy=['leaf','moon','sun','mountain','wave','star'][i];if(legacy)assets['emblems/'+legacy+'.png']=data;}
+}
+for(const name of await readdir(join(packageRoot,'hd-art')))if(name.endsWith('.jpg')){const data='data:image/jpeg;base64,'+(await readFile(join(packageRoot,'hd-art',name))).toString('base64');if(name.startsWith('scene-'))assets['scenes/'+name.slice(6).replace('.jpg','.webp')]=data;else{assets['/art/roles/'+name.replace('.jpg','.webp')]=data;assets['roles/'+name.replace('-640.jpg','-160.webp')]=data;}}
+for(const name of await readdir(join(packageRoot,'art/emblems')))if(name.endsWith('.png')&&!assets['emblems/'+name])assets['emblems/'+name]='data:image/png;base64,'+(await readFile(join(packageRoot,'art/emblems',name))).toString('base64');
+assets['home/duel-mobile.jpg']='data:image/jpeg;base64,'+(await readFile(join(packageRoot,'hd-art/home-duel.jpg'))).toString('base64');
+for(const name of await readdir(join(packageRoot,'art/emblems')))if(name.endsWith('.png'))assets['symbols/'+name]='data:image/png;base64,'+(await readFile(join(packageRoot,'art/emblems',name))).toString('base64');
+const fonts = Object.fromEntries(await Promise.all(['calligraphy','display','sans','sans500','sans600','sans700','homeInterface'].map(async name => [name,'data:font/ttf;base64,'+(await readFile(join(packageRoot,(/sans[567]00/.test(name)||name==='homeInterface'||name==='display')?'web-fonts':'art/fonts',name+'.ttf'))).toString('base64')])));
+const dpr=Number(process.env.PARITY_DPR??1);
+const playerCount=Number(process.env.PARITY_PLAYERS??6);
+const profileScroll=process.env.PARITY_PROFILE==='1';
+const nativeVoicePreview=process.env.PARITY_VOICE==='1';
+const safeTop=Number(process.env.PARITY_SAFE_TOP??0),sparseLobby=process.env.PARITY_SPARSE==='1';
+const captureSuffix=(process.env.PARITY_BOTTOM==='1'?'-bottom':'')+(safeTop?'-safe'+safeTop:'')+(sparseLobby?'-sparse':'')+(nativeVoicePreview?'-speaking':'');
+const out = join(root, (dpr===1?'dist/minigame-preview':'dist/minigame-preview-dpr'+dpr)+(playerCount===6?'':'-'+playerCount)+captureSuffix);
+await mkdir(out, { recursive: true });
+const browser = await chromium.launch({ headless: true, ...(process.env.MINIGAME_CHROMIUM_PATH ? { executablePath: process.env.MINIGAME_CHROMIUM_PATH } : {}) });
+try {
+  for (const width of (process.env.PARITY_WIDTH?[Number(process.env.PARITY_WIDTH)]:[320,390,430])) {
+    const height = width === 320 ? 568 : width === 390 ? 844 : 932;
+    const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: dpr });
+    await page.setContent('<style>body{margin:0;background:#0a1024}</style><canvas id="preview"></canvas>');
+    await page.evaluate(async fonts => { for (const [name,source] of Object.entries(fonts)) { const family='Packaged-'+name; const font=new FontFace(family, 'url('+source+')',{weight:'400'}); document.fonts.add(await font.load()); } }, fonts);
+    await page.addScriptTag({ content: result.outputFiles[0].text });
+    await page.evaluate(names=>AvalonPreview.setWebFonts(Object.fromEntries(names.map(name=>[name,'Packaged-'+name]))),Object.keys(fonts));
+    for (const captureScene of (process.env.PARITY_SCENES?.split(',')??['entry','setup','game','identity','vote','vote-submitted','mission','report','result','account','profile','history','favorites','presets','friends','friends-list','friends-add','guide','guide-role'])) {
+      const scene=captureScene.startsWith('mirror-window')?'guanyin-window':captureScene.startsWith('notice-')?'private-notice':captureScene.startsWith('treasures-')?'treasures':({'result-top':'result','admin-replay-expanded':'admin-games','admin-replay-audit':'admin-games','admin-replay':'admin-games','chat-long':'chat','chat-draft':'chat','chat-empty':'chat','battle-populated':'battle','battle-public':'battle','admin-users-search':'admin-users','vote-approve':'vote','vote-reject':'vote','vote-abstain':'vote','mission-selected':'mission','preferences-selected':'preferences','report-public':'report','report-failed':'report','preset-editor':'presets','profile-vip':'profile','history-expanded':'history','replay-expanded':'replay','admin-special-editor':'admin-special','admin-code-editor':'admin-users','admin-friends':'admin-users'})[captureScene]??captureScene.replace('-populated','');
+      const layout = await page.evaluate(async ({ width, height, scene, assets, dpr,playerCount,captureScene,bottomCapture,safeTop,sparseLobby,nativeVoicePreview,profileScroll }) => {
+        const app = globalThis.AvalonPreview;
+        const canvas = document.getElementById('preview'); canvas.width = width*dpr; canvas.height = height*dpr;canvas.style.width=width+'px';canvas.style.height=height+'px';canvas.getContext('2d').scale(dpr,dpr);
+        const cache = new Map(); await Promise.all(Object.entries(assets).map(async ([name, url]) => { const img = new Image(); img.src = url; await img.decode(); cache.set(name, img); }));
+        const { user, room: parityRoom } = app.parityFixture(captureScene==='result-top'?'result':captureScene,playerCount);
+        const room = { id: 'r', code: '123456', hostId: 'u', settings: app.defaultSettings, acceptingNewMembers: true,
+          members: Array.from({ length: 6 }, (_, index) => ({ id: index ? 'u' + index : 'u', seat: index + 1, nickname: index ? '仙友' + index : '行者', ready: index > 0, online: true })) };
+        let model;
+        if (scene === 'guest') {model=app.entryScreen(undefined,undefined,true);model.web.authIntent='create';}
+        if (scene === 'setup') model = { ...app.settingsScreen(app.defaultSettings), web: { page: 'setup', settings: app.defaultSettings } };
+        if (scene === 'entry') model = { ...app.entryScreen(user),web:{...app.entryScreen(user).web,friendRequests:1}, scene: 'entry' };
+        if (scene === 'join' || scene === 'join-error') { model=app.joinScreen(user,'654321');if(scene==='join-error')model.rows.unshift({id:'error',text:'房间已关闭，请重新创建或加入其他房间。'}); }
+        if (scene === 'lobby') model = { ...app.lobbyScreen({...parityRoom,members:sparseLobby?parityRoom.members.slice(0,1):parityRoom.members,game:undefined,phase:'waiting'}, user, '已连接'), scene: 'game' };
+        if (['guanyin-window','private-notice','game','identity','vote','vote-submitted','mission','mission-submitted','report','result','art','treasures','battle'].includes(scene)) {
+          const overlay=scene==='guanyin-window'?'guanyin-window':scene==='private-notice'?'private-notice':['identity','art','treasures'].includes(scene)?scene:scene.startsWith('vote')?'vote':scene==='report'?'report':scene==='battle'?'history':undefined;
+          model=app.gameScreen(parityRoom,user,{targetId:captureScene==='treasures-mordred-selected'?parityRoom.game.players.find(p=>p.id!==parityRoom.game.captainId)?.id:undefined,voteChoice:captureScene==='vote-approve'?true:captureScene==='vote-reject'?false:captureScene==='vote-abstain'?'abstain':undefined,missionChoice:captureScene==='mission-selected'?true:undefined,noticeKind:captureScene.slice(7),privateRoleVisible:['guanyin-window','private-notice','identity','art','treasures'].includes(scene),ballotVisible:false,overlay,reportMission:scene==='report'?1:undefined,overlayReturn:['art','treasures'].includes(scene)?'identity':undefined},scene==='guanyin-window'?10000:Date.now());
+        }
+        if(scene==='setup')model={...app.settingsScreen(app.defaultSettings),rows:[{id:'chooseDedicated',text:'普通房 · 随机房号'},{id:'creationPassword',text:'入房密码：不设置'},{id:'createRoom',text:'创建房间'},{id:'startPractice',text:'演练'}],web:{page:'setup',settings:app.defaultSettings,document:{kind:'settings',activeTab:'setup',settings:app.defaultSettings}}};
+        if(['account','profile','history','favorites','presets','friends','friends-list','friends-add','replay','direct'].includes(scene)){
+          const d=app.parityPlayerData(), api={statistics:async()=>d.stats,history:async()=>({games:[d.summary],nextCursor:null}),presets:async()=>({presets:d.presets}),friends:async()=>({friends:d.friends}),directChat:async()=>({messages:[{id:'m1',senderId:d.friends[0].id,receiverId:user.id,message:'来开一局？',isSelf:false,createdAt:'2026-10-22T00:00:00Z'}]}),replay:async()=>d.replay};
+          const panel=new app.PlayerPanel(api,user);await panel.open(scene.startsWith('friends')||scene==='direct'?'friends':scene==='profile'?'account':scene==='favorites'||scene==='replay'?'history':scene,scene.startsWith('friends')?{roomId:parityRoom.id,roomMemberIds:parityRoom.members.map(m=>m.id)}:{});if(scene.startsWith('friends'))panel.setRoomCode(parityRoom.code);
+          if(scene==='profile')await panel.handle('profileToggle',async()=>undefined);
+          if(scene==='favorites')await panel.handle('page:favorites',async()=>undefined);
+          if(scene==='direct')await panel.handle('friend:'+d.friends[0].id,async()=>undefined);
+          if(scene==='friends-list')await panel.handle('friendTab:friends',async()=>undefined);
+          if(scene==='friends-add')await panel.handle('friendTab:add',async()=>undefined);
+          if(scene==='replay')await panel.openReplay(d.replay.id,'page:history');
+          if(captureScene==='preset-editor')await panel.handle('preset:new',async()=>undefined);
+          if(captureScene==='profile-vip')await panel.handle('details:profile-vip',async()=>undefined);
+          if(captureScene==='history-expanded')await panel.handle('details:'+d.summary.id,async()=>undefined);
+          if(captureScene==='replay-expanded'){await panel.handle('details:metadata',async()=>undefined);await panel.handle('details:identities',async()=>undefined);}
+          model=panel.model();if(scene.startsWith('friends'))model.web.underlay=app.lobbyScreen({...parityRoom,game:undefined,phase:'waiting'},user,'已连接');
+        }
+        if(scene==='abort-confirm')model=app.abortConfirmation(parityRoom,user,app.gameScreen(parityRoom,user,{privateRoleVisible:false,ballotVisible:false}));
+        if(scene==='preferences')model={title:'心仪选角',rows:[],web:{page:'sheet',backId:'auxiliaryClose',background:'library',document:{kind:'preferences',modal:true,settings:parityRoom.settings,preferences:captureScene==='preferences-selected'?['merlin','percival','assassin']:[]},underlay:app.lobbyScreen({...parityRoom,game:undefined,phase:'waiting'},user,'已连接')}};
+        if(scene==='sound')model={title:'声音设置',rows:[],web:{page:'sheet',backId:'auxiliaryClose',background:'library',document:{kind:'sound',modal:true,soundPreferences:{music:false,effects:false}},underlay:app.entryScreen(user)}};
+        if (scene === 'guide') model = app.guideScreen();
+        if (scene === 'guide-role') model = app.guideScreen(undefined,'roles');
+        if(scene==='guide-art')model=app.guideScreen('merlin','roles',true);
+        if(scene.startsWith('admin')){const d=app.parityAdminData(),populated=captureScene.endsWith('-populated')||['admin-replay-expanded','admin-replay-audit','admin-replay','admin-code-editor','admin-friends','admin-users-search'].includes(captureScene);const panel=new app.AdminPanel({verify:async()=>{},overview:async()=>({totalUsers:128,todayNewUsers:8,activeRoomsCount:3,onlineConnections:24,totalGames:456,todayGames:12,freeAccessMode:true}),userFriends:async()=>({friends:app.parityPlayerData().friends.map(f=>({nickname:f.nickname,player_code:f.playerCode,status:f.status}))}),users:async()=>({users:populated?d.users:[],total:populated?d.users.length:0}),rooms:async()=>({rooms:populated?d.rooms:[]}),games:async()=>({games:populated?d.games:[]}),replay:async()=>app.parityAdminReplay(),codes:async()=>({codes:populated?d.codes:[]}),settings:async()=>({freeAccessMode:true,adRewardHours:24,announcement:{enabled:false,text:''}}),special:async path=>path.includes('history')?{history:populated?d.allocations:[],nextCursor:null}:path.includes('player-codes')?{codes:populated?d.reservations:[]}:{rooms:populated?d.dedicated:[]}});await panel.open('mock-only');if(scene!=='admin')await panel.handle('page:'+scene.slice(6),async()=>undefined);if(captureScene.startsWith('admin-replay'))await panel.handle('replay:'+d.games[0].id,async()=>undefined);if(captureScene==='admin-replay-expanded')for(const key of ['metadata','identities'])await panel.handle('details:'+key,async()=>undefined);if(captureScene==='admin-replay-audit')await panel.handle('details:audit',async()=>undefined);if(captureScene==='admin-users-search')await panel.handle('search:input',async()=> '行者');if(captureScene==='admin-friends'){await panel.handle('user:'+d.users[0].id,async()=>undefined);await panel.handle('friends:'+d.users[0].id,async()=>undefined);}if(captureScene==='admin-code-editor')await panel.handle('userAction:playerCode:'+d.users[0].id,async()=>undefined);if(captureScene==='admin-special-editor')await panel.handle('special:new',async()=>undefined);model=panel.model();}
+        if(scene==='chat'){const panel=new app.PlayerPanel({},user);await panel.open('roomchat',{roomId:parityRoom.id});if(captureScene!=='chat-empty')panel.onRoomChat({messageId:'m1',fromUserId:parityRoom.members[1].id,nickname:'仙友1',seat:2,text:'这局我来当队长',timestamp:'2026-10-22T00:00:00Z'});if(captureScene==='chat-long')for(let i=0;i<25;i++)panel.onRoomChat({messageId:'long'+i,fromUserId:user.id,nickname:'行者',seat:1,text:'第'+(i+1)+'条传音：请根据大家的发言和投票记录认真判断。',timestamp:'2026-10-22T00:00:00Z'});if(captureScene==='chat-draft')await panel.handle('chat:input',async()=> '相信我，我带飞');model=panel.model();model.web.underlay=app.gameScreen(parityRoom,user,{privateRoleVisible:false,ballotVisible:false});}
+
+        if(bottomCapture||scene==='chat'||scene==='mission'||(scene==='result'&&captureScene!=='result-top'))model.scroll=app.layoutWebScreen(model,{width,height,top:safeTop,bottom:0}).maxScroll;
+        if(model.web){model.web.freeAccess=true;if(scene==='lobby'){model.web.friendRequests=1;model.web.voice={joined:false,connecting:false,muted:true,deafened:false,members:0,speakers:0};}model.web.soundPreferences={music:true,effects:true};}
+        if(nativeVoicePreview&&model.web&&['lobby','game'].includes(scene))model.web.voice={joined:true,connecting:false,muted:false,deafened:false,members:parityRoom.members.length,speakers:1,players:Object.fromEntries(parityRoom.members.map((m,i)=>[m.id,i===0?'speaking':'live']))};
+        app.renderScreen(model, canvas, { width, height, top: safeTop, bottom: 0 }, { get: name => cache.get(name) });
+        const viewport={width,height,top:safeTop,bottom:0},layout=app.layoutWebScreen(model,viewport);
+        if(profileScroll){const cached=app.createScrollLayoutCache();cached(model,viewport);const samples=[];let fills=0;const ctx=canvas.getContext('2d'),proto=Object.getPrototypeOf(ctx),original=proto.fillText;proto.fillText=function(...args){fills++;return original.apply(this,args);};
+          for(let i=0;i<120;i++){const m={...model,scroll:Math.min(layout.maxScroll,100+i*9)},l=cached(m,viewport,0,true),start=performance.now();app.renderScreen(m,canvas,viewport,{get:name=>cache.get(name)},l);samples.push(performance.now()-start);}
+          proto.fillText=original;samples.sort((a,b)=>a-b);layout.profile={medianMs:samples[60],p95Ms:samples[114],textCalls:fills,frames:120,dpr};app.renderScreen(model,canvas,viewport,{get:name=>cache.get(name)});
+          const raster=ctx.getImageData(0,0,canvas.width,canvas.height).data,draw=app.ScrollRasterCache.prototype.draw;app.ScrollRasterCache.prototype.draw=()=>false;
+          app.renderScreen(model,canvas,viewport,{get:name=>cache.get(name)});const direct=ctx.getImageData(0,0,canvas.width,canvas.height).data;app.ScrollRasterCache.prototype.draw=draw;
+          let difference=0,max=0;for(let i=0;i<direct.length;i++){const d=Math.abs(direct[i]-raster[i]);difference+=d;max=Math.max(max,d);}
+          layout.profile.rasterComparison={meanChannelDifference:difference/direct.length,maxChannelDifference:max};app.renderScreen(model,canvas,viewport,{get:name=>cache.get(name)});
+        }return layout;
+      }, { width, height, scene, assets, dpr,playerCount,captureScene,safeTop,sparseLobby,nativeVoicePreview,profileScroll,bottomCapture:process.env.PARITY_BOTTOM==='1' });
+      await writeFile(join(out, `${captureScene}-${width}.json`), JSON.stringify(layout,null,2));
+      await page.screenshot({ path: join(out, `${captureScene}-${width}.png`) });
+    }
+    await page.close();
+  }
+} finally { await browser.close(); }
+console.log('Headless Canvas previews: ' + out);

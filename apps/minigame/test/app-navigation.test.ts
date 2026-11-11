@@ -1,0 +1,168 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { runInNewContext } from 'node:vm';
+import { parityFixture } from '../scripts/parity-fixture.js';
+import { buildMiniGame } from '../scripts/build.mjs';
+import { forLegacyWechatEngine } from './legacy-engine.js';
+
+for (const legacyBuiltins of [false, true]) test(`voice-enabled client navigates without requiring native voice permission (${legacyBuiltins ? 'ES2020 builtins' : 'modern builtins'})`, async t => {
+  const outDir = await mkdtemp(join(tmpdir(), 'avalon-parity-app-'));
+  t.after(() => rm(outDir, { recursive: true, force: true }));
+  await buildMiniGame({ outDir, voiceEnabled:true });
+  const timers = new Set<ReturnType<typeof setTimeout>>();
+  t.after(() => { for (const timer of timers) clearTimeout(timer); });
+  let start: any, end: any, confirmKeyboard: any, completeKeyboard: any, inputKeyboard: any, pendingJoin: any, room: any, socketMessage: any;
+  const commands: any[] = [];
+  const frameCallbacks:(()=>void)[]=[],preferredFps:number[]=[];let screenPaints=0;
+  const user = { id: '11111111-1111-4111-8111-111111111111', nickname: '行者', playerCode: '123456' };
+  const storage = new Map(), requests: { path: string; data: any }[] = [];
+  let frame: { text: string; x: number; y: number }[] = [];
+  const painted: string[] = [];
+  let chosenAvatars = 0;
+  let pendingHistory: any;
+  const ctx = new Proxy({}, { get: (_target, key) => (key === 'createLinearGradient' || key === 'createRadialGradient') ? () => ({ addColorStop() {} })
+    : key === 'measureText' ? (text: string) => ({ width: Array.from(text).reduce((sum, char) => sum + (/[^\u0020-\u007e]/.test(char) ? 1 : .6) * (Number(/([\d.]+)px/.exec(String((_target as any).font))?.[1]) || 12), 0) })
+    : key === 'fillRect' ? (x: number, y: number, w: number, h: number) => { if (x === 0 && y === 0 && w === 390 && h === 844) frame = [],screenPaints++; }
+    : key === 'fillText' ? (text: string, x: number, y: number) => (painted.push(text), frame.push({ text, x, y }))
+    : () => {} });
+  const wx = {
+    setPreferredFramesPerSecond:(fps:number)=>preferredFps.push(fps),
+    requestAnimationFrame:(callback:()=>void)=>{frameCallbacks.push(callback);return frameCallbacks.length;},
+    createCanvas: () => ({ getContext: () => ctx, toTempFilePathSync: () => 'avatar.jpg' }),
+    chooseImage: (o: any) => { chosenAvatars++; o.success({tempFilePaths:['photo.jpg']}); },
+    createImage: () => ({width:200,height:200,set src(_s: string) { (this as any).onload?.(); }}),
+    getFileSystemManager: () => ({readFileSync: () => 'AAAA'}),
+    getSystemInfoSync: () => ({ screenWidth: 390, screenHeight: 844, pixelRatio: 2, safeArea: { top: 44, bottom: 810 } }),
+    getStorageSync: (key: string) => storage.get(key), setStorageSync: (key: string, value: unknown) => storage.set(key, value), removeStorageSync: (key: string) => storage.delete(key),
+    login: (options: any) => options.success({ code: 'verified-on-server' }),
+    request: (options: any) => {
+      const path = options.url.split('/api')[1]; requests.push({ path, data: options.data });
+      let data: any = {};
+      if (path === '/system/announcement') data = { announcement: { enabled: false, text: '' }, freeAccessMode: true };
+      else if (path === '/sessions/minigame') data = { user, token: 'test-token' };
+      else if (path === '/me/stats') data = {completed:0,wins:0,losses:0,byTeam:{},byRole:{}};
+      else if (path === '/me/games') { pendingHistory = options; return; }
+      else if (path === '/me' && options.method === 'PATCH') data = {user:{...user,...options.data}};
+      else if (path === '/me') data = { user, roomId: null };
+      else if (path === '/rooms/join') { pendingJoin = options; return; }
+      else if (path === '/rooms') { room = { id: '22222222-2222-4222-8222-222222222222', code: '123456', hostId: user.id, version: 1, phase: 'waiting', settings: options.data.settings, members: [{ ...user, seat: 1, ready: false, online: true }], acceptingNewMembers: true }; data = { room }; }
+      else if (path.startsWith('/rooms/')) data = { room };
+      else if (path === '/minigame/socket-ticket') data = { ticket: 'test-ticket' };
+      options.success({ statusCode: 200, data });
+    },
+    connectSocket: () => ({ send(options: { data: string }) {
+      const command = JSON.parse(options.data); commands.push(command);
+      queueMicrotask(() => {
+        if(command.type === 'updateTeamDraft') room.game.draftTeam = command.payload;
+        if(command.type === 'proposeTeam') { room.game.phase = 'discussion'; room.game.rounds = [{number:1,mission:1,captainId:user.id,team:command.payload.playerIds,direction:command.payload.direction}]; }
+        room.version++;
+        socketMessage({data:JSON.stringify({type:'commandResult',commandId:command.commandId,ok:true})});
+        socketMessage({data:JSON.stringify({type:'snapshot',room})});
+      });
+    }, close() {}, onOpen(callback: () => void) { callback(); }, onMessage(callback: any) { socketMessage = callback; }, onClose() {}, onError() {} }),
+    showKeyboard() {}, hideKeyboard() {}, onKeyboardConfirm(callback: any) { confirmKeyboard = callback; }, offKeyboardConfirm() {},
+    onKeyboardInput(callback: any) { inputKeyboard = callback; }, offKeyboardInput() {},
+    onKeyboardComplete(callback: any) { completeKeyboard = callback; }, offKeyboardComplete() {},
+    onShow() {}, onHide() {}, onShareAppMessage() {},
+    onTouchStart(callback: any) { start = callback; }, onTouchEnd(callback: any) { end = callback; },
+  };
+  const bundle = await readFile(join(outDir, 'bundle.js'), 'utf8');
+  runInNewContext(legacyBuiltins ? await forLegacyWechatEngine(bundle) : bundle, {
+    wx, console, crypto: globalThis.crypto, clearTimeout,
+    setTimeout: (callback: () => void, ms: number) => { const timer = setTimeout(callback, ms); timers.add(timer); return timer; },
+  });
+  const settle = async () => {
+    await new Promise<void>(resolve => setImmediate(resolve));
+    for(const callback of frameCallbacks.splice(0))callback();
+    await new Promise<void>(resolve => setImmediate(resolve));
+  };
+  async function tap(label: string) {
+    // Canvas text may be painted in runs to apply letter spacing and fallback-glyph widths.
+    const candidates = frame.flatMap((item, index) => {
+      let text = '', right = item.x;
+      for (const part of frame.slice(index)) {
+        if (part.y !== item.y || part.x < right) break;
+        text += part.text; right = part.x;
+        if (text === label) return [{ text, x: (item.x + right) / 2, y: item.y }];
+        if (!label.startsWith(text)) break;
+      }
+      return [];
+    });
+    const target = candidates.reverse().find(item => item.y >= 44 && item.y <= 800);
+    assert.ok(target, 'visible control missing: ' + label);
+    start({ touches: [{ clientX: target.x, clientY: target.y }] });
+    end({ changedTouches: [{ clientX: target.x, clientY: target.y }] });
+    await settle();
+  }
+  await settle(); // First launch signs in through wx.login without a manual nickname screen.
+  assert.equal(requests.filter(r=>r.path==='/sessions/minigame').length,1);
+  assert.equal(requests.find(r=>r.path==='/sessions/minigame')?.data.code,'verified-on-server');
+  assert.equal(preferredFps[0],60);
+  const beforePaints=screenPaints;for(const callback of frameCallbacks.splice(0))callback();assert.equal(screenPaints,beforePaints,'static home must not redraw on idle native frames');
+  assert.ok(frame.some(item => item.text === '开常规房'));
+  await tap('行者');
+  painted.length = 0;
+  await tap('历史对局');
+  assert.ok(!painted.some(text => /请稍候|正在处理/.test(text)), 'tab switches must not paint a global loading toast');
+  if (pendingHistory) { pendingHistory.success({statusCode:200,data:{games:[]}}); await settle(); }
+  await tap('我的战绩');
+  await tap('修改昵称与头像');
+  await tap('上传自定义头像');
+  assert.equal(chosenAvatars, 1, 'the visible upload button must invoke the native picker');
+  await tap('保存资料');
+  assert.equal(requests.find(item => item.path === '/me' && item.data?.avatarUrl)?.data.avatarUrl, 'data:image/jpeg;base64,AAAA');
+  await tap('‹ 返回');
+  await tap('加入房间');
+  assert.ok(frame.some(item => item.text === '点击输入房号或粘贴邀请链接'));
+  await tap('确认加入房间');
+  assert.equal(requests.filter(r=>r.path==='/rooms/join').length,0);
+  await tap('点击输入房号或粘贴邀请链接');
+  assert.equal(typeof confirmKeyboard,'function');
+  confirmKeyboard({ value: '654321' }); await settle();
+  assert.ok(frame.some(item=>item.text==='654321'));
+  assert.equal(requests.filter(r=>r.path==='/rooms/join').length,0,'keyboard confirmation edits the field without submitting');
+  await tap('确认加入房间');
+  assert.equal(requests.filter(r=>r.path==='/rooms/join').length,1);
+  assert.equal(pendingJoin.data.key,'654321');
+  await tap('正在加入…');
+  assert.equal(requests.filter(r=>r.path==='/rooms/join').length,1,'pending submit cannot be sent twice');
+  pendingJoin.success({statusCode:404,data:{error:'ROOM_CLOSED'}});await settle();
+  assert.ok(frame.some(item=>item.text==='654321'),'failed join must retain the editable draft');
+  assert.ok(frame.some(item=>item.text.includes('房间已关闭')));
+  await tap('654321');
+  inputKeyboard({value:'123456'});completeKeyboard();await settle();
+  assert.ok(frame.some(item=>item.text==='123456'),'dismissed keyboard retains typed room number');
+  assert.ok(!frame.some(item=>item.text.includes('房间已关闭')),'editing clears stale room errors');
+  assert.equal(requests.filter(r=>r.path==='/rooms/join').length,1);
+  await tap('‹ 返回'); await tap('加入房间');
+  assert.ok(frame.some(item => item.text === '点击输入房号或粘贴邀请链接'));
+  await tap('‹ 返回'); await tap('🎙 远端语音房');assert.ok(frame.some(i=>i.text==='开语音房'));await tap('🏛 线下常规房');assert.ok(frame.some(i=>i.text==='开常规房'));await tap('🎙 远端语音房'); await tap('开语音房'); await tap('9');
+  for (let index = 0; index < 8 && !frame.some(item => item.text === '创建游戏房间' && item.y < 790); index++) {
+    start({ touches: [{ clientX: 350, clientY: 760 }] }); end({ changedTouches: [{ clientX: 350, clientY: 240 }] }); await settle();
+  }
+  await tap('创建游戏房间');
+  assert.equal(requests.find(item => item.path === '/rooms')?.data.settings.playerCount, 9);
+  assert.equal(requests.find(item => item.path === '/rooms')?.data.settings.voiceChatEnabled, true);
+  assert.ok(frame.some(item => item.text.includes('房号 123456')));
+  const waitingPaints=screenPaints;for(const callback of frameCallbacks.splice(0))callback();assert.equal(screenPaints,waitingPaints,'waiting room must not redraw on idle native frames');
+  room = parityFixture().room; room.version = 2;
+  socketMessage({data:JSON.stringify({type:'snapshot',room})}); await settle();
+  await tap('1号'); await tap('2号');
+  assert.equal(commands.filter(command => command.type === 'updateTeamDraft').length, 2);
+  await tap('确认阵容 (2/2)');
+  assert.deepEqual(commands.find(command => command.type === 'proposeTeam')?.payload.playerIds, room.game.players.slice(0,2).map((player: any) => player.id));
+  assert.equal(room.game.phase, 'discussion');
+  socketMessage({data:JSON.stringify({type:'roomChat',messageId:'public-chat',fromUserId:user.id,nickname:user.nickname,seat:1,text:'我来带队',timestamp:new Date().toISOString()})});await settle();
+  assert.ok(frame.some(item=>item.text==='我来带队'),'public chat must appear over the player seat');
+  await tap('结束');assert.ok(frame.some(item=>item.text==='继续游戏'));
+  assert.equal(commands.filter(command=>command.type==='endGame').length,0);
+  await tap('‹ 返回');assert.equal(commands.filter(command=>command.type==='endGame').length,0);
+  room.game.abortPoll={requestedBy:room.members[1].id,approvals:0,required:1,voted:false};room.version++;
+  socketMessage({data:JSON.stringify({type:'snapshot',room})});await settle();
+  await tap('结束');await tap('继续游戏');
+  assert.equal(commands.at(-1)?.type,'voteAbort');assert.equal(commands.at(-1)?.payload.approve,false);
+});
+

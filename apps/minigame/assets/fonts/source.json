@@ -1,0 +1,50 @@
+[
+  {
+    "file": "calligraphy.ttf",
+    "family": "Ma Shan Zheng",
+    "source": "https://fonts.gstatic.com/s/mashanzheng/v18/NaPecZTRCLxvwo41b4gvzkXaRMQ.ttf",
+    "sha256": "f64fe1743872512a11e753b98cd012dd3c9eed4ba31e1d72be6a4a99c0f29a26",
+    "glyphs": 1223,
+    "bytes": 837044
+  },
+  {
+    "file": "display.ttf",
+    "family": "ZCOOL XiaoWei",
+    "source": "https://fonts.gstatic.com/s/zcoolxiaowei/v15/i7dMIFFrTRywPpUVX9_RJyM1YFI.ttf",
+    "sha256": "b587309074367ddd254aec936eef923769ffe9cf563b974d2659599547c4915a",
+    "glyphs": 1223,
+    "bytes": 852888
+  },
+  {
+    "file": "sans.ttf",
+    "family": "Noto Sans SC",
+    "source": "https://fonts.gstatic.com/s/notosanssc/v41/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaG9_FnYw.ttf",
+    "sha256": "8ae779db865713e7d0e57056e5ab0d8b5ae57ced8d9d60dd40b11d000c163f76",
+    "glyphs": 1223,
+    "bytes": 323680
+  },
+  {
+    "file": "sans500.ttf",
+    "family": "Noto Sans SC:wght@500",
+    "source": "https://fonts.gstatic.com/s/notosanssc/v41/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaG-3FnYw.ttf",
+    "sha256": "01994e913bef93dd728cede07e54ee5627e85da7e2a8a8ebb4ef820361b70461",
+    "glyphs": 1223,
+    "bytes": 323532
+  },
+  {
+    "file": "sans600.ttf",
+    "family": "Noto Sans SC:wght@600",
+    "source": "https://fonts.gstatic.com/s/notosanssc/v41/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaGwHCnYw.ttf",
+    "sha256": "a58192c609c1d775b96164f02dbf354ccc404e34d8687f85d61016d2382344ab",
+    "glyphs": 1223,
+    "bytes": 323440
+  },
+  {
+    "file": "sans700.ttf",
+    "family": "Noto Sans SC:wght@700",
+    "source": "https://fonts.gstatic.com/s/notosanssc/v41/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaGzjCnYw.ttf",
+    "sha256": "fe38853eba603d73ca314dd538130be697055d3e33ffc058e21725e2d5b2385d",
+    "glyphs": 1223,
+    "bytes": 323524
+  }
+]

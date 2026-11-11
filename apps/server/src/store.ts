@@ -1,0 +1,624 @@
+import { createHash, randomBytes, randomUUID, randomInt } from 'node:crypto';
+import { hashSecret, verifySecret } from './access-secrets.js';
+import { allocatePlayerCode } from './player-codes.js';
+import { secureRandomBelow } from './secure-random.js';
+import { createGame, transition, projectGame, isEnded, finish, RuleError, ROLE_CONFIG, type GameState } from '@avalon/game-core';
+import { isDeepStrictEqual } from 'node:util';
+import type { Pool, PoolClient } from 'pg';
+import { defaultSettings, looksLikeRoomNumber, type Command, type RoomView, type Settings, type User, type ServerMessage, type Role } from '@avalon/contracts';
+
+export class DomainError extends Error {
+  constructor(public code: string, public status = 400) { super(code); }
+}
+export const SESSION_MS = 30 * 86400_000;
+export const GRACE_MS = 60_000;
+export const ROOM_TTL_MS = 86400_000;
+export const DEAL_MS = 5_000;
+const LEASE_MS = 45_000;
+export const digest = (token: string) => createHash('sha256').update(token).digest('hex');
+type RoomRow = { dedicated_room_id?: string | null; password_hash?: string | null; id: string; code: string; invite: string; host_id: string; settings: RoomView['settings'];
+  version: number; accepting_new_members: boolean; phase: RoomView['phase'] | 'closed'; offline_since: Date | null; current_game_id: string | null };
+type MemberRow = { user_id: string; nickname: string; avatar: User['avatar']; avatar_url?: string | null; wechat_avatar_url?: string | null; player_code?: string | null; seat: number; ready: boolean;
+  connection_id: string | null; last_seen_at: Date; disconnected_at: Date | null; joined_at: Date; join_order: string; role_preferences?: Role[] };
+export class PostgresStore {
+  private restartGraceUntil = 0;
+  constructor(public pool: Pool, public now: () => number = Date.now) {}
+  private date() { return new Date(this.now()); }
+  async tx<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
+    let client: PoolClient | undefined;
+    try {
+      client = await this.pool.connect(); await client.query('BEGIN');
+      const result = await fn(client); await client.query('COMMIT'); return result;
+    } catch (err) {
+      await client?.query('ROLLBACK').catch(() => {});
+      if (err instanceof DomainError) throw err;
+      if (err instanceof RuleError) throw new DomainError(err.message, 409);
+      throw new DomainError('SERVICE_UNAVAILABLE', 503);
+    } finally { client?.release(); }
+  }
+  private async lock(c: PoolClient, id: string) {
+    const r = await c.query<RoomRow>('SELECT * FROM rooms WHERE id=$1 FOR UPDATE', [id]);
+    if (!r.rows[0]) throw new DomainError('ROOM_NOT_FOUND', 404);
+    return r.rows[0];
+  }
+  private async members(c: PoolClient, id: string) {
+    return (await c.query<MemberRow>(`SELECT m.*,u.nickname,u.avatar,u.avatar_url,u.wechat_avatar_url,u.player_code FROM room_members m JOIN users u ON u.id=m.user_id
+      WHERE room_id=$1 ORDER BY joined_at,join_order`, [id])).rows;
+  }
+  private async view(c: PoolClient, r: RoomRow, members: MemberRow[], userId?: string): Promise<RoomView> {
+    const game = await this.game(c,r);
+    const selfMember = userId ? members.find(m => m.user_id === userId) : undefined;
+    const dedicatedName = r.dedicated_room_id ? (await c.query('SELECT name FROM dedicated_rooms WHERE id=$1', [r.dedicated_room_id])).rows[0]?.name : undefined;
+    return { id: r.id, code: r.code, hostId: r.host_id, version: r.version, settings: r.settings,
+      hasPassword: Boolean(r.password_hash), inviteKey: r.invite,
+      ...(r.dedicated_room_id ? { dedicatedRoomId: r.dedicated_room_id, dedicatedRoomName: dedicatedName } : {}),
+      serverTime: this.date().toISOString(),
+      phase: r.phase === 'closed' ? 'waiting' : r.phase, acceptingNewMembers: r.accepting_new_members,
+      ...(r.settings.rolePreferenceEnabled && selfMember?.role_preferences ? {
+        selfRolePreferences: (selfMember.role_preferences as Role[]) || [],
+      } : {}),
+      ...(game ? { game: projectGame(game,userId) } : {}),
+      members: members.map(m => ({
+        id: m.user_id,
+        nickname: m.nickname,
+        avatar: m.avatar,
+        ...(m.avatar_url ? { avatarUrl: m.avatar_url } : {}),
+        ...(m.wechat_avatar_url ? { wechatAvatarUrl: m.wechat_avatar_url } : {}),
+        ...(m.player_code ? { playerCode: m.player_code } : {}),
+        seat: m.seat,
+        ready: m.ready,
+        online: m.connection_id !== null,
+        ...(r.settings.rolePreferenceEnabled && m.role_preferences && (m.role_preferences as Role[]).length > 0 ? {
+          hasRolePreference: true,
+        } : {}),
+      })).sort((a,b) => a.seat-b.seat) };
+  }
+  private open(r: RoomRow) { if (r.phase === 'closed') throw new DomainError('ROOM_CLOSED', 410); }
+  private async assertMember(c: PoolClient, r: RoomRow, userId: string) {
+    this.open(r);
+    const members = await this.members(c, r.id);
+    if (!members.some(m => m.user_id === userId)) throw new DomainError('FORBIDDEN', 403);
+    return members;
+  }
+  async health() { return this.tx(async c => { await c.query('SELECT 1'); }); }
+  async createGuest(nickname: string, options: {registrationId?:string;roomKey?:string} = {}) {
+    let user: User = { id: randomUUID(), nickname, avatar:'leaf' };
+    const token = randomBytes(32).toString('base64url');
+    return this.tx(async c => {
+      if(options.registrationId){
+        await c.query('SELECT pg_advisory_xact_lock(hashtext($1))',[`guest:${options.registrationId}`]);
+        const existing=(await c.query<{id:string;nickname:string;avatar:User['avatar'];avatar_url:string|null;wechat_avatar_url:string|null;player_code:string;is_banned:boolean|null;vip_until:Date|null}>(
+          `SELECT u.id,u.nickname,u.avatar,u.avatar_url,u.wechat_avatar_url,u.player_code,m.is_banned,m.vip_until
+           FROM users u LEFT JOIN user_memberships m ON m.user_id=u.id WHERE u.guest_registration_id=$1`,[options.registrationId])).rows[0];
+        if(existing){
+          if(existing.is_banned)throw new DomainError('USER_BANNED',403);
+          user={id:existing.id,nickname:existing.nickname,avatar:existing.avatar,playerCode:existing.player_code,
+            ...(existing.avatar_url?{avatarUrl:existing.avatar_url}:{}),...(existing.wechat_avatar_url?{wechatAvatarUrl:existing.wechat_avatar_url}:{}),
+            isVip:Boolean(existing.vip_until&&existing.vip_until.getTime()>this.now()),...(existing.vip_until?{vipUntil:existing.vip_until.toISOString()}:{})};
+        }
+      }
+      if(!user.playerCode){
+        if(looksLikeRoomNumber(nickname))throw new DomainError('NICKNAME_LOOKS_LIKE_ROOM_CODE');
+        if(options.roomKey){
+          // Only a valid invite or an unprotected room code may reveal a name collision.
+          const duplicate=await c.query(`SELECT 1 FROM rooms r JOIN room_members rm ON rm.room_id=r.id JOIN users u ON u.id=rm.user_id
+            WHERE r.phase<>'closed' AND (r.invite=$1 OR (r.code=$2 AND r.password_hash IS NULL)) AND u.nickname=$3 LIMIT 1`,
+            [options.roomKey,options.roomKey.toUpperCase(),nickname]);
+          if(duplicate.rowCount)throw new DomainError('NICKNAME_ALREADY_IN_ROOM',409);
+        }
+        user.playerCode = await allocatePlayerCode(c);
+        await c.query('INSERT INTO users(id,nickname,created_at,player_code,guest_registration_id) VALUES($1,$2,$3,$4,$5)', [user.id,nickname,this.date(),user.playerCode,options.registrationId??null]);
+      }
+      await c.query('INSERT INTO sessions(token_hash,user_id,expires_at) VALUES($1,$2,$3)', [digest(token),user.id,new Date(this.now()+SESSION_MS)]);
+      return { user, token };
+    });
+  }
+  async switchAccount(playerCode: string, expectedUserId?: string, sourceToken?: string): Promise<{ user: User; token: string }> {
+    const token = randomBytes(32).toString('base64url');
+    return this.tx(async c => {
+      const u = (await c.query<{
+        id: string;
+        nickname: string;
+        avatar: User['avatar'];
+        avatar_url?: string | null;
+        wechat_avatar_url?: string | null;
+        player_code: string;
+        is_banned?: boolean | null;
+        vip_until?: Date | null;
+      }>(
+        `SELECT u.id, u.nickname, u.avatar, u.avatar_url, u.wechat_avatar_url, u.player_code,
+                m.is_banned, m.vip_until
+         FROM users u
+         LEFT JOIN user_memberships m ON m.user_id = u.id
+         WHERE u.player_code = $1 FOR SHARE OF u`,
+        [playerCode]
+      )).rows[0];
+
+      if (!u) throw new DomainError('USER_NOT_FOUND', 404);
+      if (expectedUserId && expectedUserId !== u.id) throw new DomainError('ACCOUNT_CODE_CHANGED', 409);
+      if (u.is_banned) throw new DomainError('USER_BANNED', 403);
+
+      await c.query('INSERT INTO sessions(token_hash, user_id, expires_at) VALUES($1, $2, $3)', [
+        digest(token),
+        u.id,
+        new Date(this.now() + SESSION_MS),
+      ]);
+      // The current operator's verified identity follows the session, never the target account.
+      if(sourceToken)await c.query(`UPDATE sessions target SET wechat_actor_openid=source.wechat_actor_openid,
+        wechat_actor_verified_at=source.wechat_actor_verified_at FROM sessions source
+        WHERE target.token_hash=$1 AND source.token_hash=$2 AND source.expires_at>$3`,[digest(token),digest(sourceToken),this.date()]);
+
+      const isVip = Boolean(u.vip_until && u.vip_until.getTime() > this.now());
+      const user: User = {
+        id: u.id,
+        nickname: u.nickname,
+        avatar: u.avatar || 'leaf',
+        ...(u.avatar_url ? { avatarUrl: u.avatar_url } : {}),
+        ...(u.wechat_avatar_url ? { wechatAvatarUrl: u.wechat_avatar_url } : {}),
+        playerCode: u.player_code,
+        isVip,
+        ...(u.vip_until ? { vipUntil: u.vip_until.toISOString() } : {}),
+      };
+      return { user, token };
+    });
+  }
+  async loginWechat(input: {
+    openid: string;
+    unionid?: string;
+    nickname?: string;
+    avatarUrl?: string;
+  }): Promise<{ user: User; token: string }> {
+    const token = randomBytes(32).toString('base64url');
+    return this.tx(async c => {
+      let u = (await c.query<{
+        id: string;
+        nickname: string;
+        avatar: User['avatar'];
+        avatar_url?: string | null;
+        wechat_avatar_url?: string | null;
+        player_code: string;
+        is_banned?: boolean | null;
+        vip_until?: Date | null;
+      }>(
+        `SELECT u.id, u.nickname, u.avatar, u.avatar_url, u.wechat_avatar_url, u.player_code,
+                m.is_banned, m.vip_until
+         FROM users u
+         LEFT JOIN user_memberships m ON m.user_id = u.id
+         WHERE u.wechat_openid = $1`,
+        [input.openid]
+      )).rows[0];
+
+      if (!u) {
+        const playerCode = await allocatePlayerCode(c);
+        const userId = randomUUID();
+        const nickname = input.nickname?.trim() || `微信仙友${playerCode.slice(-4)}`;
+        await c.query(
+          `INSERT INTO users(id, nickname, created_at, player_code, wechat_openid, wechat_unionid, wechat_avatar_url)
+           VALUES($1, $2, $3, $4, $5, $6, $7)`,
+          [userId, nickname, this.date(), playerCode, input.openid, input.unionid ?? null, input.avatarUrl ?? null]
+        );
+        u = {
+          id: userId,
+          nickname,
+          avatar: 'leaf',
+          avatar_url: null,
+          wechat_avatar_url: input.avatarUrl ?? null,
+          player_code: playerCode,
+          is_banned: false,
+          vip_until: null,
+        };
+      } else if (u.is_banned) {
+        throw new DomainError('USER_BANNED', 403);
+      }
+
+      await c.query('INSERT INTO sessions(token_hash, user_id, expires_at,wechat_actor_openid,wechat_actor_verified_at) VALUES($1, $2, $3,$4,$5)', [
+        digest(token),
+        u.id,
+        new Date(this.now() + SESSION_MS),
+        input.openid,
+        this.date(),
+      ]);
+
+      const isVip = Boolean(u.vip_until && u.vip_until.getTime() > this.now());
+      const user: User = {
+        id: u.id,
+        nickname: u.nickname,
+        avatar: u.avatar || 'leaf',
+        ...(u.avatar_url ? { avatarUrl: u.avatar_url } : {}),
+        ...(u.wechat_avatar_url ? { wechatAvatarUrl: u.wechat_avatar_url } : {}),
+        playerCode: u.player_code,
+        isVip,
+        ...(u.vip_until ? { vipUntil: u.vip_until.toISOString() } : {}),
+      };
+      return { user, token };
+    });
+  }
+  async authenticate(token?: string, renew = false): Promise<User> {
+    if (!token) throw new DomainError('UNAUTHENTICATED', 401);
+    return this.tx(async c => {
+      const result = renew
+        ? await c.query(`UPDATE sessions SET expires_at=$2 WHERE token_hash=$1 AND expires_at>$3 RETURNING user_id`, [digest(token),new Date(this.now()+SESSION_MS),this.date()])
+        : await c.query('SELECT user_id FROM sessions WHERE token_hash=$1 AND expires_at>$2', [digest(token),this.date()]);
+      if (!result.rows[0]) throw new DomainError('UNAUTHENTICATED', 401);
+      return this.sessionUser(c,result.rows[0].user_id);
+    });
+  }
+  private async sessionUser(c: PoolClient, userId: string): Promise<User> {
+    const u = (await c.query<{
+      id: string;
+      nickname: string;
+      avatar: User['avatar'];
+      avatar_url?: string | null;
+      wechat_avatar_url?: string | null;
+      player_code?: string | null;
+      is_banned?: boolean | null;
+      vip_until?: Date | null;
+    }>(
+      `SELECT u.id, u.nickname, u.avatar, u.avatar_url, u.wechat_avatar_url, u.player_code,
+              m.is_banned, m.vip_until
+       FROM users u
+       LEFT JOIN user_memberships m ON m.user_id = u.id
+       WHERE u.id=$1`,
+      [userId]
+    )).rows[0];
+    if (!u) throw new DomainError('UNAUTHENTICATED', 401);
+    if (u.is_banned) throw new DomainError('USER_BANNED', 403);
+    const isVip = Boolean(u.vip_until && u.vip_until.getTime() > this.now());
+    return {
+      id: u.id,
+      nickname: u.nickname,
+      avatar: u.avatar,
+      ...(u.avatar_url ? { avatarUrl: u.avatar_url } : {}),
+      ...(u.wechat_avatar_url ? { wechatAvatarUrl: u.wechat_avatar_url } : {}),
+      ...(u.player_code ? { playerCode: u.player_code } : {}),
+      isVip,
+      ...(u.vip_until ? { vipUntil: u.vip_until.toISOString() } : {}),
+    };
+  }
+  async createWebHandoffSession(sourceToken: string, userId: string, roomId?: string): Promise<{user:User;token:string}> {
+    return this.tx(async c=>{
+      // Lock the source session until the new session is committed, including against logout.
+      const source=await c.query('SELECT user_id FROM sessions WHERE token_hash=$1 AND expires_at>$2 FOR SHARE',[digest(sourceToken),this.date()]);
+      if(source.rows[0]?.user_id!==userId)throw new DomainError('HANDOFF_EXPIRED',401);
+      if(roomId){
+        const room=(await c.query<RoomRow>('SELECT * FROM rooms WHERE id=$1 FOR SHARE',[roomId])).rows[0];
+        const member=room&&room.phase!=='closed'&&(await c.query('SELECT 1 FROM room_members WHERE room_id=$1 AND user_id=$2 FOR SHARE',[roomId,userId])).rowCount;
+        if(!member)throw new DomainError('HANDOFF_ROOM_CHANGED',409);
+      }
+      const user=await this.sessionUser(c,userId);
+      const token=randomBytes(32).toString('base64url');
+      await c.query('INSERT INTO sessions(token_hash,user_id,expires_at) VALUES($1,$2,$3)',[digest(token),userId,new Date(this.now()+SESSION_MS)]);
+      await c.query(`UPDATE sessions target SET wechat_actor_openid=source.wechat_actor_openid,
+        wechat_actor_verified_at=source.wechat_actor_verified_at FROM sessions source
+        WHERE target.token_hash=$1 AND source.token_hash=$2`,[digest(token),digest(sourceToken)]);
+      return {user,token};
+    });
+  }
+  async revokeSession(token: string): Promise<void> {
+    await this.tx(async client => { await client.query('DELETE FROM sessions WHERE token_hash=$1', [digest(token)]); });
+  }
+  async currentRoom(userId: string) {
+    return this.tx(async c => (await c.query('SELECT room_id FROM room_members WHERE user_id=$1', [userId])).rows[0]?.room_id ?? null);
+  }
+  async createRoom(user: User, initialSettings?: Settings, access: { dedicatedRoomId?: string; password?: string | null } = {}) {
+    const customHash = access.password ? await hashSecret(access.password) : null;
+    return this.tx(async c => {
+      await c.query("SELECT pg_advisory_xact_lock(hashtext('avalon:room-codes'))");
+      await c.query('SELECT id FROM users WHERE id=$1 FOR NO KEY UPDATE', [user.id]);
+      if ((await c.query('SELECT 1 FROM room_members WHERE user_id=$1', [user.id])).rowCount) throw new DomainError('ALREADY_IN_ROOM', 409);
+      const dedicated = access.dedicatedRoomId ? (await c.query('SELECT * FROM dedicated_rooms WHERE id=$1 FOR UPDATE', [access.dedicatedRoomId])).rows[0] : undefined;
+      if (access.dedicatedRoomId && (!dedicated || dedicated.manager_id !== user.id)) throw new DomainError('FORBIDDEN', 403);
+      if (dedicated && (await c.query("SELECT 1 FROM rooms WHERE dedicated_room_id=$1 AND phase<>'closed'", [dedicated.id])).rowCount) throw new DomainError('DEDICATED_ROOM_ACTIVE', 409);
+      const id = randomUUID(), invite = randomBytes(24).toString('base64url');
+      let code = dedicated?.code ?? String(randomInt(100000, 1000000));
+      if (!dedicated) while ((await c.query('SELECT 1 FROM rooms WHERE code=$1 UNION ALL SELECT 1 FROM dedicated_rooms WHERE code=$1', [code])).rowCount) code = String(randomInt(100000, 1000000));
+      const passwordHash = access.password === undefined ? dedicated?.password_hash ?? null : customHash;
+      if (dedicated && access.password !== undefined) await c.query('UPDATE dedicated_rooms SET password_hash=$2, updated_at=$3 WHERE id=$1', [dedicated.id,passwordHash,this.date()]);
+      await c.query(`INSERT INTO rooms(id,code,invite,host_id,settings,offline_since,created_at,dedicated_room_id,password_hash) VALUES($1,$2,$3,$4,$5,$6,$6,$7,$8)`, [id,code,invite,user.id,initialSettings??dedicated?.settings??defaultSettings,this.date(),dedicated?.id ?? null,passwordHash]);
+      await this.addMember(c,id,user.id,1);
+      return this.view(c,await this.lock(c,id),await this.members(c,id),user.id);
+    });
+  }
+  async updateRoomPassword(userId: string, roomId: string, password: string | null, expectedVersion: number) {
+    const encoded = password ? await hashSecret(password) : null;
+    return this.tx(async c => {
+      await c.query("SELECT pg_advisory_xact_lock(hashtext('avalon:room-codes'))");
+      const r = await this.lock(c,roomId);
+      this.open(r);
+      if (r.host_id !== userId) throw new DomainError('FORBIDDEN',403);
+      if (r.phase !== 'waiting') throw new DomainError('GAME_IN_PROGRESS',409);
+      if (r.version !== expectedVersion) throw new DomainError('VERSION_CONFLICT',409);
+      await c.query('UPDATE rooms SET password_hash=$2,invite=$3,version=version+1 WHERE id=$1',[roomId,encoded,randomBytes(24).toString('base64url')]);
+      if (r.dedicated_room_id) await c.query('UPDATE dedicated_rooms SET password_hash=$2,updated_at=$3 WHERE id=$1',[r.dedicated_room_id,encoded,this.date()]);
+      return this.view(c,await this.lock(c,roomId),await this.members(c,roomId),userId);
+    });
+  }
+  private async addMember(c: PoolClient, roomId: string, userId: string, seat: number) {
+    await c.query(`INSERT INTO room_members(room_id,user_id,seat,joined_at,last_seen_at,disconnected_at) VALUES($1,$2,$3,$4,$4,$4)`, [roomId,userId,seat,this.date()]);
+  }
+  async join(user: User, key: string, password?: string) {
+    return this.tx(async c => {
+      await c.query('SELECT id FROM users WHERE id=$1 FOR NO KEY UPDATE', [user.id]);
+      const found = await c.query("SELECT id FROM rooms WHERE code=$1 OR invite=$2 ORDER BY (phase<>'closed') DESC,created_at DESC LIMIT 1", [key.toUpperCase(),key]);
+      if (!found.rows[0]) throw new DomainError('ROOM_NOT_FOUND',404);
+      const r = await this.lock(c,found.rows[0].id); this.open(r);
+      const current = (await c.query('SELECT room_id FROM room_members WHERE user_id=$1', [user.id])).rows[0];
+      if (current && current.room_id !== r.id) throw new DomainError('ALREADY_IN_ROOM',409);
+      const members = await this.members(c,r.id);
+      if (current) return this.view(c,r,members,user.id);
+      if (key !== r.invite && r.password_hash && !await verifySecret(password ?? '',r.password_hash)) throw new DomainError(password ? 'ROOM_PASSWORD_INVALID' : 'ROOM_PASSWORD_REQUIRED',403);
+      if (r.phase === 'finished') throw new DomainError('GAME_FINISHED',409);
+      if (r.phase !== 'waiting') throw new DomainError('GAME_IN_PROGRESS',409);
+      if (!r.accepting_new_members) throw new DomainError('JOIN_DISABLED',403);
+      if (members.length >= r.settings.playerCount) throw new DomainError('ROOM_FULL',409);
+      let seat=1; while (members.some(m => m.seat===seat)) seat++;
+      await this.addMember(c,r.id,user.id,seat);
+      await c.query('UPDATE rooms SET version=version+1 WHERE id=$1',[r.id]);
+      r.version++; return this.view(c,r,await this.members(c,r.id),user.id);
+    });
+  }
+  async roomFor(userId: string, id: string) {
+    return this.tx(async c => { const r=await this.lock(c,id); const m=await this.assertMember(c,r,userId); return { room:await this.view(c,r,m,userId),invite:r.invite }; });
+  }
+  async snapshot(id: string, userId?: string) {
+    return this.tx(async c => {
+      const r=await this.lock(c,id), members=await this.members(c,id);
+      return r.phase==='closed' || (userId && !members.some(m=>m.user_id===userId)) ? null : this.view(c,r,members,userId);
+    });
+  }
+  private async game(c: PoolClient, r: RoomRow): Promise<GameState | null> {
+    if (!r.current_game_id) return null;
+    return (await c.query('SELECT state FROM games WHERE id=$1',[r.current_game_id])).rows[0].state;
+  }
+  private async saveGame(c: PoolClient, roomId: string, game: GameState) {
+    await c.query('UPDATE games SET state=$2,ended_at=CASE WHEN $3::boolean THEN COALESCE(ended_at,$4) ELSE ended_at END WHERE id=$1',
+      [game.id,game,isEnded(game),this.date()]);
+    await c.query('UPDATE rooms SET phase=$2 WHERE id=$1',[roomId,isEnded(game)?'finished':'playing']);
+  }
+  async pendingDeals(): Promise<{roomId:string;deadline:string}[]> {
+    return this.tx(async c => (await c.query(`SELECT r.id AS "roomId", COALESCE(g.state->>'dealEndsAt', g.state->>'guanyinEndsAt') AS deadline
+      FROM rooms r JOIN games g ON g.id=r.current_game_id WHERE r.phase='playing' AND (g.state->>'phase'='dealing' OR g.state->>'phase'='guanyin_window')`)).rows);
+  }
+  async releaseDeal(roomId:string):Promise<{changed:boolean;deadline?:string}> {
+    return this.tx(async c=>{
+      const r=await this.lock(c,roomId),g=await this.game(c,r);
+      if(r.phase!=='playing')return {changed:false};
+      if(g?.phase==='dealing') {
+        if(!g.dealEndsAt||!Number.isFinite(Date.parse(g.dealEndsAt)))throw new DomainError('SERVICE_UNAVAILABLE',503);
+        if(this.now()<Date.parse(g.dealEndsAt))return {changed:false,deadline:g.dealEndsAt};
+        g.phase='role_reveal';delete g.dealEndsAt;
+        await this.saveGame(c,roomId,g);
+        await c.query('UPDATE rooms SET version=version+1 WHERE id=$1',[roomId]);
+        return {changed:true};
+      }
+      if(g?.phase==='guanyin_window') {
+        if(!g.guanyinEndsAt||!Number.isFinite(Date.parse(g.guanyinEndsAt)))throw new DomainError('SERVICE_UNAVAILABLE',503);
+        if(this.now()<Date.parse(g.guanyinEndsAt))return {changed:false,deadline:g.guanyinEndsAt};
+        g.phase='mission';delete g.guanyinEndsAt;
+        await this.saveGame(c,roomId,g);
+        await c.query('UPDATE rooms SET version=version+1 WHERE id=$1',[roomId]);
+        return {changed:true};
+      }
+      return {changed:false};
+    });
+  }
+  async execute(userId: string, roomId: string, command: Command, connectionId?: string) {
+    return this.tx(async c => {
+      const r=await this.lock(c,roomId);
+      const prior=(await c.query('SELECT command_body,command_fingerprint,result FROM command_receipts WHERE room_id=$1 AND user_id=$2 AND command_id=$3',[roomId,userId,command.commandId])).rows[0];
+      if (prior) {
+        if (prior.command_fingerprint ? prior.command_fingerprint !== fingerprint(command) : !isDeepStrictEqual(prior.command_body,command)) throw new DomainError('COMMAND_ID_REUSED',409);
+        return { result:prior.result as ServerMessage,left:command.type==='leaveRoom',kickedUserId:undefined,dealEndsAt:undefined };
+      }
+      const members=await this.assertMember(c,r,userId);
+      const self=members.find(m=>m.user_id===userId)!;
+      if (connectionId && self.connection_id!==connectionId) throw new DomainError('CONNECTION_REPLACED',409);
+      if (r.version!==command.expectedVersion) throw new DomainError('VERSION_CONFLICT',409);
+      if (['setReady','updateSettings','setAdmission','startGame'].includes(command.type) && r.phase!=='waiting') throw new DomainError('GAME_IN_PROGRESS',409);
+      if (command.type==='setReady') {
+        await c.query('UPDATE room_members SET ready=$3 WHERE room_id=$1 AND user_id=$2',[roomId,userId,command.payload.ready]);
+      } else if (command.type==='updateSettings') {
+        if (r.host_id!==userId) throw new DomainError('FORBIDDEN',403);
+        if (members.length>command.payload.playerCount) throw new DomainError('SEATS_OCCUPIED');
+        const overflow = members.filter(m => m.seat > command.payload.playerCount);
+        if (overflow.length > 0) {
+          const occupied = new Set(members.filter(m => m.seat <= command.payload.playerCount).map(m => m.seat));
+          const vacant: number[] = [];
+          for (let s = 1; s <= command.payload.playerCount; s++) {
+            if (!occupied.has(s)) vacant.push(s);
+          }
+          for (let i = 0; i < overflow.length; i++) {
+            await c.query('UPDATE room_members SET seat=$3 WHERE room_id=$1 AND user_id=$2', [roomId, overflow[i].user_id, vacant[i]]);
+          }
+        }
+        await c.query('UPDATE rooms SET settings=$2 WHERE id=$1',[roomId,command.payload]);
+        await c.query('UPDATE room_members SET ready=false WHERE room_id=$1',[roomId]);
+      } else if (command.type==='setAdmission') {
+        if (r.host_id!==userId) throw new DomainError('FORBIDDEN',403);
+        await c.query('UPDATE rooms SET accepting_new_members=$2 WHERE id=$1',[roomId,command.payload.acceptingNewMembers]);
+      } else if (command.type==='setRolePreferences') {
+        if (r.phase!=='waiting') throw new DomainError('WRONG_PHASE',409);
+        const validRoles = new Set(ROLE_CONFIG[r.settings.playerCount] || []);
+        const sanitized = command.payload.preferences.filter(role => validRoles.has(role));
+        await c.query('UPDATE room_members SET role_preferences=$3 WHERE room_id=$1 AND user_id=$2',[roomId,userId,JSON.stringify(sanitized)]);
+      } else if (command.type==='leaveRoom') {
+        if(r.phase==='playing') throw new DomainError('GAME_IN_PROGRESS',409);
+        await c.query('DELETE FROM room_members WHERE room_id=$1 AND user_id=$2',[roomId,userId]);
+        const remaining=members.filter(m=>m.user_id!==userId);
+        if (!remaining.length) await this.closeRoom(c,roomId);
+        else {
+          if (r.host_id===userId) await c.query('UPDATE rooms SET host_id=$2 WHERE id=$1',[roomId,(remaining.find(m=>m.connection_id)??remaining[0]).user_id]);
+          if (!remaining.some(m=>m.connection_id)) await c.query('UPDATE rooms SET offline_since=COALESCE(offline_since,$2) WHERE id=$1',[roomId,this.date()]);
+        }
+      } else if (command.type==='kickMember') {
+        if (r.phase==='playing') throw new DomainError('GAME_IN_PROGRESS',409);
+        if (r.host_id!==userId) throw new DomainError('FORBIDDEN',403);
+        const targetUserId=command.payload.userId;
+        if (targetUserId===userId || !members.some(m=>m.user_id===targetUserId)) throw new DomainError('INVALID_TARGET');
+        await c.query('DELETE FROM room_members WHERE room_id=$1 AND user_id=$2',[roomId,targetUserId]);
+        const remaining=members.filter(m=>m.user_id!==targetUserId);
+        if (!remaining.some(m=>m.connection_id)) await c.query('UPDATE rooms SET offline_since=COALESCE(offline_since,$2) WHERE id=$1',[roomId,this.date()]);
+      }
+      let dealEndsAt:string|undefined;
+      if (command.type==='startGame') {
+        if(r.host_id!==userId) throw new DomainError('FORBIDDEN',403);
+        if(members.length!==r.settings.playerCount || !members.every(m=>m.ready)) throw new DomainError('NOT_READY',409);
+        const recentRoles=await c.query<{user_id:string;role:string;rn:number}>(
+          `SELECT user_id,role,rn FROM (
+             SELECT p.user_id,g.state->'roles'->>(p.user_id::text) AS role,
+                    ROW_NUMBER() OVER (PARTITION BY p.user_id ORDER BY g.created_at DESC,g.id DESC) AS rn
+             FROM game_participants p JOIN games g ON g.id=p.game_id
+             WHERE p.user_id=ANY($1::uuid[])
+           ) t WHERE rn<=5`,
+          [members.map(m=>m.user_id)]
+        );
+        const bossRoles = ['merlin', 'morgana', 'mordred'];
+        const visionGuaranteedUserIds: string[] = [];
+        const bossCooldownUserIds: string[] = [];
+        const recentRoleHistory: Record<string, Role[]> = {};
+
+        for (const m of members) {
+          const hist = recentRoles.rows
+            .filter(row => row.user_id === m.user_id)
+            .sort((a,b) => Number(a.rn) - Number(b.rn));
+          recentRoleHistory[m.user_id] = hist.map(row => row.role as Role);
+          const recentTwo = hist.slice(0, 2);
+          if (recentTwo.length === 2 && recentTwo.every(row => row.role === 'loyal')) {
+            visionGuaranteedUserIds.push(m.user_id);
+          }
+          const lastGame = hist.find(row => Number(row.rn) === 1);
+          if (lastGame && bossRoles.includes(lastGame.role)) {
+            bossCooldownUserIds.push(m.user_id);
+          }
+        }
+        const rolePreferences: Record<string, Role[]> = {};
+        if (r.settings.rolePreferenceEnabled) {
+          const validRoles = new Set(ROLE_CONFIG[r.settings.playerCount] || []);
+          for (const m of members) {
+            if (m.role_preferences && Array.isArray(m.role_preferences) && m.role_preferences.length > 0) {
+              const sanitized = (m.role_preferences as Role[]).filter(role => validRoles.has(role));
+              if (sanitized.length > 0) {
+                rolePreferences[m.user_id] = sanitized;
+              }
+            }
+          }
+        }
+        const game=createGame(randomUUID(),members.map(m=>({id:m.user_id,nickname:m.nickname,seat:m.seat})),r.settings,secureShuffle,{
+          visionGuaranteedUserIds,
+          bossCooldownUserIds,
+          recentRoles: recentRoleHistory,
+          randomBelow: secureRandomBelow,
+          rolePreferences: r.settings.rolePreferenceEnabled ? rolePreferences : undefined,
+        });
+        dealEndsAt=new Date(this.now()+DEAL_MS).toISOString();
+        game.phase='dealing';game.dealEndsAt=dealEndsAt;
+        await c.query('INSERT INTO games(id,room_id,ruleset_version,state,created_at) VALUES($1,$2,$3,$4,$5)',[game.id,roomId,game.rulesetVersion,game,this.date()]);
+        await c.query('INSERT INTO game_participants(game_id,user_id) SELECT $1,unnest($2::uuid[])',[game.id,game.players.map(p=>p.id)]);
+        await c.query("UPDATE rooms SET phase='playing',current_game_id=$2 WHERE id=$1",[roomId,game.id]);
+      } else if(command.type==='returnToLobby') {
+        if(r.host_id!==userId) throw new DomainError('FORBIDDEN',403);
+        if(r.phase!=='finished') throw new DomainError('WRONG_PHASE',409);
+        await c.query("UPDATE rooms SET phase='waiting',current_game_id=NULL WHERE id=$1",[roomId]);
+        await c.query('UPDATE room_members SET ready=false WHERE room_id=$1',[roomId]);
+      } else if(!['setReady','updateSettings','setAdmission','leaveRoom','kickMember','setRolePreferences'].includes(command.type)) {
+        const game=await this.game(c,r);
+        if(!game) throw new DomainError('WRONG_PHASE',409);
+        const next = transition(game,userId,command,members.filter(m=>m.connection_id).map(m=>m.user_id), { hostId: r.host_id, now: this.now() });
+        await this.saveGame(c,roomId,next);
+        if (next.guanyinEndsAt) dealEndsAt = next.guanyinEndsAt;
+        if (next.result?.reason === 'host_ended') await this.closeRoom(c,roomId);
+      }
+      await c.query('UPDATE rooms SET version=version+1 WHERE id=$1',[roomId]);
+      const result: ServerMessage={type:'commandResult',commandId:command.commandId,ok:true};
+      await c.query('INSERT INTO command_receipts(room_id,user_id,command_id,command_fingerprint,result,created_at) VALUES($1,$2,$3,$4,$5,$6)',[roomId,userId,command.commandId,fingerprint(command),result,this.date()]);
+      return { result,left:command.type==='leaveRoom',kickedUserId:command.type==='kickMember'?command.payload.userId:undefined,dealEndsAt };
+    });
+  }
+  private async closeRoom(c:PoolClient,id:string) {
+    const r=await this.lock(c,id), game=await this.game(c,r);
+    if(game && !isEnded(game)) { finish(game,{winner:null,reason:'offline_timeout'}); await this.saveGame(c,id,game); }
+    await c.query("UPDATE rooms SET phase='closed',closed_at=$2,accepting_new_members=false WHERE id=$1",[id,this.date()]);
+    await c.query('DELETE FROM room_members WHERE room_id=$1',[id]);
+  }
+  async forceCloseRoom(id: string) {
+    return this.tx(async c => {
+      await this.closeRoom(c, id);
+    });
+  }
+  async connect(userId:string,roomId:string,connectionId:string) {
+    return this.tx(async c=>{
+      const r=await this.lock(c,roomId); await this.assertMember(c,r,userId);
+      await c.query('UPDATE room_members SET connection_id=$3,last_seen_at=$4,disconnected_at=NULL WHERE room_id=$1 AND user_id=$2',[roomId,userId,connectionId,this.date()]);
+      await c.query('UPDATE rooms SET offline_since=NULL WHERE id=$1',[roomId]);
+      await this.handover(c,r,await this.members(c,roomId));
+    });
+  }
+  async disconnect(userId:string,roomId:string,connectionId:string) {
+    return this.tx(async c=>{
+      const r=await this.lock(c,roomId); if(r.phase==='closed') return;
+      const changed=await c.query('UPDATE room_members SET connection_id=NULL,disconnected_at=$4,last_seen_at=$4 WHERE room_id=$1 AND user_id=$2 AND connection_id=$3',[roomId,userId,connectionId,this.date()]);
+      if(changed.rowCount && !(await this.members(c,roomId)).some(m=>m.connection_id)) {
+        await c.query('UPDATE rooms SET offline_since=COALESCE(offline_since,$2) WHERE id=$1',[roomId,this.date()]);
+      }
+    });
+  }
+  async touch(connectionIds:string[]) {
+    if(!connectionIds.length) return;
+    await this.tx(async c=>{ await c.query('UPDATE room_members SET last_seen_at=$2 WHERE connection_id=ANY($1::uuid[])',[connectionIds,this.date()]); });
+  }
+  async recoverPresence() {
+    this.restartGraceUntil=this.now()+GRACE_MS;
+    await this.tx(async c=>{
+      // Preserve the last durable online timestamp on a crash; do not reset a 24h expiry.
+      await c.query(`UPDATE rooms r SET offline_since=COALESCE(offline_since,(SELECT max(last_seen_at) FROM room_members WHERE room_id=r.id),created_at) WHERE phase<>'closed'`);
+      await c.query('UPDATE room_members SET disconnected_at=CASE WHEN connection_id IS NOT NULL THEN $1 ELSE COALESCE(disconnected_at,$1) END,connection_id=NULL',[this.date()]);
+    });
+  }
+  private async handover(c:PoolClient,r:RoomRow,members:MemberRow[]) {
+    if(this.now()<this.restartGraceUntil) return false;
+    const host=members.find(m=>m.user_id===r.host_id);
+    if(host?.connection_id || !host?.disconnected_at || this.now()-host.disconnected_at.getTime()<GRACE_MS) return false;
+    const next=members.find(m=>m.connection_id);
+    if(!next) return false;
+    await c.query('UPDATE rooms SET host_id=$2,version=version+1 WHERE id=$1',[r.id,next.user_id]);
+    return true;
+  }
+  async maintain():Promise<string[]> {
+    const ids=await this.tx(async c=>(await c.query("SELECT id FROM rooms WHERE phase<>'closed'")).rows.map(r=>r.id as string));
+    const changed:string[]=[];
+    for(const id of ids) {
+      const updated=await this.tx(async c=>{
+        const r=await this.lock(c,id); if(r.phase==='closed') return false;
+        const expired=await c.query('UPDATE room_members SET connection_id=NULL,disconnected_at=last_seen_at WHERE room_id=$1 AND connection_id IS NOT NULL AND last_seen_at<=$2',[id,new Date(this.now()-LEASE_MS)]);
+        const members=await this.members(c,id);
+        if(!members.some(m=>m.connection_id)) {
+          if(!r.offline_since) {
+            r.offline_since=new Date(Math.max(...members.map(m=>m.last_seen_at.getTime()),0));
+            await c.query('UPDATE rooms SET offline_since=$2 WHERE id=$1',[id,r.offline_since]);
+          }
+          if(!members.length || this.now()-r.offline_since.getTime()>=ROOM_TTL_MS) { await this.closeRoom(c,id); return true; }
+        }
+        return (await this.handover(c,r,members)) || !!expired.rowCount;
+      });
+      if(updated) changed.push(id);
+    }
+    await this.tx(async c=>{
+      await c.query("DELETE FROM command_receipts cr USING rooms r WHERE cr.room_id=r.id AND r.closed_at<=$1",[new Date(this.now()-SESSION_MS)]);
+      await c.query('DELETE FROM sessions WHERE expires_at<=$1',[this.date()]);
+    });
+    return changed;
+  }
+}
+
+// Fisher-Yates with crypto.randomInt (unbiased), never Math.random for identities.
+function secureShuffle<T>(items: T[]): T[] {
+  const copy=[...items];
+  for(let i=copy.length-1;i>0;i--) { const j=randomInt(i+1); [copy[i],copy[j]]=[copy[j],copy[i]]; }
+  return copy;
+}
+function canonical(value: unknown): unknown {
+  if(Array.isArray(value)) return value.map(canonical);
+  if(value && typeof value==='object') return Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b)).map(([key,v])=>[key,canonical(v)]));
+  return value;
+}
+function fingerprint(command: Command) { return digest(JSON.stringify(canonical(command))); }

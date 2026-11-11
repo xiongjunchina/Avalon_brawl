@@ -56,20 +56,24 @@ docker compose -f deploy/compose.yaml -f deploy/compose.brawl.portal.yaml --env-
 
 ### 步骤 2：更新统一网关并平滑热重载
 
+因为 ECS 宿主机无需安装 Node.js，统一通过已缓存的 `node:24-alpine` 容器生成静态资源与路由配置：
+
 ```bash
 # 1. 切换到统一网关目录
 cd /opt/game-portal
 
-# 2. 同步最新的 games.json 与生成器代码
-cp /opt/avalon_brawl/deploy/portal/games.json ./
-cp /opt/avalon_brawl/deploy/portal/generate.mjs ./
-mkdir -p ./assets/art/
-cp /opt/avalon_brawl/deploy/portal/assets/art/avalon_vs-*.webp ./assets/art/ || true
+# 2. 获取当前网关生效的目标目录
+TARGET_DIR=$(readlink -f /opt/game-portal/public/current || echo /opt/game-portal/public/current)
 
-# 3. 重新生成网关路由与大厅静态页面
-node generate.mjs
+# 3. 使用 Docker 内的 Node 环境生成路由与大厅页面（包含 avalon_vs 路由与立绘）
+docker run --rm \
+  -v /opt/avalon_brawl/deploy/portal:/source:ro \
+  -v /opt/game-portal/public:/opt/game-portal/public \
+  -w /source \
+  node:24-alpine \
+  node generate.mjs "${TARGET_DIR}"
 
-# 4. 将网关容器接入大乱斗专属网络（仅需一次）
+# 4. 将网关容器接入大乱斗专属网络（仅需一次，已接入则自动忽略）
 docker network connect game-avalon-brawl-ingress game-portal-gateway-1 || true
 
 # 5. 平滑重载网关（零停机，不影响常规版与暗局）

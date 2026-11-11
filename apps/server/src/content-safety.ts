@@ -30,7 +30,7 @@ export class ContentSafety {
   constructor(readonly pool: Pool, private readonly options: SafetyOptions) {
     this.enabled = options.enabled;
     const base = options.basePath || '/';
-    if (!/^\/(?:[a-z0-9-]+\/)?$/.test(base)) throw new Error('Invalid content safety base path');
+    if (!/^\/(?:[a-z0-9_-]+\/)?$/.test(base)) throw new Error('Invalid content safety base path');
     this.publicBase = options.origin + (base === '/' ? '' : base.slice(0, -1));
   }
 

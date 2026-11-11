@@ -149,3 +149,15 @@ test('one deadline bounds token acquisition and content checks even when a trans
     await assert.rejects(second.checkText('hello', 5, 'actor'), /CONTENT_CHECK_UNAVAILABLE/);
   } finally { clearTimeout(keepAlive); }
 });
+
+test('ContentSafety accepts valid base paths including underscore and hyphen', async () => {
+  const { ContentSafety } = await import('../src/content-safety.js');
+  for (const valid of ['/', '/avalon/', '/avalon_vs/', '/game-brawl_v1/']) {
+    const safety = new ContentSafety(null as any, { enabled: false, origin: 'https://game.ccnepower.com', basePath: valid });
+    assert.equal(safety.enabled, false);
+    assert.equal(safety.publicBase, 'https://game.ccnepower.com' + (valid === '/' ? '' : valid.slice(0, -1)));
+  }
+  for (const invalid of ['avalon', '/avalon', 'https://game.example', '/test path/', '/test/nested/path/']) {
+    assert.throws(() => new ContentSafety(null as any, { enabled: false, origin: 'https://game.ccnepower.com', basePath: invalid }), /Invalid content safety base path/);
+  }
+});

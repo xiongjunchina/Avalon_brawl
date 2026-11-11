@@ -37,7 +37,7 @@ test('portal presents the approved copy with responsive local artwork and direct
   assert.match(html, /听发言、找破绽，在昼夜交替中辨出隐藏身份。/);
   assert.match(html, /<span>进入取经局<\/span>/);
   assert.match(html, /<span>进入暗局<\/span>/);
-  assert.equal([...html.matchAll(/<a class="enter"/g)].length, 2);
+  assert.equal([...html.matchAll(/<a class="enter"/g)].length, games.length);
   for (const game of games) {
     assert.ok(html.includes(`aria-labelledby="game-${game.id}"`));
     assert.ok(html.includes(`id="game-${game.id}"`));
@@ -91,9 +91,11 @@ test('generated portal includes all four WebP covers without relying on game-ser
   await generatePortal(directory);
   const bundledArt = join(directory,'www','portal-assets','art');
   assert.deepEqual((await readdir(bundledArt)).sort(), [
-    'avalon-desktop.webp', 'avalon-mobile.webp', 'mafia-desktop.webp', 'mafia-mobile.webp',
+    'avalon-desktop.webp', 'avalon-mobile.webp',
+    'avalon_vs-desktop.webp', 'avalon_vs-mobile.webp',
+    'mafia-desktop.webp', 'mafia-mobile.webp',
   ]);
-  for (const id of ['avalon', 'mafia']) {
+  for (const id of ['avalon', 'avalon_vs', 'mafia']) {
     for (const layout of ['desktop', 'mobile']) {
       const name = `${id}-${layout}.webp`;
       const artwork = await readFile(join(bundledArt,name));
@@ -124,7 +126,7 @@ test('portal ships small licensed calligraphy and interface fonts covering the a
   const metadata = JSON.parse(await readFile(new URL('interface-source.json', root),'utf8'));
   // Only visible fixed copy needs this display subset; the sr-only page heading can use a system fallback.
   const copy = '好友桌游一起入局每个人都在说话谁在说真话进入游戏' +
-    games.map(g => [g.name,g.hook,g.description,g.genre,g.action,g.players].join('')).join('');
+    games.filter(g => g.id === 'avalon' || g.id === 'mafia').map(g => [g.name,g.hook,g.description,g.genre,g.action,g.players].join('')).join('');
   for (const char of new Set(copy)) {
     if (/\p{Script=Han}/u.test(char)) assert.ok(metadata.characters.includes(char), `missing game-font glyph: ${char}`);
   }

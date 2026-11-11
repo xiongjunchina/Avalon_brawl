@@ -10,10 +10,10 @@ export function validateGames(games) {
   if (!Array.isArray(games) || !games.length) throw Error('A non-empty game registry is required');
   const ids = new Set();
   for (const game of games) {
-    if (!/^[a-z][a-z0-9-]*$/.test(game.id) || reserved.has(game.id) || ids.has(game.id)) throw Error('Invalid or duplicate game identifier');
+    if (!/^[a-z][a-z0-9_-]*$/.test(game.id) || reserved.has(game.id) || ids.has(game.id)) throw Error('Invalid or duplicate game identifier');
     ids.add(game.id);
     if (game.path !== `/${game.id}/` || !game.healthPath?.startsWith(game.path + 'api/') || /[\s{}?#]/.test(game.healthPath)) throw Error('Invalid public game path');
-    if (!/^[a-z][a-z0-9-]*:[1-9][0-9]{0,4}$/.test(game.upstream) || Number(game.upstream.split(':')[1]) > 65535 || !/^[a-z][a-z0-9-]*$/.test(game.network)) throw Error('Invalid internal game service');
+    if (!/^[a-z][a-z0-9_-]*:[1-9][0-9]{0,4}$/.test(game.upstream) || Number(game.upstream.split(':')[1]) > 65535 || !/^[a-z][a-z0-9_-]*$/.test(game.network)) throw Error('Invalid internal game service');
     for (const key of ['name', 'label', 'description', 'players', 'status']) if (typeof game[key] !== 'string' || !game[key].trim()) throw Error(`Missing game ${key}`);
     for (const key of ['hook', 'genre', 'action']) if (game[key] !== undefined && (typeof game[key] !== 'string' || !game[key].trim())) throw Error(`Invalid game ${key}`);
   }
@@ -21,12 +21,12 @@ export function validateGames(games) {
   return games;
 }
 
-const art = id => id === 'avalon'
+const art = id => (id === 'avalon' || id === 'avalon_vs')
   ? '<path d="M35 110 80 25l45 85M47 110 80 48l33 62M31 115h98M73 20h14v20H73zM80 22v16M62 125h36M70 131h20"/><circle cx="80" cy="77" r="17"/><path d="M80 60v34M63 77h34"/>'
   : id === 'mafia' ? '<rect x="29" y="33" width="68" height="88" rx="8" transform="rotate(-12 63 77)"/><rect x="66" y="30" width="68" height="88" rx="8" transform="rotate(12 100 74)"/><path d="M99 49 82 73l17 24 17-24Z"/><path d="M35 130h90"/>'
     : '<rect x="31" y="27" width="98" height="98" rx="12"/><path d="M58 76h44M80 54v44"/>';
 
-const illustratedGames = new Set(['avalon', 'mafia']);
+const illustratedGames = new Set(['avalon', 'avalon_vs', 'mafia']);
 const sceneVersion = 'edge-blend-3';
 const entranceOrnament = '<svg class="enter-ornament" viewBox="0 0 300 52" preserveAspectRatio="none" fill="none" stroke="currentColor" aria-hidden="true"><path vector-effect="non-scaling-stroke" d="M15 4H285Q286 9 295 11V41Q286 43 285 48H15Q14 43 5 41V11Q14 9 15 4Z"/><path vector-effect="non-scaling-stroke" d="M12 9q7-5 10 0q-7 0-9 7q-5-5-1-7Zm276 0q-7-5-10 0q7 0 9 7q5-5 1-7ZM12 43q7 5 10 0q-7 0-9-7q-5 5-1 7Zm276 0q-7 5-10 0q7 0 9-7q5 5 1 7Z"/></svg>';
 

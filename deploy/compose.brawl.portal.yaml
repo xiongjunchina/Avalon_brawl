@@ -1,0 +1,24 @@
+# Avalon Brawl mode override for game-portal integration
+services:
+  server:
+    environment:
+      COOKIE_SECURE: "true"
+      APP_BASE_PATH: "${APP_BASE_PATH:-/avalon_vs/}"
+  gateway:
+    ports: !override []
+    environment:
+      SITE_ADDRESS: "http://:8080"
+      HTTPS_GLOBAL_OPTIONS: "auto_https off"
+      TLS_DIRECTIVE: ""
+      LOCAL_SNI: ""
+      APP_BASE_PATH: "${APP_BASE_PATH:-/avalon_vs/}"
+      CLIENT_PROTO_SOURCE: "{http.request.header.X-Forwarded-Proto}"
+      CLIENT_IP_SOURCE: "{http.request.header.X-Forwarded-For}"
+    networks:
+      default: {}
+      portal_brawl:
+        aliases: [avalon-brawl-ingress]
+networks:
+  portal_brawl:
+    external: true
+    name: game-avalon-brawl-ingress

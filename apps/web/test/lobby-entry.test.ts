@@ -20,11 +20,11 @@ test('visitor and signed-in home expose the same hero and public guide without a
   }));
   const hero = (html: string) => html.slice(html.indexOf('<div class="mp-logo-block">'), html.indexOf('<footer'));
   assert.equal(hero(visitor), hero(signedIn));
-  assert.match(visitor, /<h2><span>两个悟空，<\/span><span>你信哪一个？<\/span><\/h2>/);
-  assert.match(visitor, /<p>组队、表决、暗中试探，找出取经路上的妖。<\/p>/);
-  assert.match(visitor, /一念佛魔皆幻相，谁是修道取经人/);
+  assert.match(visitor, /<h2><span>三界全明星，<\/span><span>谁执天命？<\/span><\/h2>/);
+  assert.match(visitor, /<p>31位神仙妖魔各施所长，黑熊精天命抉择，盲盒出千暗战。<\/p>/);
+  assert.match(visitor, /三界全明星神魔齐聚，弱技能对决乾坤未定/);
   assert.match(visitor, /<source media="\(max-width: 899px\)" srcSet="\/art\/home\/duel-mobile\.webp\?v=edge-blend-3"/);
-  assert.match(visitor, /<img[^>]+src="\/art\/home\/duel-desktop\.webp\?v=edge-blend-3"[^>]+alt="孙悟空与六耳猕猴相对而立"/);
+  assert.match(visitor, /<img[^>]+src="\/art\/home\/duel-desktop\.webp\?v=edge-blend-3"[^>]+alt="仙魔大乱斗三界神魔对峙"/);
   assert.doesNotMatch(visitor, /mp-medallion|\/art\/roles\//);
   assert.match(visitor, /玩法与角色/);
   assert.match(visitor, /加入房间/);

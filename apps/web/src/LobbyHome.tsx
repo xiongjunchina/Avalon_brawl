@@ -7,22 +7,22 @@ export function LobbyHero() {
   return <>
     <div className="mp-logo-block">
       <h1 className="mp-avalon-logo">
-        <span className="logo-word">嘻游</span>
+        <span className="logo-word">西游</span>
         <span className="logo-dot">·</span>
-        <span className="logo-word">真假猴王</span>
+        <span className="logo-word">仙魔大乱斗</span>
       </h1>
-      <p className="mp-avalon-sub">一念佛魔皆幻相，谁是修道取经人</p>
+      <p className="mp-avalon-sub">三界全明星神魔齐聚，弱技能对决乾坤未定</p>
     </div>
     <figure className="lobby-duel-art">
       <picture>
         <source media="(max-width: 899px)" srcSet={assetUrl('/art/home/duel-mobile.webp?v=edge-blend-3')} />
         <img src={assetUrl('/art/home/duel-desktop.webp?v=edge-blend-3')} width={1280} height={901}
-          alt="孙悟空与六耳猕猴相对而立" loading="eager" fetchPriority="high" decoding="async" />
+          alt="仙魔大乱斗三界神魔对峙" loading="eager" fetchPriority="high" decoding="async" />
       </picture>
     </figure>
     <section className="lobby-duel-copy" aria-label="游戏介绍">
-      <h2><span>两个悟空，</span><span>你信哪一个？</span></h2>
-      <p>组队、表决、暗中试探，找出取经路上的妖。</p>
+      <h2><span>三界全明星，</span><span>谁执天命？</span></h2>
+      <p>31位神仙妖魔各施所长，黑熊精天命抉择，盲盒出千暗战。</p>
     </section>
   </>;
 }

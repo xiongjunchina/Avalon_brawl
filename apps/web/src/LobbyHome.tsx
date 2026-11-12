@@ -22,7 +22,7 @@ export function LobbyHero() {
     </figure>
     <section className="lobby-duel-copy" aria-label="游戏介绍">
       <h2><span>三界全明星，</span><span>谁执天命？</span></h2>
-      <p>31位神仙妖魔各施所长，黑熊精天命抉择，盲盒出千暗战。</p>
+      <p>30位神仙妖魔各施所长，天机盲盒暗战，弱技能博弈定乾坤。</p>
     </section>
   </>;
 }

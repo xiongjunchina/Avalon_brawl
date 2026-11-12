@@ -143,7 +143,7 @@ export function IdentityDetails({
           className="brawl-identity-banner"
           style={{
             background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%)',
-            border: `1.5px solid ${selfBrawl.camp === 'blue' ? '#3b82f6' : selfBrawl.camp === 'red' ? '#ef4444' : '#f59e0b'}`,
+            border: `1.5px solid ${selfBrawl.camp === 'blue' ? '#3b82f6' : '#ef4444'}`,
             borderRadius: '12px',
             padding: '10px 12px',
             marginBottom: '10px',
@@ -224,11 +224,11 @@ export function IdentityDetails({
                   fontSize: '11px',
                   padding: '2px 8px',
                   borderRadius: '999px',
-                  background: selfBrawl.camp === 'blue' ? 'rgba(59, 130, 246, 0.2)' : selfBrawl.camp === 'red' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                  color: selfBrawl.camp === 'blue' ? '#93c5fd' : selfBrawl.camp === 'red' ? '#fca5a5' : '#fde68a',
+                  background: selfBrawl.camp === 'blue' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                  color: selfBrawl.camp === 'blue' ? '#93c5fd' : '#fca5a5',
                   flexShrink: 0,
                 }}>
-                  {selfBrawl.camp === 'blue' ? '仙佛阵营' : selfBrawl.camp === 'red' ? '妖魔阵营' : '初始中立'}
+                  {selfBrawl.camp === 'blue' ? '仙佛阵营' : '妖魔阵营'}
                 </span>
               </div>
               <div style={{ fontSize: '12px', color: '#e2e8f0', marginTop: '2px', lineHeight: 1.45 }}>

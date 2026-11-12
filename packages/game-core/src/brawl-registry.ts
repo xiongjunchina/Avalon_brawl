@@ -5,7 +5,7 @@ import type {
 } from '@avalon/contracts';
 
 /**
- * 31 位西游高知名度全明星阵容注册表
+ * 30 位西游高知名度全明星阵容注册表（15 蓝仙佛 + 15 红妖魔）
  * 架构支持未来任意扩展（只需向注册表追加新对象）
  */
 export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {

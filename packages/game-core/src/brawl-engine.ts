@@ -27,6 +27,11 @@ export function createBrawlGameState(
     taoshouActive: false,
     extraSeatLimit: 0,
     laojunZhuoActive: false,
+    zhizhuBannedTargetId: undefined,
+    doubleVoteUserId: undefined,
+    yishanTargetId: undefined,
+    dapengExcludedPlayerId: undefined,
+    zhaoyaoResult: undefined,
   };
 }
 
@@ -92,6 +97,10 @@ export function resetRoundBrawlEffects(state: BrawlGameState): void {
   state.imprisonedTargetId = undefined;
   state.taoshouActive = false;
   state.extraSeatLimit = 0;
+  state.zhizhuBannedTargetId = undefined;
+  state.doubleVoteUserId = undefined;
+  state.yishanTargetId = undefined;
+  state.zhaoyaoResult = undefined;
 }
 
 /**
@@ -109,6 +118,9 @@ export function projectSelfBrawlView(
   const roleDef = BRAWL_ROLE_REGISTRY[playerState.roleId];
   if (!roleDef) return undefined;
 
+  const isLiTianwang = playerState.roleId === 'li_tianwang';
+  const isAssassinOrDapeng = playerState.roleId === 'hong_haier' || playerState.roleId === 'jinchi_dapeng';
+
   return {
     roleId: playerState.roleId,
     roleName: roleDef.name,
@@ -121,5 +133,7 @@ export function projectSelfBrawlView(
     skillUsed: playerState.skillUsed,
     isAwakened: playerState.isAwakened,
     peekedRoles: peekedMap[playerState.roleId]?.length ? peekedMap[playerState.roleId] : undefined,
+    ...(isLiTianwang && state.zhaoyaoResult ? { zhaoyaoResult: state.zhaoyaoResult.hasDemon } : {}),
+    ...(isAssassinOrDapeng && state.dapengExcludedPlayerId ? { dapengExcludedPlayerId: state.dapengExcludedPlayerId } : {}),
   };
 }

@@ -13,6 +13,7 @@ import {
   createGame,
   projectGame,
   transition,
+  captain,
   failuresRequiredFor,
   missionSizesFor,
   MISSION_SIZES,
@@ -468,4 +469,189 @@ test('brawl: Taishang Laojun [jingang_zhuo] intercepts Huangmei Laoguai [renzhon
   // 5. 验证黄眉老怪法宝被收缴作废，targetId 未被剔除，依然在队伍中！
   assert.ok(state.draftTeam?.playerIds.includes(targetId), 'Target should remain in team because skill was confiscated');
   assert.equal(state.treasuresState?.humanBag?.targetId, undefined, 'No human bag ban should be active');
+});
+
+test('brawl: Zhizhu Jing [pansi_jiejian] ejects player and bans captain nomination', () => {
+  const players = Array.from({ length: 10 }, (_, i) => ({ id: `p${i + 1}`, nickname: `P${i + 1}`, seat: i + 1 }));
+  const game = createGame('brawl-zhizhu', players, { ...defaultSettings, playerCount: 10, brawlModeEnabled: true }, a => a);
+
+  const captainId = game.captainOrder[0];
+  const targetId = game.captainOrder[1];
+  const zhizhuId = game.captainOrder[2];
+
+  game.brawl!.playerStates[zhizhuId] = {
+    userId: zhizhuId,
+    seat: 3,
+    roleId: 'zhizhu_jing',
+    camp: 'red',
+    skillUsed: false,
+  };
+
+  game.phase = 'proposing';
+  const otherId = game.captainOrder[3];
+  game.draftTeam = { playerIds: [targetId, otherId], direction: 'clockwise' };
+
+  // 蜘蛛精发动绝技【盘丝结茧】
+  const nextGame = transition(game, zhizhuId, {
+    type: 'brawlCommand',
+    payload: {
+      action: 'useSkill',
+      skillId: 'pansi_jiejian',
+      targetPlayerId: targetId,
+    },
+  }, [zhizhuId]);
+
+  // 1. 目标被强制剔除出队伍草稿
+  assert.ok(!nextGame.draftTeam?.playerIds.includes(targetId), 'Target ejected by Zhizhu Jing');
+  assert.deepEqual(nextGame.draftTeam?.playerIds, [otherId]);
+
+  // 2. 队长若再次尝试选该玩家入队，被系统拦截
+  assert.throws(
+    () => {
+      transition(nextGame, captainId, {
+        type: 'updateTeamDraft',
+        payload: { playerIds: [targetId, otherId], direction: 'clockwise' },
+      }, [captainId]);
+    },
+    /PLAYER_BANNED_BY_ZHIZHU_JING/,
+  );
+});
+
+test('brawl: Zhenyuan Daxian [xiuli_qiankun] forces proposal rotation without consuming rejection quota', () => {
+  const players = Array.from({ length: 10 }, (_, i) => ({ id: `p${i + 1}`, nickname: `P${i + 1}`, seat: i + 1 }));
+  const game = createGame('brawl-zhenyuan', players, { ...defaultSettings, playerCount: 10, brawlModeEnabled: true }, a => a);
+
+  const firstCaptain = game.captainOrder[0];
+  const zhenyuanId = game.captainOrder[2];
+
+  game.brawl!.playerStates[zhenyuanId] = {
+    userId: zhenyuanId,
+    seat: 3,
+    roleId: 'zhenyuan_daxian',
+    camp: 'blue',
+    skillUsed: false,
+  };
+
+  game.phase = 'discussion';
+  game.rejectionCount = 1;
+
+  // 镇元大仙发动袖里乾坤
+  const nextGame = transition(game, zhenyuanId, {
+    type: 'brawlCommand',
+    payload: {
+      action: 'useSkill',
+      skillId: 'xiuli_qiankun',
+    },
+  }, [zhenyuanId]);
+
+  // 队长已流转给下一位，阶段回到 proposing，且流局次数保持为 1 未扣减
+  assert.notEqual(captain(nextGame), firstCaptain);
+  assert.equal(nextGame.phase, 'proposing');
+  assert.equal(nextGame.rejectionCount, 1);
+});
+
+test('brawl: Li Tianwang [zhaoyao_baojing] reveals presence of evil demons in team privately', () => {
+  const players = Array.from({ length: 10 }, (_, i) => ({ id: `p${i + 1}`, nickname: `P${i + 1}`, seat: i + 1 }));
+  const game = createGame('brawl-litianwang', players, { ...defaultSettings, playerCount: 10, brawlModeEnabled: true }, a => a);
+
+  const litianwangId = game.captainOrder[0];
+  const demonId = game.captainOrder[1];
+  const blueId = game.captainOrder[2];
+
+  game.brawl!.playerStates[litianwangId] = {
+    userId: litianwangId,
+    seat: 1,
+    roleId: 'li_tianwang',
+    camp: 'blue',
+    skillUsed: false,
+  };
+  game.brawl!.playerStates[demonId] = {
+    userId: demonId,
+    seat: 2,
+    roleId: 'hong_haier',
+    camp: 'red',
+    skillUsed: false,
+  };
+  game.brawl!.playerStates[blueId] = {
+    userId: blueId,
+    seat: 3,
+    roleId: 'sun_wukong',
+    camp: 'blue',
+    skillUsed: false,
+  };
+
+  game.phase = 'proposing';
+  game.draftTeam = { playerIds: [demonId, blueId], direction: 'clockwise' };
+
+  // 李天王举镜探查
+  const nextGame = transition(game, litianwangId, {
+    type: 'brawlCommand',
+    payload: {
+      action: 'useSkill',
+      skillId: 'zhaoyao_baojing',
+    },
+  }, [litianwangId]);
+
+  // 验证李天王的私密视图显示有妖魔
+  const view = projectGame(nextGame, litianwangId);
+  assert.equal(view.selfBrawl?.zhaoyaoResult, true, 'Mirror accurately detects demon in team');
+
+  // 其他玩家看李天王不应泄露私密探查结果
+  const otherView = projectGame(nextGame, blueId);
+  assert.equal(otherView.selfBrawl?.zhaoyaoResult, undefined, 'Other players cannot see mirror result');
+});
+
+test('brawl: Nezha [santou_liubi] doubles vote weight during team vote resolution', () => {
+  const players = Array.from({ length: 10 }, (_, i) => ({ id: `p${i + 1}`, nickname: `P${i + 1}`, seat: i + 1 }));
+  const game = createGame('brawl-nezha', players, { ...defaultSettings, playerCount: 10, brawlModeEnabled: true }, a => a);
+
+  const nezhaId = game.captainOrder[0];
+  game.brawl!.playerStates[nezhaId] = {
+    userId: nezhaId,
+    seat: 1,
+    roleId: 'nezha',
+    camp: 'blue',
+    skillUsed: false,
+  };
+
+  game.phase = 'discussion';
+  game.rounds.push({
+    number: 1,
+    mission: 1,
+    captainId: nezhaId,
+    team: [players[0].id, players[1].id, players[2].id],
+    direction: 'clockwise',
+  });
+
+  // 1. 哪吒发动三头六臂
+  let state = transition(game, nezhaId, {
+    type: 'brawlCommand',
+    payload: {
+      action: 'useSkill',
+      skillId: 'santou_liubi',
+    },
+  }, [nezhaId]);
+
+  assert.equal(state.brawl!.doubleVoteUserId, nezhaId);
+
+  // 2. 队长开启表决
+  state = transition(state, nezhaId, { type: 'startTeamVote', payload: {} }, [nezhaId]);
+
+  // 3. 假设全场 10 人投票：哪吒投赞成（计2票），其余 4 人赞成，5 人反对。
+  // 若按普通1票制：赞成5票，反对5票（平票失败）。
+  // 但因哪吒2票：赞成变为 6 票，反对 5 票 -> 成功通过！
+  const approveIds = [nezhaId, players[1].id, players[2].id, players[3].id, players[4].id];
+  const rejectIds = [players[5].id, players[6].id, players[7].id, players[8].id, players[9].id];
+
+  for (const id of approveIds) {
+    state = transition(state, id, { type: 'teamVote', payload: { approve: true } }, [id]);
+  }
+  for (const id of rejectIds) {
+    state = transition(state, id, { type: 'teamVote', payload: { approve: false } }, [id]);
+  }
+
+  // 验证表决通过且赞成票计为 6
+  assert.equal(state.rounds[0].vote?.approvals, 6);
+  assert.equal(state.rounds[0].vote?.rejections, 5);
+  assert.equal(state.rounds[0].vote?.passed, true);
 });

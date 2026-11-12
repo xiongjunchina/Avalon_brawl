@@ -342,7 +342,11 @@ export function GamePanel({
   function handleSeatTap(playerId: string) {
     if (disabled) return;
     if (['proposing', 'discussion'].includes(effectivePhase) && captain) {
-      if (g.humanBagBannedPlayerId === playerId) return;
+      if (
+        g.humanBagBannedPlayerId === playerId ||
+        g.brawl?.imprisonedTargetId === playerId ||
+        g.brawl?.zhizhuBannedTargetId === playerId
+      ) return;
       setSelected(ids =>
         ids.includes(playerId)
           ? ids.filter(id => id !== playerId)
@@ -683,9 +687,13 @@ export function GamePanel({
           const teamStatus = ['guanyin_window', 'mission'].includes(effectivePhase) ? '出征' : '已选';
           const isTargeted =
             g.phase === 'assassination' && target === p.id;
+          const isBannedFromTeam =
+            g.humanBagBannedPlayerId === p.id ||
+            g.brawl?.imprisonedTargetId === p.id ||
+            g.brawl?.zhizhuBannedTargetId === p.id;
           const canTapSeat =
             !disabled &&
-            ((['proposing', 'discussion'].includes(effectivePhase) && captain && g.humanBagBannedPlayerId !== p.id) ||
+            ((['proposing', 'discussion'].includes(effectivePhase) && captain && !isBannedFromTeam) ||
               (g.phase === 'assassination' && self?.role === 'assassin' && p.id !== userId));
           const seatVoteChip = voteStatusMap[p.id] ?? null;
           const revealedRole = ended && g.revealedRoles ? g.revealedRoles[p.id] : undefined;
@@ -784,6 +792,21 @@ export function GamePanel({
                 {g.humanBagBannedPlayerId === p.id && (
                   <span className="seat-badge badge-banned" title="被收入后天人种袋，本轮禁选上车">
                     🎒 禁选
+                  </span>
+                )}
+                {g.brawl?.zhizhuBannedTargetId === p.id && (
+                  <span className="seat-badge badge-banned" title="被蜘蛛精盘丝结茧，当轮禁止入选车队">
+                    🕸️ 结茧
+                  </span>
+                )}
+                {g.brawl?.imprisonedTargetId === p.id && (
+                  <span className="seat-badge badge-banned" title="被如来佛祖压入五行山，当轮禁选禁投">
+                    ⛰️ 镇压
+                  </span>
+                )}
+                {g.phase === 'assassination' && g.selfBrawl?.dapengExcludedPlayerId === p.id && (
+                  <span className="seat-badge badge-banned" title="金翅大鹏雕已侦破此人非齐天大圣">
+                    ❌ 排除
                   </span>
                 )}
                 {isTargeted && (

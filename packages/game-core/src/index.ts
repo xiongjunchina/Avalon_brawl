@@ -388,6 +388,9 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
       if (g.brawl?.imprisonedTargetId) {
         requireRule(!playerIds.includes(g.brawl.imprisonedTargetId), 'PLAYER_IMPRISONED_BY_WUXINGSHAN');
       }
+      if (g.brawl?.zhizhuBannedTargetId) {
+        requireRule(!playerIds.includes(g.brawl.zhizhuBannedTargetId), 'PLAYER_BANNED_BY_ZHIZHU_JING');
+      }
       g.draftTeam = { playerIds: [...playerIds], direction };
       if (g.phase === 'discussion') {
         g.rounds.at(-1)!.team = [...playerIds];
@@ -406,6 +409,9 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
       if (g.brawl?.imprisonedTargetId) {
         requireRule(!playerIds.includes(g.brawl.imprisonedTargetId), 'PLAYER_IMPRISONED_BY_WUXINGSHAN');
       }
+      if (g.brawl?.zhizhuBannedTargetId) {
+        requireRule(!playerIds.includes(g.brawl.zhizhuBannedTargetId), 'PLAYER_BANNED_BY_ZHIZHU_JING');
+      }
       g.rounds.push({ number: g.rounds.length+1, mission: g.mission, captainId: userId,
         team: g.players.filter(p => playerIds.includes(p.id)).map(p => p.id), direction });
       delete g.draftTeam;
@@ -418,17 +424,42 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
       requireRule(g.rounds.at(-1)!.team.length === missionSizesFor(g.players.length, Boolean(g.brawl))[g.mission-1], 'INVALID_TEAM');
       delete g.draftTeam;
       g.teamVoteStartedAt = new Date(context.now).toISOString();
-      g.phase = 'team_vote'; break;
+      g.phase = 'team_vote';
+      if (g.brawl?.imprisonedTargetId) {
+        g.teamVotes[g.brawl.imprisonedTargetId] = 'abstain';
+      }
+      if (g.brawl?.yishanTargetId) {
+        g.teamVotes[g.brawl.yishanTargetId] = 'abstain';
+      }
+      break;
     case 'teamVote': {
       requireRule(g.phase === 'team_vote', 'WRONG_PHASE');
+      if (g.brawl?.imprisonedTargetId === userId) {
+        throw new RuleError('PLAYER_IMPRISONED_BY_WUXINGSHAN');
+      }
+      if (g.brawl?.yishanTargetId === userId) {
+        throw new RuleError('BALLOT_SUPPRESSED_BY_YISHAN');
+      }
       requireRule(!(userId in g.teamVotes), 'ALREADY_SUBMITTED');
       g.teamVotes[userId] = (action.payload as { approve: TeamBallot }).approve;
       if (Object.keys(g.teamVotes).length === g.players.length) {
-        const values = Object.values(g.teamVotes), approvals = values.filter(v => v === true).length, rejections = values.filter(v => v === false).length, abstentions = values.filter(v => v === 'abstain').length;
+        let approvals = 0;
+        let rejections = 0;
+        let abstentions = 0;
+        for (const [pId, ballot] of Object.entries(g.teamVotes)) {
+          const weight = g.brawl?.doubleVoteUserId === pId ? 2 : 1;
+          if (ballot === true) approvals += weight;
+          else if (ballot === false) rejections += weight;
+          else if (ballot === 'abstain') abstentions += weight;
+        }
         const passed = approvals > rejections;
         g.rounds.at(-1)!.vote = { approvals, rejections, abstentions, passed,
           ...(!g.settings.anonymousTeamVote ? { ballots: { ...g.teamVotes } } : {}) };
         g.teamVotes = {};
+        if (g.brawl) {
+          g.brawl.doubleVoteUserId = undefined;
+          g.brawl.yishanTargetId = undefined;
+        }
         if (passed) {
           if (g.treasuresState?.bananaFan?.armed) {
             g.treasuresState.bananaFan.used = true;
@@ -678,6 +709,69 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         } else if (role.skill.skillId === 'longma_fuzhong') {
           // 白龙马【龙马负重】
           g.brawl.extraSeatLimit = 1;
+        } else if (role.skill.skillId === 'pansi_jiejian') {
+          // 蜘蛛精【盘丝结茧】
+          requireRule(targetPlayer, 'INVALID_TARGET');
+          requireRule(targetPlayer.id !== captain(g), 'CANNOT_BAN_CAPTAIN');
+          requireRule(targetPlayer.id !== userId, 'CANNOT_BAN_SELF');
+          g.brawl.zhizhuBannedTargetId = targetPlayer.id;
+
+          if (g.draftTeam?.playerIds.includes(targetPlayer.id)) {
+            g.draftTeam.playerIds = g.draftTeam.playerIds.filter(id => id !== targetPlayer.id);
+          }
+          const currentRound = g.rounds.at(-1);
+          if (currentRound && g.phase === 'discussion' && currentRound.team.includes(targetPlayer.id)) {
+            currentRound.team = currentRound.team.filter(id => id !== targetPlayer.id);
+            g.phase = 'proposing';
+          }
+        } else if (role.skill.skillId === 'xiuli_qiankun') {
+          // 镇元大仙【袖里乾坤】
+          requireRule(['proposing', 'discussion', 'team_vote'].includes(g.phase), 'WRONG_PHASE');
+          delete g.draftTeam;
+          g.teamVotes = {};
+          g.missionVotes = {};
+          rotate(g);
+          g.phase = 'proposing';
+        } else if (role.skill.skillId === 'zhaoyao_baojing') {
+          // 托塔李天王【照妖宝镜】
+          const currentTeam = g.draftTeam?.playerIds ?? g.rounds.at(-1)?.team ?? [];
+          const hasDemon = currentTeam.some(id => g.brawl?.playerStates[id]?.camp === 'red');
+          g.brawl.zhaoyaoResult = { hasDemon, teamPlayerIds: [...currentTeam] };
+        } else if (role.skill.skillId === 'yuncheng_wanli') {
+          // 金翅大鹏雕【云程万里】
+          requireRule(g.phase === 'assassination', 'WRONG_PHASE');
+          const candidateBluePlayers = g.players.filter(p => {
+            const pState = g.brawl?.playerStates[p.id];
+            return pState?.camp === 'blue' && pState?.roleId !== 'sun_wukong';
+          });
+          if (candidateBluePlayers.length > 0) {
+            const excluded = candidateBluePlayers[Math.floor(Math.random() * candidateBluePlayers.length)];
+            g.brawl.dapengExcludedPlayerId = excluded.id;
+          }
+        } else if (role.skill.skillId === 'santou_liubi' || role.skill.skillId === 'pingtian_handi') {
+          // 哪吒三太子【三头六臂】/ 牛魔王【平天撼地】
+          requireRule(['proposing', 'discussion', 'team_vote'].includes(g.phase), 'WRONG_PHASE');
+          g.brawl.doubleVoteUserId = userId;
+        } else if (role.skill.skillId === 'yishan_yading') {
+          // 银角大王【移山压顶】
+          requireRule(targetPlayer, 'INVALID_TARGET');
+          requireRule(targetPlayer.id !== userId, 'CANNOT_TARGET_SELF');
+          requireRule(['proposing', 'discussion', 'team_vote'].includes(g.phase), 'WRONG_PHASE');
+          g.brawl.yishanTargetId = targetPlayer.id;
+          if (g.phase === 'team_vote') {
+            g.teamVotes[targetPlayer.id] = 'abstain';
+          }
+        } else if (role.skill.skillId === 'tianzun_yuzhi') {
+          // 玉皇大帝【天尊玉旨】
+          const lastRound = g.rounds.filter(r => r.result).at(-1);
+          if (lastRound?.result && lastRound.result.failures === 1 && !lastRound.result.passed) {
+            const success = Math.random() < 0.5;
+            if (success) {
+              lastRound.result.passed = true;
+              lastRound.result.failures = 0;
+              lastRound.result.successes = lastRound.team.length;
+            }
+          }
         }
 
         const summaryText = `【${role.name}】祭出绝技【${role.skill.skillName}】${targetText}！效用：${role.skill.description}`;

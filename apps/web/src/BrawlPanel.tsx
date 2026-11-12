@@ -80,6 +80,13 @@ export function BrawlPanel({
                   🔍 盲盒天机：本局敌对潜伏底牌包含【{selfBrawl.peekedRoles.map(r => r.roleName).join('、')}】
                 </div>
               )}
+
+              {/* 托塔李天王专属：照妖宝镜探查结果 */}
+              {selfBrawl.zhaoyaoResult !== undefined && (
+                <div style={{ marginTop: '6px', fontSize: '12px', fontWeight: 'bold', color: selfBrawl.zhaoyaoResult ? '#f87171' : '#4ade80' }}>
+                  {selfBrawl.zhaoyaoResult ? '🪞 照妖镜探照天机：当前车队中【有妖魔潜伏！】' : '🪞 照妖镜探照天机：当前车队中【无妖魔，皆是正道仙友！】'}
+                </div>
+              )}
             </div>
 
             {/* 技能发动交互 */}

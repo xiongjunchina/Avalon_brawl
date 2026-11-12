@@ -112,6 +112,11 @@ export interface BrawlGameState {
   taoshouActive?: boolean;     // 王母娘娘九转仙桃庇佑（本轮需至少2张失败才算失败）
   extraSeatLimit?: number;     // 白龙马负重增加的人数上限
   laojunZhuoActive?: boolean;  // 太上老君金刚琢法宝生效中（拦截下一个妖魔主动技能）
+  zhizhuBannedTargetId?: string; // 蜘蛛精盘丝结茧禁锢的玩家（本轮禁止出征）
+  doubleVoteUserId?: string;   // 哪吒三太子/牛魔王激活的双倍表决票用户
+  yishanTargetId?: string;     // 银角大王移山压顶目标（表决票强制被压制为弃权）
+  dapengExcludedPlayerId?: string; // 金翅大鹏雕云程万里排除的非大圣席位
+  zhaoyaoResult?: { hasDemon: boolean; teamPlayerIds: string[] }; // 托塔李天王照妖镜探查私密结果
 }
 
 export interface SelfBrawlView {
@@ -126,6 +131,8 @@ export interface SelfBrawlView {
   skillUsed: boolean;
   isAwakened?: boolean;
   peekedRoles?: { roleId: string; roleName: string; camp: BrawlCamp }[];
+  zhaoyaoResult?: boolean; // 李天王专属：当前车队是否有妖魔
+  dapengExcludedPlayerId?: string; // 终局刺杀阶段排除的非孙悟空席位
 }
 
 export const brawlCommandPayloadSchema = z.object({

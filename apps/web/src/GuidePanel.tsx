@@ -591,7 +591,6 @@ export function GuideRoles({ mode = 'classic', onSelectBrawlRole }: { mode?: Gui
 }
 
 export function GuidePanel({ onBack }: { onBack: () => void }) {
-  const [guideMode, setGuideMode] = useState<GuideMode>('brawl');
   const [section, setSection] = useState<GuideSection>('roles');
   const [destination, setDestination] = useState('');
   const [activeBrawlRole, setActiveBrawlRole] = useState<BrawlRoleDef | null>(null);
@@ -641,99 +640,45 @@ export function GuidePanel({ onBack }: { onBack: () => void }) {
 
   return (
     <section className="guide guide-flow" ref={guideRef}>
-      <style>{`
-        .guide-mode-switch {
-          display: flex;
-          gap: 6px;
-          margin: 8px 0;
-          padding: 3px;
-          background: rgba(15, 23, 42, 0.65);
-          border: 1px solid rgba(212, 163, 89, 0.4);
-          border-radius: 12px;
-        }
-        .guide-mode-btn {
-          flex: 1;
-          padding: 8px 12px;
-          border-radius: 10px;
-          font-size: 13.5px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          border: 1px solid transparent;
-        }
-        .guide-mode-btn.active {
-          background: linear-gradient(135deg, #b45309 0%, #78350f 100%);
-          color: #fff8db;
-          border-color: #fbbf24;
-          box-shadow: 0 0 10px rgba(245, 158, 11, 0.35);
-        }
-        .guide-mode-btn:not(.active) {
-          background: transparent;
-          color: #94a3b8;
-        }
-      `}</style>
-
       <div className="guide-navigation" ref={navigationRef}>
         <div className="guide-controls">
-          <button type="button" className="secondary" aria-label="返回原页面" onClick={onBack}>返回</button>
+          <button
+            type="button"
+            className="secondary guide-back-icon-btn"
+            aria-label="返回原页面"
+            title="返回原页面"
+            onClick={onBack}
+          >
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
           <nav className="guide-nav" aria-label="说明分类">
             <button type="button" className="secondary" aria-label="角色介绍" aria-pressed={section === 'roles'} onClick={() => changeSection('roles')}>角色</button>
             <button type="button" className="secondary" aria-label="游戏规则" aria-pressed={section === 'rules'} onClick={() => changeSection('rules')}>规则</button>
           </nav>
           <select className="guide-chapter-select" aria-label={section === 'rules' ? '跳转规则章节' : '跳转角色介绍'} value={destination} onChange={e => jumpTo(e.target.value)}>
             <option value="" disabled>章节跳转</option>
-            {guideChapters(section, guideMode).map(({ title, id }) => <option key={id} value={id}>{title}</option>)}
+            {guideChapters(section, 'brawl').map(({ title, id }) => <option key={id} value={id}>{title}</option>)}
           </select>
           <button type="button" className="secondary" aria-label="返回目录" onClick={returnToDirectory}>目录 ↑</button>
         </div>
       </div>
 
-      {/* 顶部模式切换开关 */}
-      <div className="guide-mode-switch" role="tablist" aria-label="玩法说明模式切换">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={guideMode === 'brawl'}
-          className={`guide-mode-btn ${guideMode === 'brawl' ? 'active' : ''}`}
-          onClick={() => { setGuideMode('brawl'); setDestination(''); }}
-        >
-          ⚔️ 仙魔大乱斗（30位全明星）
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={guideMode === 'classic'}
-          className={`guide-mode-btn ${guideMode === 'classic' ? 'active' : ''}`}
-          onClick={() => { setGuideMode('classic'); setDestination(''); }}
-        >
-          📜 经典原版（真假猴王）
-        </button>
+      <div className="guide-heading">
+        <div>
+          <p className="eyebrow">WESTWARD BRAWL / 仙魔对决天机卷</p>
+          <h1>《西游 · 仙魔大乱斗》</h1>
+          <p className="muted">30位西游神魔全明星阵容，弱技能碰撞，天机盲盒推理博弈</p>
+        </div>
       </div>
 
-      {guideMode === 'brawl' ? (
-        <div className="guide-heading">
-          <div>
-            <p className="eyebrow">WESTWARD BRAWL / 仙魔对决天机卷</p>
-            <h1>《西游 · 仙魔大乱斗》</h1>
-            <p className="muted">30位西游神魔全明星阵容，弱技能碰撞，天机盲盒推理博弈</p>
-          </div>
-        </div>
-      ) : (
-        <div className="guide-heading">
-          <div>
-            <p className="eyebrow">JOURNEY TO THE WEST / 真假猴王秘卷</p>
-            <h1>《嘻游 · 真假猴王》</h1>
-            <p className="muted">一念佛魔皆幻相，谁是修道取经人</p>
-          </div>
-        </div>
-      )}
-
-      <GuideIndex section={section} mode={guideMode} onJump={jumpTo} />
+      <GuideIndex section={section} mode="brawl" onJump={jumpTo} />
 
       {section === 'rules' ? (
-        <GuideRules mode={guideMode} />
+        <BrawlGuideRules />
       ) : (
-        <GuideRoles mode={guideMode} onSelectBrawlRole={setActiveBrawlRole} />
+        <BrawlGuideRoles onSelectRole={setActiveBrawlRole} />
       )}
 
       {/* 大乱斗高清立绘大图弹窗 */}

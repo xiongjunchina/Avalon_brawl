@@ -26,7 +26,7 @@ export function PracticeSeatPicker({ gameId = 'practice', rulesetVersion, player
     </button>
     {open && <Modal label="切换试玩视角" scene="sword" onClose={() => setOpen(false)}>
       <section className="table-modal-sheet practice-view-sheet">
-        <div className="table-modal-head"><strong>选择演练视角</strong><button className="secondary tool-pill" onClick={() => setOpen(false)}>返回</button></div>
+        <div className="table-modal-head"><strong>选择演练视角</strong><button className="secondary tool-pill" onClick={() => setOpen(false)} aria-label="关闭" title="关闭"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: 'block' }}><path d="M15 19l-7-7 7-7" /></svg></button></div>
         <div className="practice-view-options">{players.map(p => {
           const brawlRole = brawlRoles?.[p.id] ? BRAWL_ROLE_REGISTRY[brawlRoles[p.id]] : undefined;
           const displayRole = brawlRole ? brawlRole.fullName : formatRoleName(roles[p.id], loyalGuardians[p.id], femaleDemons[p.id]);

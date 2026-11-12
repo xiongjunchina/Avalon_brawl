@@ -143,10 +143,13 @@ test('GuideRoles(mode="brawl"): renders all 30 all-star Journey to the West char
   assert.match(rulesHtml, /30位弱技能设计原则/);
   assert.match(rulesHtml, /天机战报“公法不公人”原则/);
 
-  // Check GuidePanel includes mode switch and defaults to brawl
-  assert.match(panelHtml, /仙魔大乱斗（30位全明星）/);
-  assert.match(panelHtml, /经典原版（真假猴王）/);
+  // Check GuidePanel renders brawl guide directly without legacy classic mode switch
+  assert.match(panelHtml, /《西游 · 仙魔大乱斗》/);
+  assert.doesNotMatch(panelHtml, /经典原版（真假猴王）/);
   assert.match(panelHtml, /如来佛祖/);
+  // Check back button uses graphical icon rather than plain text "返回"
+  assert.match(panelHtml, /guide-back-icon-btn/);
+  assert.doesNotMatch(panelHtml, />返回<\/button>/);
 });
 
 test('BrawlPanel: privacyMode hides sensitive role/camp/skills from public board and only shows neutral notice', () => {

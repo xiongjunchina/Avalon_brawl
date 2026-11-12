@@ -298,6 +298,8 @@ main.app-shell.is-live-table { --table-gap: 8px; }
 .guide-flow .guide-navigation { position: sticky; top: 0; z-index: 5; padding: 4px; background: #260e0d; border: 1px solid #d4a35980; border-radius: 12px; }
 .guide-flow .guide-controls { display: flex; align-items: center; gap: 4px; }
 .guide-controls > button { flex: 0 0 auto; width: auto; height: 40px; min-height: 40px; margin: 0; padding: 4px 6px; font: 600 12px/1.4 var(--sans); white-space: nowrap; }
+.guide-controls > button.guide-back-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 40px; min-width: 40px; padding: 0; }
+.guide-controls > button.guide-back-icon-btn svg { display: block; }
 .guide-controls .guide-nav { flex: 0 0 auto; display: flex; gap: 4px; margin: 0; }
 .guide-controls .guide-nav > button { flex: 0 0 auto; width: auto; height: 40px; min-height: 40px; margin: 0; padding: 4px 8px; font: 600 12px/1.4 var(--sans); white-space: nowrap; }
 .guide-controls .guide-chapter-select { flex: 1 1 0; width: 0; min-width: 0; height: 40px; min-height: 40px; margin: 0; padding: 4px 6px; border: 1px solid #d4a359; border-radius: 10px; font: 600 12px/1.4 var(--sans); }

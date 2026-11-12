@@ -12,8 +12,11 @@ import {
   ensureNeutralResolvedBeforeVote,
   isPlayerImprisoned,
   projectSelfBrawlView,
+  createGame,
+  projectGame,
+  transition,
 } from '../src/index.js';
-import type { BrawlRoleDef, BrawlPlayerState } from '@avalon/contracts';
+import { defaultSettings, type BrawlRoleDef, type BrawlPlayerState } from '@avalon/contracts';
 
 test('brawl: registry contains 31 legendary Journey to the West characters', () => {
   const roles = Object.values(BRAWL_ROLE_REGISTRY);
@@ -231,4 +234,36 @@ test('brawl: extensible registry allows seamless registration of 32nd and 33rd c
   assert.equal(Object.keys(extendedRegistry).length, 32);
   const assignment = drawBrawlRoles(8, extendedRegistry);
   assert.equal(assignment.roles.length, 8);
+});
+
+test('brawl: createGame with brawlModeEnabled assigns full brawl roles, projectGame reveals selfBrawl', () => {
+  const players = Array.from({ length: 12 }, (_, i) => ({
+    id: `p${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+  const game = createGame('brawl-game-12', players, { ...defaultSettings, playerCount: 12, brawlModeEnabled: true }, a => a);
+  assert.ok(game.brawl, 'game has brawl state');
+  assert.ok(game.brawlRoles, 'game has brawlRoles mapping');
+  assert.equal(Object.keys(game.brawlRoles).length, 12, '12 players mapped to brawl roles');
+
+  // Verify all 12 mapped roles are in BRAWL_ROLE_REGISTRY
+  for (const roleId of Object.values(game.brawlRoles)) {
+    assert.ok(BRAWL_ROLE_REGISTRY[roleId], `Role ${roleId} is registered in BRAWL_ROLE_REGISTRY`);
+  }
+
+  // Verify projectGame includes selfBrawl
+  const viewP1 = projectGame(game, 'p1');
+  assert.ok(viewP1.selfBrawl, 'viewP1 contains selfBrawl');
+  assert.equal(viewP1.selfBrawl?.roleId, game.brawlRoles.p1);
+  assert.ok(viewP1.selfBrawl?.roleName, 'selfBrawl has roleName');
+  assert.ok(viewP1.selfBrawl?.skill, 'selfBrawl has skill');
+
+  // Verify brawlCommand transition
+  const next = transition(game, 'p1', {
+    type: 'brawlCommand',
+    payload: { action: 'useSkill', skillId: viewP1.selfBrawl.skill.skillId },
+  }, players.map(p => p.id));
+  assert.equal(next.brawl?.playerStates.p1.skillUsed, true, 'Skill marked as used');
+  assert.equal(next.brawl?.events.length, 1, 'Event appended');
 });

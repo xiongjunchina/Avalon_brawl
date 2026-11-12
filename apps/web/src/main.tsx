@@ -114,6 +114,7 @@ function App() {
   const [setupOpen, setSetupOpen] = useState(false);
   const [setupSettings, setSetupSettings] = useState<Settings>(() => ({
     ...defaultSettings,
+    brawlModeEnabled: true,
     playerCount: 6,
     captainMode: 'random_order',
     anonymousTeamVote: true,
@@ -555,7 +556,7 @@ function App() {
   }
 
   function startPracticeGame(customSettings?: Settings, identity = user) {
-    const s = customSettings ?? setupSettings;
+    const s: Settings = { ...(customSettings ?? setupSettings), brawlModeEnabled: true };
     const players: Player[] = Array.from({ length: s.playerCount }, (_, i) => ({
       id: `p${i + 1}`,
       seat: i + 1,
@@ -824,10 +825,10 @@ function App() {
                   <path d="M5 10h11a4 4 0 1 1 0 8h-1" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </button>
-              <PracticeSeatPicker gameId={practiceGame.id} rulesetVersion={practiceGame.rulesetVersion} players={practiceGame.players} roles={practiceGame.roles}
+              <PracticeSeatPicker gameId={practiceGame.id} rulesetVersion={practiceGame.rulesetVersion} players={practiceGame.players} roles={practiceGame.roles} brawlRoles={practiceGame.brawlRoles}
                 value={practiceUserId} onChange={setPracticeUserId} />
             </div>
-            <h1 className="table-top-title">嘻游 · 真假猴王</h1>
+            <h1 className="table-top-title">西游 · 仙魔大乱斗</h1>
             <div className="room-top-right">
               <SoundButton />
               {!isEnded(practiceGame) && (
@@ -1168,7 +1169,7 @@ function App() {
                 </small>
               </button>
             </div>
-            <h1 className="table-top-title">嘻游 · 真假猴王</h1>
+            <h1 className="table-top-title">西游 · 仙魔大乱斗</h1>
             <div className="room-top-right">
               <SoundButton />
               {connection !== '已连接' && (

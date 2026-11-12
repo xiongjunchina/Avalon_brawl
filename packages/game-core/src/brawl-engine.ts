@@ -178,7 +178,7 @@ export function projectSelfBrawlView(
     skillAvailable: !playerState.skillUsed,
     skillUsed: playerState.skillUsed,
     isAwakened: playerState.isAwakened,
-    peekedRoles: peekedMap[playerState.roleId] || [],
+    peekedRoles: peekedMap[playerState.roleId]?.length ? peekedMap[playerState.roleId] : undefined,
     neutralDecisionPending,
   };
 }

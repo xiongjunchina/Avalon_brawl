@@ -51,7 +51,7 @@ export const defaultSettings: Settings = {
   autoRevealRoleEnabled: false,
   treasuresEnabled: false,
   rolePreferenceEnabled: false,
-  brawlModeEnabled: true,
+  brawlModeEnabled: false,
 };
 export const defaultAnonymousTeamVote = (playerCount: number) => playerCount < 8;
 export type TeamBallot = boolean | 'abstain';
@@ -361,6 +361,7 @@ export interface GameView {
   humanBagBannedPlayerId?: string;
   bananaFanNotice?: string;
   result?: GameResult; revealedRoles?: Record<string, Role>;
+  revealedBrawlRoles?: Record<string, string>;
   abortPoll?: { requestedBy: string; approvals: number; required: number; voted: boolean };
   brawl?: BrawlGameState;
   selfBrawl?: SelfBrawlView;

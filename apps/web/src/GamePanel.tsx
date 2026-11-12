@@ -2,7 +2,8 @@ import { PrivateExtensions, ExtensionHistory } from './Extensions';
 import { useEffect, useRef, useState } from 'react';
 import type { Command, GameView, Player, RoomView, RoundView } from '@avalon/contracts';
 import { uuidToRtcUid } from '@avalon/contracts';
-import { ROLE_CONFIG, assignFemaleDemons, assignLoyalGuardians, failuresRequiredFor } from '@avalon/game-core';
+import { ROLE_CONFIG, assignFemaleDemons, assignLoyalGuardians, failuresRequiredFor, BRAWL_ROLE_REGISTRY } from '@avalon/game-core';
+import { BrawlPanel } from './BrawlPanel';
 import { Emblem, PlayerAvatar, WuYueBackdrop, roleTeam, CloudFlourish, DragonPlinthDecor } from './Heraldry';
 import { RolePortrait } from './RolePortrait';
 import { WUYUE_MISSIONS, formatRoleName, roleNames } from './roles';
@@ -817,7 +818,9 @@ export function GamePanel({
                 {revealedRole ? (
                   <span className={`revealed-role allegiance-${roleTeam(revealedRole)}`}>
                     {roleTeam(revealedRole) === 'blue' ? '🛡️ ' : '🗡️ '}
-                    {formatRoleName(revealedRole, revealedLoyalGuardians[p.id], revealedFemaleDemons[p.id])}
+                    {g.revealedBrawlRoles?.[p.id] && BRAWL_ROLE_REGISTRY[g.revealedBrawlRoles[p.id]]
+                      ? BRAWL_ROLE_REGISTRY[g.revealedBrawlRoles[p.id]].name
+                      : formatRoleName(revealedRole, revealedLoyalGuardians[p.id], revealedFemaleDemons[p.id])}
                   </span>
                 ) : isTargeted ? (
                   <span className="seat-chip chip-target">
@@ -1141,6 +1144,15 @@ export function GamePanel({
 
         {privateUnread && !privateNoticeVisible && connected && guanyinNotice.pageVisible && (
           <p className="treasure-unread-notice" role="status">有一条私密消息，点击「法宝」查看。</p>
+        )}
+        {g.selfBrawl && (
+          <BrawlPanel
+            selfBrawl={g.selfBrawl}
+            events={g.brawl?.events}
+            players={g.players}
+            onChooseCamp={camp => send({ type: 'brawlCommand', payload: { action: 'chooseCamp', camp } })}
+            onUseSkill={(skillId, targetId) => send({ type: 'brawlCommand', payload: { action: 'useSkill', skillId, targetPlayerId: targetId } })}
+          />
         )}
         <div className="dock-utility-row has-treasure-entry">
           {!ended && self && (

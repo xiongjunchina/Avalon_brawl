@@ -2,7 +2,16 @@ import { assignWeightedRoles, type RoleProtectionOptions } from './role-assignme
 export { roleWeight, ROLE_ASSIGNMENT_VERSION, ROLE_WEIGHT_VERSION } from './role-assignment.js';
 export type { RoleProtectionOptions } from './role-assignment.js';
 export { randomBigIntBelow } from './random.js';
-import type { Command, GameResult, GameView, LoyalGuardian, FemaleDemon, Player, Role, RoundView, Settings, Team, PrivateInspection, EarlyWindow, TeamBallot, GuardianClue, SelfTreasures, HeartBellAdvice, RoleAssignmentAudit } from '@avalon/contracts';
+import type { Command, GameResult, GameView, LoyalGuardian, FemaleDemon, Player, Role, RoundView, Settings, Team, PrivateInspection, EarlyWindow, TeamBallot, GuardianClue, SelfTreasures, HeartBellAdvice, RoleAssignmentAudit, BrawlGameState, BrawlPlayerState, BrawlCommandPayload, BrawlCamp } from '@avalon/contracts';
+import { drawBrawlRoles, BRAWL_ROLE_REGISTRY } from './brawl-registry.js';
+import {
+  createBrawlGameState,
+  appendBattleEvent,
+  validateBrawlMissionVote,
+  processNeutralChoice,
+  ensureNeutralResolvedBeforeVote,
+  projectSelfBrawlView,
+} from './brawl-engine.js';
 export const RULESET_VERSION = 'standard-no-lancelot-v6';
 export const GUANYIN_WINDOW_MS = 5_000;
 export const LOYAL_GUARDIAN_POOL: readonly LoyalGuardian[] = ['bailong', 'zhubajie', 'shawujing', 'jingang'];
@@ -94,6 +103,9 @@ export interface GameState {
   };
   bananaFanNotice?: string;
   result?: GameResult; abortPoll?: { requestedBy: string; electorate: string[]; approvals: string[] };
+  brawl?: BrawlGameState;
+  brawlRoles?: Record<string, string>;
+  brawlPeekedMap?: Record<string, { roleId: string; roleName: string; camp: BrawlCamp }[]>;
 }
 /** Local practice carries the same recent-deal inputs across rematches, without storing real accounts. */
 export function roleHistoryAfterDeal(game: Pick<GameState, 'roles' | 'roleAssignmentAudit'>): Record<string, Role[]> {
@@ -119,6 +131,66 @@ export function createGame(
     ...protectionOpts,
     rolePreferences: settings.rolePreferenceEnabled ? protectionOpts.rolePreferences : undefined,
   });
+
+  let brawlState: BrawlGameState | undefined;
+  let brawlRoles: Record<string, string> | undefined;
+  let brawlPeekedMap: Record<string, { roleId: string; roleName: string; camp: BrawlCamp }[]> | undefined;
+
+  if (settings.brawlModeEnabled) {
+    const assignment = drawBrawlRoles(sorted.length);
+    brawlRoles = {};
+    const playerStates: Record<string, BrawlPlayerState> = {};
+
+    const bluePool = shuffle(assignment.roles.filter(r => r.camp === 'blue' && !r.isCore));
+    const redPool = shuffle(assignment.roles.filter(r => r.camp === 'red' && !r.isCore));
+    const neutralRole = assignment.roles.find(r => r.camp === 'neutral');
+    let neutralAssigned = false;
+
+    for (const p of sorted) {
+      const r = roles[p.id];
+      let br: typeof assignment.roles[number] | undefined;
+      if (r === 'merlin') {
+        br = assignment.roles.find(x => x.id === 'sun_wukong');
+      } else if (r === 'percival') {
+        br = assignment.roles.find(x => x.id === 'tang_seng');
+      } else if (r === 'morgana') {
+        br = assignment.roles.find(x => x.id === 'liuer_mihou');
+      } else if (r === 'assassin') {
+        br = assignment.roles.find(x => x.id === 'hong_haier');
+      } else if (neutralRole && !neutralAssigned && r === 'loyal') {
+        br = neutralRole;
+        neutralAssigned = true;
+      } else if (teamOf(r) === 'blue') {
+        br = bluePool.pop();
+      } else {
+        br = redPool.pop();
+      }
+
+      if (!br) {
+        br = teamOf(r) === 'blue'
+          ? (bluePool.pop() || BRAWL_ROLE_REGISTRY.sun_wukong)
+          : (redPool.pop() || BRAWL_ROLE_REGISTRY.hong_haier);
+      }
+
+      brawlRoles[p.id] = br.id;
+      playerStates[p.id] = {
+        userId: p.id,
+        seat: p.seat,
+        roleId: br.id,
+        camp: br.camp,
+        skillUsed: false,
+      };
+    }
+
+    brawlState = createBrawlGameState(
+      playerStates,
+      assignment.blindBox.bluePoolRoles,
+      assignment.blindBox.redPoolRoles,
+      assignment.blindBox.neutralRole,
+    );
+    brawlPeekedMap = assignment.peekedMap;
+  }
+
   let guinevereCandidates: string[] | undefined;
   if (Object.values(roles).includes('guinevere')) {
     const mordredId = sorted.find(p => roles[p.id] === 'mordred')?.id;
@@ -186,12 +258,15 @@ export function createGame(
   const seats = sorted.map(p => p.id);
   const captainOrder = settings.captainMode === 'random_order' ? shuffle(seats) : seats;
   return { id, rulesetVersion: RULESET_VERSION, settings: { ...settings }, players: sorted,
-    roles, roleAssignmentAudit: audit, phase: 'role_reveal', mission: 1,
+    roles, ...(audit ? { roleAssignmentAudit: audit } : {}), phase: 'role_reveal', mission: 1,
     rejectionCount: 0, captainOrder,
     ...(guinevereCandidates ? { guinevereCandidates } : {}),
     ...(guardianClues ? { guardianClues } : {}),
     ...(settings.earlyAssassinationEnabled ? { earlyAssassination: { used: false, windows: [] } } : {}),
     ...(settings.treasuresEnabled && sorted.length >= 8 ? { treasuresState: {} } : {}),
+    ...(brawlState ? { brawl: brawlState } : {}),
+    ...(brawlRoles ? { brawlRoles } : {}),
+    ...(brawlPeekedMap ? { brawlPeekedMap } : {}),
     captainIndex: 0, confirmed: [], teamVotes: {}, missionVotes: {}, rounds: [] };
 }
 export const isEnded = (g: GameState) => g.phase === 'finished' || g.phase === 'aborted';
@@ -290,6 +365,9 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
       requireRule(g.rounds.at(-1)!.team.length === MISSION_SIZES[g.players.length][g.mission-1], 'INVALID_TEAM');
       delete g.draftTeam;
       g.teamVoteStartedAt = new Date(context.now).toISOString();
+      if (g.brawl) {
+        ensureNeutralResolvedBeforeVote(g.brawl);
+      }
       g.phase = 'team_vote'; break;
     case 'teamVote': {
       requireRule(g.phase === 'team_vote', 'WRONG_PHASE');
@@ -339,6 +417,10 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
       requireRule(!(userId in g.missionVotes), 'ALREADY_SUBMITTED');
       const { success } = action.payload as { success: boolean };
       requireRule(success || teamOf(g.roles[userId]) === 'red', 'BLUE_MUST_SUCCEED');
+      if (g.brawl) {
+        const check = validateBrawlMissionVote(g.brawl, userId, g.mission, success);
+        requireRule(check.valid, check.error || 'INVALID_BRAWL_VOTE');
+      }
       g.missionVotes[userId] = success;
       if (Object.keys(g.missionVotes).length === round.team.length) {
         const failures = Object.values(g.missionVotes).filter(v => !v).length;
@@ -469,6 +551,24 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
       }
       break;
     }
+    case 'brawlCommand': {
+      requireRule(g.brawl, 'BRAWL_NOT_ENABLED');
+      const payload = action.payload as BrawlCommandPayload;
+      if (payload.action === 'chooseCamp') {
+        const res = processNeutralChoice(g.brawl, userId, payload.camp, g.mission, false);
+        requireRule(res.success, res.error || 'BRAWL_CHOICE_FAILED');
+      } else if (payload.action === 'useSkill') {
+        const playerState = g.brawl.playerStates[userId];
+        requireRule(playerState, 'PLAYER_NOT_FOUND');
+        requireRule(!playerState.skillUsed, 'SKILL_ALREADY_USED');
+        playerState.skillUsed = true;
+        const role = BRAWL_ROLE_REGISTRY[playerState.roleId];
+        if (role) {
+          appendBattleEvent(g.brawl, role.id, `【${role.name}】施展【${role.skill.skillName}】！`);
+        }
+      }
+      break;
+    }
     default: throw new RuleError('WRONG_PHASE');
   }
   return g;
@@ -504,7 +604,13 @@ export function projectGame(g: GameState, userId?: string): GameView {
     ...(g.treasuresState?.humanBag?.activeBannedMission === g.mission && g.treasuresState.humanBag.targetId
       ? { humanBagBannedPlayerId: g.treasuresState.humanBag.targetId } : {}),
     ...(g.bananaFanNotice ? { bananaFanNotice: g.bananaFanNotice } : {}),
-    ...(g.result ? { result: { ...g.result }, revealedRoles: { ...g.roles } } : {}),
+    ...(g.result ? {
+      result: { ...g.result },
+      revealedRoles: { ...g.roles },
+      ...(g.brawlRoles ? { revealedBrawlRoles: { ...g.brawlRoles } } : {}),
+    } : {}),
+    ...(g.brawl ? { brawl: structuredClone(g.brawl) } : {}),
+    ...(g.brawl && userId ? { selfBrawl: projectSelfBrawlView(g.brawl, userId, g.mission, g.brawlPeekedMap) } : {}),
     ...(g.abortPoll ? { abortPoll: { requestedBy: g.abortPoll.requestedBy, approvals: g.abortPoll.approvals.length,
       required: g.abortPoll.electorate.length, voted: !!userId && g.abortPoll.approvals.includes(userId) } } : {}),
     ...(role && userId ? { self: { role, ...(role === 'loyal' ? { loyalGuardian: assignLoyalGuardians(g.id, g.players, g.roles, g.rulesetVersion)[userId] } : {}), ...(role === 'minion' ? { femaleDemon: assignFemaleDemons(g.id, g.players, g.roles)[userId] } : {}), team: teamOf(role), evilIds,

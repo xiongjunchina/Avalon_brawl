@@ -113,6 +113,47 @@ export function IdentityDetails({
 
   return (
     <>
+      {game?.selfBrawl && (
+        <section
+          className="brawl-identity-banner"
+          style={{
+            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%)',
+            border: `1.5px solid ${game.selfBrawl.camp === 'blue' ? '#3b82f6' : game.selfBrawl.camp === 'red' ? '#ef4444' : '#f59e0b'}`,
+            borderRadius: '12px',
+            padding: '12px 16px',
+            marginBottom: '12px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+            <span style={{
+              fontWeight: 700,
+              fontSize: '16px',
+              color: game.selfBrawl.camp === 'blue' ? '#60a5fa' : game.selfBrawl.camp === 'red' ? '#f87171' : '#fbbf24',
+            }}>
+              【{game.selfBrawl.roleName}】· {game.selfBrawl.roleTitle}
+            </span>
+            <span style={{
+              fontSize: '12px',
+              padding: '2px 8px',
+              borderRadius: '999px',
+              background: game.selfBrawl.camp === 'blue' ? 'rgba(59, 130, 246, 0.2)' : game.selfBrawl.camp === 'red' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+              color: game.selfBrawl.camp === 'blue' ? '#93c5fd' : game.selfBrawl.camp === 'red' ? '#fca5a5' : '#fde68a',
+            }}>
+              {game.selfBrawl.camp === 'blue' ? '仙佛阵营' : game.selfBrawl.camp === 'red' ? '妖魔阵营' : '初始中立'}
+            </span>
+          </div>
+          <div style={{ fontSize: '13px', color: '#e2e8f0', marginTop: '6px' }}>
+            <strong style={{ color: '#fbbf24' }}>绝技 · {game.selfBrawl.skill.skillName}：</strong>
+            <span style={{ color: '#cbd5e1' }}>{game.selfBrawl.skill.description}</span>
+          </div>
+          {game.selfBrawl.peekedRoles && game.selfBrawl.peekedRoles.length > 0 && (
+            <div style={{ fontSize: '12px', color: '#fbbf24', marginTop: '8px', borderTop: '1px dashed rgba(245, 158, 11, 0.3)', paddingTop: '6px' }}>
+              🔍 <strong>盲盒天机：</strong>侦察到本局潜伏敌手包含【{game.selfBrawl.peekedRoles.map(r => r.roleName).join('、')}】
+            </div>
+          )}
+        </section>
+      )}
       <IdentityCard
         role={self.role}
         loyalGuardian={self.loyalGuardian}

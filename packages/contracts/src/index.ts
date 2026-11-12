@@ -77,7 +77,7 @@ export type Role = z.infer<typeof roleSchema>;
 const base = { commandId: z.string().uuid(), expectedVersion: z.number().int().min(1) };
 export const commandSchema = z.discriminatedUnion('type', [
   z.object({ ...base, type: z.literal('setReady'), payload: z.object({ ready: z.boolean() }).strict() }).strict(),
-  z.object({ ...base, type: z.literal('setRolePreferences'), payload: z.object({ preferences: z.array(roleSchema).max(3).refine(arr => new Set(arr).size === arr.length, 'DUPLICATE_PREFERENCES') }).strict() }).strict(),
+  z.object({ ...base, type: z.literal('setRolePreferences'), payload: z.object({ preferences: z.array(z.string().min(1).max(32)).max(5).refine(arr => new Set(arr).size === arr.length, 'DUPLICATE_PREFERENCES') }).strict() }).strict(),
   z.object({ ...base, type: z.literal('updateSettings'), payload: settingsSchema }).strict(),
   z.object({ ...base, type: z.literal('setAdmission'), payload: z.object({ acceptingNewMembers: z.boolean() }).strict() }).strict(),
   ...(['startGame', 'confirmRole', 'startTeamVote', 'returnToLobby', 'requestAbort', 'endGame'] as const).map(type =>
@@ -147,7 +147,7 @@ export interface RoomView {
   phase: 'waiting' | 'playing' | 'finished';
   acceptingNewMembers: boolean;
   game?: GameView;
-  selfRolePreferences?: Role[];
+  selfRolePreferences?: string[];
   hasPassword?: boolean;
   dedicatedRoomId?: string;
   dedicatedRoomName?: string;

@@ -267,3 +267,39 @@ test('brawl: createGame with brawlModeEnabled assigns full brawl roles, projectG
   assert.equal(next.brawl?.playerStates.p1.skillUsed, true, 'Skill marked as used');
   assert.equal(next.brawl?.events.length, 1, 'Event appended');
 });
+
+test('brawl: 5-role preferences prioritize preferred characters in pool draw and player assignment', () => {
+  const players = Array.from({ length: 8 }, (_, i) => ({
+    id: `u${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+
+  // u1 prefers Erlang Shen, Nezha, Zhenyuan Daxian, Guanyin, Rulai Fozu (all Blue non-core)
+  const u1Prefs = ['erlang_shen', 'nezha', 'zhenyuan_daxian', 'guanyin_pusa', 'rulai_fozu'];
+  // u2 prefers Niu Mowang, Dapeng, Baigu Jing, Huangfeng, Honghai'er (all Red non-core)
+  const u2Prefs = ['niu_mowang', 'dapeng_jinchibird', 'baigu_jing', 'huangfeng_guai', 'honghai_er'];
+
+  const rolePreferences = {
+    u1: u1Prefs,
+    u2: u2Prefs,
+  };
+
+  const game = createGame(
+    'brawl-game-pref-5',
+    players,
+    { ...defaultSettings, playerCount: 8, brawlModeEnabled: true, rolePreferenceEnabled: true },
+    a => a,
+    { rolePreferences }
+  );
+
+  assert.ok(game.brawlRoles);
+  const poolRoleIds = Object.values(game.brawlRoles);
+
+  // Preferred roles should be in the pool
+  const u1Match = u1Prefs.some(pref => poolRoleIds.includes(pref));
+  assert.equal(u1Match, true, 'At least one of u1 blue preferences was drawn into the pool');
+
+  const u2Match = u2Prefs.some(pref => poolRoleIds.includes(pref));
+  assert.equal(u2Match, true, 'At least one of u2 red preferences was drawn into the pool');
+});

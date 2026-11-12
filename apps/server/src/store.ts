@@ -2,7 +2,7 @@ import { createHash, randomBytes, randomUUID, randomInt } from 'node:crypto';
 import { hashSecret, verifySecret } from './access-secrets.js';
 import { allocatePlayerCode } from './player-codes.js';
 import { secureRandomBelow } from './secure-random.js';
-import { createGame, transition, projectGame, isEnded, finish, RuleError, ROLE_CONFIG, type GameState } from '@avalon/game-core';
+import { createGame, transition, projectGame, isEnded, finish, RuleError, ROLE_CONFIG, type GameState, BRAWL_ROLE_REGISTRY } from '@avalon/game-core';
 import { isDeepStrictEqual } from 'node:util';
 import type { Pool, PoolClient } from 'pg';
 import { defaultSettings, looksLikeRoomNumber, type Command, type RoomView, type Settings, type User, type ServerMessage, type Role } from '@avalon/contracts';
@@ -438,8 +438,12 @@ export class PostgresStore {
         await c.query('UPDATE rooms SET accepting_new_members=$2 WHERE id=$1',[roomId,command.payload.acceptingNewMembers]);
       } else if (command.type==='setRolePreferences') {
         if (r.phase!=='waiting') throw new DomainError('WRONG_PHASE',409);
-        const validRoles = new Set(ROLE_CONFIG[r.settings.playerCount] || []);
-        const sanitized = command.payload.preferences.filter(role => validRoles.has(role));
+        const isBrawl = Boolean(r.settings.brawlModeEnabled);
+        const validRoles = isBrawl
+          ? new Set(Object.keys(BRAWL_ROLE_REGISTRY))
+          : new Set(ROLE_CONFIG[r.settings.playerCount] || []);
+        const maxAllowed = isBrawl ? 5 : 3;
+        const sanitized = command.payload.preferences.filter(role => validRoles.has(role)).slice(0, maxAllowed);
         await c.query('UPDATE room_members SET role_preferences=$3 WHERE room_id=$1 AND user_id=$2',[roomId,userId,JSON.stringify(sanitized)]);
       } else if (command.type==='leaveRoom') {
         if(r.phase==='playing') throw new DomainError('GAME_IN_PROGRESS',409);
@@ -491,12 +495,16 @@ export class PostgresStore {
             bossCooldownUserIds.push(m.user_id);
           }
         }
-        const rolePreferences: Record<string, Role[]> = {};
+        const rolePreferences: Record<string, string[]> = {};
         if (r.settings.rolePreferenceEnabled) {
-          const validRoles = new Set(ROLE_CONFIG[r.settings.playerCount] || []);
+          const isBrawl = Boolean(r.settings.brawlModeEnabled);
+          const validRoles = isBrawl
+            ? new Set(Object.keys(BRAWL_ROLE_REGISTRY))
+            : new Set(ROLE_CONFIG[r.settings.playerCount] || []);
+          const maxAllowed = isBrawl ? 5 : 3;
           for (const m of members) {
             if (m.role_preferences && Array.isArray(m.role_preferences) && m.role_preferences.length > 0) {
-              const sanitized = (m.role_preferences as Role[]).filter(role => validRoles.has(role));
+              const sanitized = (m.role_preferences as string[]).filter(role => validRoles.has(role)).slice(0, maxAllowed);
               if (sanitized.length > 0) {
                 rolePreferences[m.user_id] = sanitized;
               }

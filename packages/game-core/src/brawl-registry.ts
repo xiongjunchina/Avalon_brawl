@@ -634,6 +634,7 @@ export function drawBrawlRoles(
   playerCount: number,
   customRegistry: Record<string, BrawlRoleDef> = BRAWL_ROLE_REGISTRY,
   rng: () => number = Math.random,
+  preferences?: Record<string, string[]>,
 ): BrawlRoleAssignment {
   const config = BRAWL_PLAYER_CONFIG[playerCount];
   if (!config) {
@@ -663,14 +664,51 @@ export function drawBrawlRoles(
     assigned.push(neutralRole);
   }
 
-  // 3. 蓝方乱斗池抽取
+  // 提取心仪偏好角色集合
+  const preferredBlue = new Set<string>();
+  const preferredRed = new Set<string>();
+  if (preferences) {
+    for (const prefs of Object.values(preferences)) {
+      if (Array.isArray(prefs)) {
+        for (const roleId of prefs) {
+          const def = customRegistry[roleId];
+          if (def && !def.isCore) {
+            if (def.camp === 'blue') preferredBlue.add(roleId);
+            else if (def.camp === 'red') preferredRed.add(roleId);
+          }
+        }
+      }
+    }
+  }
+
+  // 3. 蓝方乱斗池抽取（心仪角色优先入池）
   const bluePool = Object.values(customRegistry).filter(r => r.camp === 'blue' && !r.isCore);
-  const pickedBlue = sampleWithoutReplacement(bluePool, config.blueDrawCount, rng);
+  const favoredBlue = bluePool.filter(r => preferredBlue.has(r.id));
+  const otherBlue = bluePool.filter(r => !preferredBlue.has(r.id));
+  const pickedBlue: BrawlRoleDef[] = [];
+  if (favoredBlue.length > 0) {
+    const pickCount = Math.min(favoredBlue.length, config.blueDrawCount);
+    pickedBlue.push(...sampleWithoutReplacement(favoredBlue, pickCount, rng));
+  }
+  if (pickedBlue.length < config.blueDrawCount) {
+    const remain = config.blueDrawCount - pickedBlue.length;
+    pickedBlue.push(...sampleWithoutReplacement(otherBlue, remain, rng));
+  }
   assigned.push(...pickedBlue);
 
-  // 4. 红方乱斗池抽取
+  // 4. 红方乱斗池抽取（心仪角色优先入池）
   const redPool = Object.values(customRegistry).filter(r => r.camp === 'red' && !r.isCore);
-  const pickedRed = sampleWithoutReplacement(redPool, config.redDrawCount, rng);
+  const favoredRed = redPool.filter(r => preferredRed.has(r.id));
+  const otherRed = redPool.filter(r => !preferredRed.has(r.id));
+  const pickedRed: BrawlRoleDef[] = [];
+  if (favoredRed.length > 0) {
+    const pickCount = Math.min(favoredRed.length, config.redDrawCount);
+    pickedRed.push(...sampleWithoutReplacement(favoredRed, pickCount, rng));
+  }
+  if (pickedRed.length < config.redDrawCount) {
+    const remain = config.redDrawCount - pickedRed.length;
+    pickedRed.push(...sampleWithoutReplacement(otherRed, remain, rng));
+  }
   assigned.push(...pickedRed);
 
   // 校验人数严格一致

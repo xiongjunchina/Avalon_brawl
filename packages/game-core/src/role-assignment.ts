@@ -10,7 +10,7 @@ export interface RoleProtectionOptions {
   visionGuaranteedUserIds?: string[];
   blueGuaranteedUserIds?: string[];
   bossCooldownUserIds?: string[];
-  rolePreferences?: Record<string, Role[]>;
+  rolePreferences?: Record<string, string[]>;
   /** Recent deals, newest first; abandoned deals also count. */
   recentRoles?: Record<string, Role[]>;
   randomBelow?: RandomBelow;
@@ -43,7 +43,7 @@ export function assignWeightedRoles(
   const boss = new Set(options.bossCooldownUserIds ?? []);
   const redRoles = new Set<Role>(['morgana', 'assassin', 'mordred', 'oberon', 'minion']);
   const bossRoles = new Set<Role>(['merlin', 'morgana', 'mordred']);
-  const preferences = players.map(p => [...new Set(options.rolePreferences?.[p.id] ?? [])].filter(r => pool.includes(r)).slice(0, 3));
+  const preferences = players.map(p => [...new Set(options.rolePreferences?.[p.id] ?? [])].filter((r): r is Role => pool.includes(r as Role)).slice(0, 3));
   const histories = players.map(p => (options.recentRoles?.[p.id] ?? []).filter(r => knownRoles.has(r)).slice(0, 5));
   const weights = players.map((_, i) => roleTypes.map(role => roleWeight(role, preferences[i], histories[i])));
   const allowed = (index: number, role: Role, level: number) => {

@@ -4,7 +4,7 @@ import {formatRoleName} from '../../../web/src/roles.js';
 import type {ScreenModel} from '../ui/widgets.js';
 export class RolePreferenceDraft {
   selected:Role[]=[];
-  open(room:RoomView){this.selected=[...(room.selfRolePreferences??[])];this.sync(room);}
+  open(room:RoomView){this.selected=[...((room.selfRolePreferences??[]) as Role[])];this.sync(room);}
   sync(room:RoomView){this.selected=this.selected.filter(r=>(ROLE_CONFIG[room.settings.playerCount]??[]).includes(r)).slice(0,3);}
   toggle(role:Role,room:RoomView){
     if(room.phase!=='waiting'||!room.settings.rolePreferenceEnabled)throw Error('本局已开始或房主已关闭心仪选角');

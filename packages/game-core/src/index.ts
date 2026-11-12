@@ -3,6 +3,8 @@ export { roleWeight, ROLE_ASSIGNMENT_VERSION, ROLE_WEIGHT_VERSION } from './role
 export type { RoleProtectionOptions } from './role-assignment.js';
 export { randomBigIntBelow } from './random.js';
 import type { Command, GameResult, GameView, LoyalGuardian, FemaleDemon, Player, Role, RoundView, Settings, Team, PrivateInspection, EarlyWindow, TeamBallot, GuardianClue, SelfTreasures, HeartBellAdvice, RoleAssignmentAudit, BrawlGameState, BrawlPlayerState, BrawlCommandPayload, BrawlCamp } from '@avalon/contracts';
+export { drawBrawlRoles, BRAWL_ROLE_REGISTRY } from './brawl-registry.js';
+export type { BrawlRoleDef } from '@avalon/contracts';
 import { drawBrawlRoles, BRAWL_ROLE_REGISTRY } from './brawl-registry.js';
 import {
   createBrawlGameState,
@@ -137,7 +139,8 @@ export function createGame(
   let brawlPeekedMap: Record<string, { roleId: string; roleName: string; camp: BrawlCamp }[]> | undefined;
 
   if (settings.brawlModeEnabled) {
-    const assignment = drawBrawlRoles(sorted.length);
+    const rawPreferences = protectionOpts.rolePreferences;
+    const assignment = drawBrawlRoles(sorted.length, undefined, Math.random, rawPreferences);
     brawlRoles = {};
     const playerStates: Record<string, BrawlPlayerState> = {};
 
@@ -146,8 +149,22 @@ export function createGame(
     const neutralRole = assignment.roles.find(r => r.camp === 'neutral');
     let neutralAssigned = false;
 
+    // 辅助函数：根据玩家心仪偏好优先匹配出战角色
+    const popPreferred = (pool: typeof bluePool, prefs?: string[]) => {
+      if (prefs && prefs.length > 0) {
+        for (const prefId of prefs) {
+          const idx = pool.findIndex(r => r.id === prefId);
+          if (idx !== -1) {
+            return pool.splice(idx, 1)[0];
+          }
+        }
+      }
+      return pool.pop();
+    };
+
     for (const p of sorted) {
       const r = roles[p.id];
+      const playerPrefs = rawPreferences?.[p.id];
       let br: typeof assignment.roles[number] | undefined;
       if (r === 'merlin') {
         br = assignment.roles.find(x => x.id === 'sun_wukong');
@@ -161,9 +178,9 @@ export function createGame(
         br = neutralRole;
         neutralAssigned = true;
       } else if (teamOf(r) === 'blue') {
-        br = bluePool.pop();
+        br = popPreferred(bluePool, playerPrefs);
       } else {
-        br = redPool.pop();
+        br = popPreferred(redPool, playerPrefs);
       }
 
       if (!br) {

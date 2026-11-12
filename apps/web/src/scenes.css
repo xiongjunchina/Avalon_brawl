@@ -6825,6 +6825,17 @@ button.seat-mic-badge:active {
   box-sizing: border-box !important;
 }
 
+.role-pref-slots-grid.is-brawl-slots {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 6px !important;
+}
+
+@media (max-width: 520px) {
+  .role-pref-slots-grid.is-brawl-slots {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
 .role-pref-slot-card {
   height: 38px !important;
   min-height: 38px !important;
@@ -6863,6 +6874,16 @@ button.seat-mic-badge:active {
   box-shadow: 0 0 10px rgba(192, 132, 252, 0.25) !important;
 }
 
+.role-pref-slot-card.slot-rank-4.is-filled {
+  border-color: #34d399 !important;
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.25) !important;
+}
+
+.role-pref-slot-card.slot-rank-5.is-filled {
+  border-color: #fb7185 !important;
+  box-shadow: 0 0 10px rgba(251, 113, 133, 0.25) !important;
+}
+
 .slot-rank-tag {
   font-size: 10.5px !important;
   font-weight: 700 !important;
@@ -6874,6 +6895,8 @@ button.seat-mic-badge:active {
 .slot-rank-1 .slot-rank-tag { color: #ffd875 !important; }
 .slot-rank-2 .slot-rank-tag { color: #7dd3fc !important; }
 .slot-rank-3 .slot-rank-tag { color: #e9d5ff !important; }
+.slot-rank-4 .slot-rank-tag { color: #a7f3d0 !important; }
+.slot-rank-5 .slot-rank-tag { color: #fecdd3 !important; }
 
 .slot-card-body {
   display: flex !important;
@@ -7023,6 +7046,12 @@ button.seat-mic-badge:active {
   box-shadow: 0 0 14px rgba(248, 113, 113, 0.35) !important;
 }
 
+.role-choice-card.team-gold.is-selected {
+  background: linear-gradient(135deg, rgba(65, 50, 18, 0.9) 0%, rgba(38, 28, 10, 0.95) 100%) !important;
+  border-color: #fbbf24 !important;
+  box-shadow: 0 0 14px rgba(251, 191, 36, 0.35) !important;
+}
+
 .choice-badge {
   position: absolute !important;
   top: -6px !important;
@@ -7046,6 +7075,11 @@ button.seat-mic-badge:active {
 .role-choice-card.team-red .choice-badge {
   background: #f87171 !important;
   color: #2b0b0e !important;
+}
+
+.role-choice-card.team-gold .choice-badge {
+  background: #fbbf24 !important;
+  color: #261a04 !important;
 }
 
 .choice-portrait-wrap {

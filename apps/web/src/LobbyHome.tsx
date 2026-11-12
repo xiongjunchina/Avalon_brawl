@@ -15,8 +15,8 @@ export function LobbyHero() {
     </div>
     <figure className="lobby-duel-art">
       <picture>
-        <source media="(max-width: 899px)" srcSet={assetUrl('/art/home/duel-mobile.webp?v=edge-blend-3')} />
-        <img src={assetUrl('/art/home/duel-desktop.webp?v=edge-blend-3')} width={1280} height={901}
+        <source media="(max-width: 899px)" srcSet={assetUrl('/art/home/duel-mobile.webp?v=brawl-m2')} />
+        <img src={assetUrl('/art/home/duel-desktop.webp?v=brawl-m2')} width={1280} height={901}
           alt="仙魔大乱斗三界神魔对峙" loading="eager" fetchPriority="high" decoding="async" />
       </picture>
     </figure>

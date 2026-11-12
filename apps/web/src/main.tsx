@@ -1391,7 +1391,7 @@ function App() {
                                   }}
                                   title="点击修改心仪角色"
                                 >
-                                  🎭 意向 {room.selfRolePreferences?.length ?? 0}/3
+                                  🎭 意向 {room.selfRolePreferences?.length ?? 0}/{room.settings.brawlModeEnabled ? 5 : 3}
                                 </span>
                               ) : m.hasRolePreference ? (
                                 <span className="badge-role-pref" title="该仙友已选定心仪出战角色">
@@ -1426,10 +1426,10 @@ function App() {
                       type="button"
                       className="secondary tool-pill waiting-role-pref-btn"
                       onClick={() => setRolePrefModalOpen(true)}
-                      title="设置心仪出战角色（第1/2/3志愿）"
+                      title={room.settings.brawlModeEnabled ? "设置心仪出战角色（最多可预选 5 位神魔）" : "设置心仪出战角色（第1/2/3志愿）"}
                     >
                       <span className="waiting-btn-text">
-                        🎭 心仪角色 {room.selfRolePreferences && room.selfRolePreferences.length > 0 ? `(${room.selfRolePreferences.length}/3)` : '(未设)'}
+                        🎭 心仪角色 {room.selfRolePreferences && room.selfRolePreferences.length > 0 ? `(${room.selfRolePreferences.length}/${room.settings.brawlModeEnabled ? 5 : 3})` : '(未设)'}
                       </span>
                     </button>
                   )}
@@ -1694,6 +1694,7 @@ function App() {
               onClose={() => setRolePrefModalOpen(false)}
               currentPreferences={room.selfRolePreferences ?? []}
               playerCount={room.settings.playerCount}
+              brawlMode={Boolean(room.settings.brawlModeEnabled)}
               disabled={disabled || room.phase !== 'waiting' || !room.settings.rolePreferenceEnabled}
               disabledReason={room.phase !== 'waiting' ? '本局已开始，不能再修改心仪角色。'
                 : !room.settings.rolePreferenceEnabled ? '房主已关闭心仪选角。'

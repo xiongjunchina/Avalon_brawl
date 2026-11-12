@@ -23,8 +23,8 @@ test('visitor and signed-in home expose the same hero and public guide without a
   assert.match(visitor, /<h2><span>三界全明星，<\/span><span>谁执天命？<\/span><\/h2>/);
   assert.match(visitor, /<p>31位神仙妖魔各施所长，黑熊精天命抉择，盲盒出千暗战。<\/p>/);
   assert.match(visitor, /三界全明星神魔齐聚，弱技能对决乾坤未定/);
-  assert.match(visitor, /<source media="\(max-width: 899px\)" srcSet="\/art\/home\/duel-mobile\.webp\?v=edge-blend-3"/);
-  assert.match(visitor, /<img[^>]+src="\/art\/home\/duel-desktop\.webp\?v=edge-blend-3"[^>]+alt="仙魔大乱斗三界神魔对峙"/);
+  assert.match(visitor, /<source media="\(max-width: 899px\)" srcSet="\/art\/home\/duel-mobile\.webp\?v=brawl-m2"/);
+  assert.match(visitor, /<img[^>]+src="\/art\/home\/duel-desktop\.webp\?v=brawl-m2"[^>]+alt="仙魔大乱斗三界神魔对峙"/);
   assert.doesNotMatch(visitor, /mp-medallion|\/art\/roles\//);
   assert.match(visitor, /玩法与角色/);
   assert.match(visitor, /加入房间/);

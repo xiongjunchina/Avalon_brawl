@@ -173,7 +173,7 @@ function RolePreferenceForm({
                       <span className="slot-card-avatar">
                         {brawlDef ? (
                           <img
-                            src={assetUrl(`/art/roles/${brawlDef.artPrefix}-160.webp?v=audit1`)}
+                            src={assetUrl(`/art/roles/${brawlDef.artPrefix}-160.webp?v=brawl-art-v2`)}
                             alt={brawlDef.name}
                             style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
                           />
@@ -360,7 +360,7 @@ function RolePreferenceForm({
         {isSelected && <span className="choice-badge">{slotTags[selIdx]}</span>}
         <div className="choice-portrait-wrap">
           <img
-            src={assetUrl(`/art/roles/${r.artPrefix}-160.webp?v=audit1`)}
+            src={assetUrl(`/art/roles/${r.artPrefix}-160.webp?v=brawl-art-v2`)}
             alt={r.name}
             style={{ width: '42px', height: '42px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #e7bd6a' }}
           />

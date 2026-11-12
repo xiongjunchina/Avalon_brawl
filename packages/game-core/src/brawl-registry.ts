@@ -71,7 +71,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     title: '三界至尊',
     camp: 'blue',
     isCore: false,
-    artPrefix: 'percival-640',
+    artPrefix: 'brawl-yuhuang',
     motto: '昊天金阙尊玉旨，三界统御赦群仙',
     skill: {
       skillId: 'tianzun_yuzhi',
@@ -90,7 +90,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     title: '瑶池金母',
     camp: 'blue',
     isCore: false,
-    artPrefix: 'guinevere',
+    artPrefix: 'brawl-wangmu',
     motto: '九千年开蟠桃宴，仙桃延寿破万险',
     skill: {
       skillId: 'jiuzhuan_xiantao',
@@ -108,7 +108,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     title: '兜率道祖',
     camp: 'blue',
     isCore: false,
-    artPrefix: 'loyal',
+    artPrefix: 'brawl-laojun',
     motto: '金刚琢套天下宝，八卦炉中炼造化',
     skill: {
       skillId: 'jingang_zhuo',
@@ -126,7 +126,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     title: '世外方寸祖',
     camp: 'blue',
     isCore: false,
-    artPrefix: 'merlin',
+    artPrefix: 'brawl-puti',
     motto: '灵台方寸斜月沉，不染红尘授长生',
     skill: {
       skillId: 'daofa_dianhua',
@@ -163,7 +163,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     title: '地仙之祖',
     camp: 'blue',
     isCore: false,
-    artPrefix: 'loyal',
+    artPrefix: 'brawl-zhenyuan',
     motto: '五庄观前地仙祖，袖里乾坤纳三千',
     skill: {
       skillId: 'xiuli_qiankun',
@@ -217,7 +217,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     title: '托塔天王',
     camp: 'blue',
     isCore: false,
-    artPrefix: 'percival',
+    artPrefix: 'brawl-litianwang',
     motto: '玲珑宝塔镇十方，降妖宝镜照元形',
     skill: {
       skillId: 'zhaoyao_baojing',
@@ -437,7 +437,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     title: '小雷音佛祖',
     camp: 'red',
     isCore: false,
-    artPrefix: 'mordred',
+    artPrefix: 'brawl-huangmei',
     motto: '假设雷音瞒正果，后天袋内困神仙',
     skill: {
       skillId: 'renzhong_jindai',
@@ -455,7 +455,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     title: '金角大王',
     camp: 'red',
     isCore: false,
-    artPrefix: 'mordred',
+    artPrefix: 'brawl-jinjiao',
     motto: '我叫你一声你敢应吗？紫金红葫芦装神仙',
     skill: {
       skillId: 'zijin_hulu',
@@ -474,7 +474,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     title: '银角大王',
     camp: 'red',
     isCore: false,
-    artPrefix: 'oberon',
+    artPrefix: 'brawl-yinjiao',
     motto: '移山倒海移须弥，羊脂玉净瓶摄魂',
     skill: {
       skillId: 'yishan_yading',
@@ -492,7 +492,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     title: '黄风大圣',
     camp: 'red',
     isCore: false,
-    artPrefix: 'mordred',
+    artPrefix: 'brawl-huangfeng',
     motto: '黄风刮动天地暗，吹盲行者火眼眸',
     skill: {
       skillId: 'fengsha_nixing',
@@ -511,7 +511,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     title: '多目怪',
     camp: 'red',
     isCore: false,
-    artPrefix: 'mordred',
+    artPrefix: 'brawl-baiyan',
     motto: '肋下千眼放金光，黄雾升腾惑真仙',
     skill: {
       skillId: 'qianyan_kuiji',
@@ -529,7 +529,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     title: '青毛狮王',
     camp: 'red',
     isCore: false,
-    artPrefix: 'oberon',
+    artPrefix: 'brawl-qingshi',
     motto: '大口吞天吞十万，南天门前威风显',
     skill: {
       skillId: 'dakou_tuntian',

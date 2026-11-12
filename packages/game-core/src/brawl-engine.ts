@@ -174,6 +174,7 @@ export function projectSelfBrawlView(
     roleName: roleDef.name,
     roleTitle: roleDef.title,
     camp: playerState.camp,
+    artPrefix: roleDef.artPrefix,
     skill: roleDef.skill,
     skillAvailable: !playerState.skillUsed,
     skillUsed: playerState.skillUsed,

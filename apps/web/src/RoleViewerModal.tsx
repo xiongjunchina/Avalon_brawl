@@ -79,7 +79,7 @@ export function RoleViewerModal({
 
           <div className="role-viewer-image-frame">
             <img
-              src={assetUrl(`/art/roles/${item.artPrefix}-640.webp?v=audit1`)}
+              src={assetUrl(`/art/roles/${item.artPrefix}-640.webp?v=brawl-art-v2`)}
               alt={item.fullName}
               className="role-viewer-img"
               width={640}

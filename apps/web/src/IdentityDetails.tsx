@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Command, GameView, Player } from '@avalon/contracts';
 import { ROLE_CONFIG } from '@avalon/game-core';
+import { assetUrl } from './deployment';
 import { IdentityCard } from './RolePortrait';
 import { PlayerToken } from './PlayerToken';
 import { getRoleGalleryItem } from './roles';
@@ -28,8 +29,20 @@ export function IdentityDetails({
   userId?: string;
 }) {
   const [viewingArt, setViewingArt] = useState(false);
+  const [viewingBrawlArt, setViewingBrawlArt] = useState(false);
   const [treasureOpen, setTreasureOpen] = useState(false);
   const galleryItem = getRoleGalleryItem(self.role, self.loyalGuardian, self.femaleDemon);
+  const brawlGalleryItem = game?.selfBrawl && game.selfBrawl.artPrefix ? {
+    id: game.selfBrawl.roleId,
+    role: self.role,
+    name: game.selfBrawl.roleName,
+    fullName: `【${game.selfBrawl.roleName}】· ${game.selfBrawl.roleTitle}`,
+    title: game.selfBrawl.roleTitle,
+    motto: game.selfBrawl.skill.description,
+    story: `【${game.selfBrawl.skill.skillName}】${game.selfBrawl.skill.description}`,
+    team: (game.selfBrawl.camp === 'red' ? 'red' : 'blue') as 'red' | 'blue',
+    artPrefix: game.selfBrawl.artPrefix,
+  } : null;
 
   const candidates = self.merlinCandidates.length ? self.merlinCandidates
     : self.guinevereCandidates?.length ? self.guinevereCandidates
@@ -120,38 +133,88 @@ export function IdentityDetails({
             background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%)',
             border: `1.5px solid ${game.selfBrawl.camp === 'blue' ? '#3b82f6' : game.selfBrawl.camp === 'red' ? '#ef4444' : '#f59e0b'}`,
             borderRadius: '12px',
-            padding: '12px 16px',
+            padding: '12px 14px',
             marginBottom: '12px',
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            display: 'flex',
+            gap: '12px',
+            alignItems: 'flex-start',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-            <span style={{
-              fontWeight: 700,
-              fontSize: '16px',
-              color: game.selfBrawl.camp === 'blue' ? '#60a5fa' : game.selfBrawl.camp === 'red' ? '#f87171' : '#fbbf24',
-            }}>
-              【{game.selfBrawl.roleName}】· {game.selfBrawl.roleTitle}
-            </span>
-            <span style={{
-              fontSize: '12px',
-              padding: '2px 8px',
-              borderRadius: '999px',
-              background: game.selfBrawl.camp === 'blue' ? 'rgba(59, 130, 246, 0.2)' : game.selfBrawl.camp === 'red' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-              color: game.selfBrawl.camp === 'blue' ? '#93c5fd' : game.selfBrawl.camp === 'red' ? '#fca5a5' : '#fde68a',
-            }}>
-              {game.selfBrawl.camp === 'blue' ? '仙佛阵营' : game.selfBrawl.camp === 'red' ? '妖魔阵营' : '初始中立'}
-            </span>
-          </div>
-          <div style={{ fontSize: '13px', color: '#e2e8f0', marginTop: '6px' }}>
-            <strong style={{ color: '#fbbf24' }}>绝技 · {game.selfBrawl.skill.skillName}：</strong>
-            <span style={{ color: '#cbd5e1' }}>{game.selfBrawl.skill.description}</span>
-          </div>
-          {game.selfBrawl.peekedRoles && game.selfBrawl.peekedRoles.length > 0 && (
-            <div style={{ fontSize: '12px', color: '#fbbf24', marginTop: '8px', borderTop: '1px dashed rgba(245, 158, 11, 0.3)', paddingTop: '6px' }}>
-              🔍 <strong>盲盒天机：</strong>侦察到本局潜伏敌手包含【{game.selfBrawl.peekedRoles.map(r => r.roleName).join('、')}】
-            </div>
+          {game.selfBrawl.artPrefix && (
+            <button
+              type="button"
+              onClick={() => setViewingBrawlArt(true)}
+              title="点击查看大乱斗专属法相"
+              style={{
+                flexShrink: 0,
+                padding: 0,
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                position: 'relative',
+              }}
+            >
+              <img
+                src={assetUrl(`/art/roles/${game.selfBrawl.artPrefix}-160.webp?v=brawl-art-v2`)}
+                alt={game.selfBrawl.roleName}
+                width={56}
+                height={56}
+                style={{
+                  display: 'block',
+                  borderRadius: '8px',
+                  objectFit: 'cover',
+                  border: `2px solid ${game.selfBrawl.camp === 'blue' ? '#60a5fa' : game.selfBrawl.camp === 'red' ? '#f87171' : '#fbbf24'}`,
+                }}
+              />
+              <span style={{
+                position: 'absolute',
+                bottom: 2,
+                right: 2,
+                fontSize: '9px',
+                background: 'rgba(0,0,0,0.7)',
+                color: '#fef08a',
+                padding: '1px 3px',
+                borderRadius: '3px',
+                lineHeight: 1,
+              }}>
+                🔍
+              </span>
+            </button>
           )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <span style={{
+                fontWeight: 700,
+                fontSize: '15px',
+                color: game.selfBrawl.camp === 'blue' ? '#60a5fa' : game.selfBrawl.camp === 'red' ? '#f87171' : '#fbbf24',
+              }}>
+                【{game.selfBrawl.roleName}】· {game.selfBrawl.roleTitle}
+              </span>
+              <span style={{
+                fontSize: '11px',
+                padding: '2px 8px',
+                borderRadius: '999px',
+                background: game.selfBrawl.camp === 'blue' ? 'rgba(59, 130, 246, 0.2)' : game.selfBrawl.camp === 'red' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                color: game.selfBrawl.camp === 'blue' ? '#93c5fd' : game.selfBrawl.camp === 'red' ? '#fca5a5' : '#fde68a',
+                flexShrink: 0,
+              }}>
+                {game.selfBrawl.camp === 'blue' ? '仙佛阵营' : game.selfBrawl.camp === 'red' ? '妖魔阵营' : '初始中立'}
+              </span>
+            </div>
+            <div style={{ fontSize: '12px', color: '#e2e8f0', marginTop: '4px', lineHeight: 1.5 }}>
+              <strong style={{ color: '#fbbf24' }}>绝技 · {game.selfBrawl.skill.skillName}：</strong>
+              <span style={{ color: '#cbd5e1' }}>{game.selfBrawl.skill.description}</span>
+            </div>
+            {game.selfBrawl.peekedRoles && game.selfBrawl.peekedRoles.length > 0 && (
+              <div style={{ fontSize: '11px', color: '#fbbf24', marginTop: '6px', borderTop: '1px dashed rgba(245, 158, 11, 0.3)', paddingTop: '4px' }}>
+                🔍 <strong>盲盒天机：</strong>侦察到本局潜伏敌手包含【{game.selfBrawl.peekedRoles.map(r => r.roleName).join('、')}】
+              </div>
+            )}
+          </div>
         </section>
       )}
       <IdentityCard
@@ -199,6 +262,13 @@ export function IdentityDetails({
         <RoleViewerModal
           item={galleryItem}
           onClose={() => setViewingArt(false)}
+        />
+      )}
+
+      {viewingBrawlArt && brawlGalleryItem && (
+        <RoleViewerModal
+          item={brawlGalleryItem}
+          onClose={() => setViewingBrawlArt(false)}
         />
       )}
 

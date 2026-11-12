@@ -2,7 +2,7 @@ import { PrivateExtensions, ExtensionHistory } from './Extensions';
 import { useEffect, useRef, useState } from 'react';
 import type { Command, GameView, Player, RoomView, RoundView } from '@avalon/contracts';
 import { uuidToRtcUid } from '@avalon/contracts';
-import { ROLE_CONFIG, assignFemaleDemons, assignLoyalGuardians, failuresRequiredFor, BRAWL_ROLE_REGISTRY } from '@avalon/game-core';
+import { ROLE_CONFIG, assignFemaleDemons, assignLoyalGuardians, failuresRequiredFor, BRAWL_ROLE_REGISTRY, BRAWL_PLAYER_CONFIG } from '@avalon/game-core';
 import { BrawlPanel } from './BrawlPanel';
 import { Emblem, PlayerAvatar, WuYueBackdrop, roleTeam, CloudFlourish, DragonPlinthDecor } from './Heraldry';
 import { RolePortrait } from './RolePortrait';
@@ -220,13 +220,21 @@ export function GamePanel({
   const identityVisible = identityOpen && connected;
   const successes = g.rounds.filter(r => r.result?.passed).length;
   const failures = g.rounds.filter(r => r.result && !r.result.passed).length;
+  const isBrawl = Boolean(g.brawl || room.settings.brawlModeEnabled);
+  const brawlConfig = isBrawl ? BRAWL_PLAYER_CONFIG[g.players.length] : undefined;
+  const hasNeutral = Boolean(brawlConfig?.hasNeutral);
   const roleList = ROLE_CONFIG[g.players.length] ?? [];
-  const blueCount = roleList.length > 0
-    ? roleList.filter(r => roleTeam(r) === 'blue').length
-    : Math.ceil(g.players.length * 0.6);
-  const redCount = roleList.length > 0
-    ? roleList.filter(r => roleTeam(r) === 'red').length
-    : Math.max(0, g.players.length - blueCount);
+  const blueCount = brawlConfig
+    ? brawlConfig.blueTotal
+    : roleList.length > 0
+      ? roleList.filter(r => roleTeam(r) === 'blue').length
+      : Math.ceil(g.players.length * 0.6);
+  const redCount = brawlConfig
+    ? brawlConfig.redTotal
+    : roleList.length > 0
+      ? roleList.filter(r => roleTeam(r) === 'red').length
+      : Math.max(0, g.players.length - blueCount);
+  const neutralCount = hasNeutral ? 1 : 0;
   const effectivePhase: GameView['phase'] =
     g.phase === 'role_reveal' ? 'proposing' : g.phase;
   const assassinPlayer = g.assassinId ? g.players.find(p => p.id === g.assassinId) : undefined;
@@ -1262,16 +1270,17 @@ export function GamePanel({
         </div>
 
         {/* Bottom Row of Quest Board: Compact Imperial Summary Track matching Scheme A-2 */}
-        <div className="quest-vote-track-zone" aria-label={`护经进度：${successes}胜${failures}负，流局${g.rejectionCount}/5，${g.players.length}人局，仙${blueCount} 妖${redCount}`}>
+        <div className="quest-vote-track-zone" aria-label={`护经进度：${successes}胜${failures}负，流局${g.rejectionCount}/5，${g.players.length}人局，仙${blueCount} 妖${redCount}${neutralCount ? ` 中${neutralCount}` : ''}`}>
           <span className="quest-summary-item">⚔ 护经 <strong>{successes}:{failures}</strong> 群妖</span>
           <span className="quest-summary-divider">◇</span>
           <span className="quest-summary-item">♨ 流局 <strong>{g.rejectionCount}/5</strong></span>
           <span className="quest-summary-divider">◇</span>
           <span className="quest-summary-item">👥 <strong>{g.players.length}</strong>人局</span>
           <span className="quest-summary-divider">◇</span>
-          <span className="quest-summary-item camp-ratio-summary" title={`本局共${g.players.length}人：取经仙班${blueCount}人，作乱妖魔${redCount}人`}>
+          <span className="quest-summary-item camp-ratio-summary" title={`本局共${g.players.length}人：取经仙班${blueCount}人，作乱妖魔${redCount}人${neutralCount ? `，中立神魔${neutralCount}人（黑熊精暗身抉择）` : ''}`}>
             <span className="camp-pill-blue">仙<strong>{blueCount}</strong></span>
             <span className="camp-pill-red">妖<strong>{redCount}</strong></span>
+            {neutralCount > 0 && <span className="camp-pill-neutral" title="初始中立·黑熊精天命抉择">中<strong>{neutralCount}</strong></span>}
           </span>
         </div>
       </section>

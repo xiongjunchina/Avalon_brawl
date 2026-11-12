@@ -1134,6 +1134,17 @@ main.app-shell.is-live-table {
   font-weight: 800 !important;
   margin-left: 1px !important;
 }
+.is-live-table .camp-pill-neutral {
+  color: #fbbf24 !important;
+  font-weight: 700 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+.is-live-table .camp-pill-neutral strong {
+  color: #fef08a !important;
+  font-weight: 800 !important;
+  margin-left: 1px !important;
+}
 @media (max-width: 440px) {
   .is-live-table .quest-vote-track-zone {
     gap: 8px !important;

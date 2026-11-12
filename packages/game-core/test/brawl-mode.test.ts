@@ -13,6 +13,10 @@ import {
   createGame,
   projectGame,
   transition,
+  failuresRequiredFor,
+  missionSizesFor,
+  MISSION_SIZES,
+  BRAWL_MISSION_SIZES,
 } from '../src/index.js';
 import { defaultSettings, type BrawlRoleDef, type BrawlPlayerState } from '@avalon/contracts';
 
@@ -290,4 +294,62 @@ test('brawl: 8-player and 10-player games strictly maintain Avalon standard Blue
 
   assert.equal(blue10, 6, '10-player has exactly 6 blue gods');
   assert.equal(red10, 4, '10-player has exactly 4 red demons');
+});
+
+test('brawl: 9-player (5B:4R), 11-player (6B:5R), and 12-player (7B:5R) custom balance, mission sizes, and failure thresholds', () => {
+  // 1. 9-player Brawl Game (5 Blue : 4 Red)
+  const p9 = Array.from({ length: 9 }, (_, i) => ({ id: `p${i + 1}`, nickname: `P${i + 1}`, seat: i + 1 }));
+  const game9 = createGame('brawl-9', p9, { ...defaultSettings, playerCount: 9, brawlModeEnabled: true }, a => a);
+  const pStates9 = Object.values(game9.brawl!.playerStates);
+  assert.equal(pStates9.filter(p => p.camp === 'blue').length, 5, '9-player brawl has 5 Blue');
+  assert.equal(pStates9.filter(p => p.camp === 'red').length, 4, '9-player brawl has 4 Red');
+  assert.deepEqual(projectGame(game9).missionSizes, [3, 4, 4, 5, 5], '9-player mission sizes');
+  // Failures required in 9p brawl: R1..R3 = 1 fail, R4..R5 = 2 fails (given 5 Blue vs 4 Red)
+  assert.equal(failuresRequiredFor(9, 1, true), 1);
+  assert.equal(failuresRequiredFor(9, 2, true), 1);
+  assert.equal(failuresRequiredFor(9, 3, true), 1);
+  assert.equal(failuresRequiredFor(9, 4, true), 2);
+  assert.equal(failuresRequiredFor(9, 5, true), 2);
+
+  // 2. 11-player Brawl Game (6 Blue : 5 Red)
+  const p11 = Array.from({ length: 11 }, (_, i) => ({ id: `p${i + 1}`, nickname: `P${i + 1}`, seat: i + 1 }));
+  const game11 = createGame('brawl-11', p11, { ...defaultSettings, playerCount: 11, brawlModeEnabled: true }, a => a);
+  const pStates11 = Object.values(game11.brawl!.playerStates);
+  assert.equal(pStates11.filter(p => p.camp === 'blue').length, 6, '11-player brawl has 6 Blue');
+  assert.equal(pStates11.filter(p => p.camp === 'red').length, 5, '11-player brawl has 5 Red');
+  assert.deepEqual(projectGame(game11).missionSizes, [3, 4, 5, 5, 6], '11-player mission sizes: [3, 4, 5, 5, 6]');
+  // Failures required in 11p brawl: R1..R2 = 1 fail, R3..R5 = 2 fails
+  assert.equal(failuresRequiredFor(11, 1, true), 1);
+  assert.equal(failuresRequiredFor(11, 2, true), 1);
+  assert.equal(failuresRequiredFor(11, 3, true), 2);
+  assert.equal(failuresRequiredFor(11, 4, true), 2);
+  assert.equal(failuresRequiredFor(11, 5, true), 2);
+
+  // 3. 12-player Brawl Game (7 Blue : 5 Red)
+  const p12 = Array.from({ length: 12 }, (_, i) => ({ id: `p${i + 1}`, nickname: `P${i + 1}`, seat: i + 1 }));
+  const game12 = createGame('brawl-12', p12, { ...defaultSettings, playerCount: 12, brawlModeEnabled: true }, a => a);
+  const pStates12 = Object.values(game12.brawl!.playerStates);
+  assert.equal(pStates12.filter(p => p.camp === 'blue').length, 7, '12-player brawl has 7 Blue');
+  assert.equal(pStates12.filter(p => p.camp === 'red').length, 5, '12-player brawl has 5 Red');
+  assert.deepEqual(projectGame(game12).missionSizes, [3, 4, 5, 6, 6], '12-player mission sizes: [3, 4, 5, 6, 6]');
+  // Failures required in 12p brawl: R1..R2 = 1 fail, R3..R5 = 2 fails
+  assert.equal(failuresRequiredFor(12, 1, true), 1);
+  assert.equal(failuresRequiredFor(12, 2, true), 1);
+  assert.equal(failuresRequiredFor(12, 3, true), 2);
+  assert.equal(failuresRequiredFor(12, 4, true), 2);
+  assert.equal(failuresRequiredFor(12, 5, true), 2);
+
+  // 4. Classic mode backward compatibility:
+  // 9p classic: 6 Blue : 3 Red, mission 4 takes 2 fails, mission 5 takes 1 fail
+  const classic9 = createGame('classic-9', p9, { ...defaultSettings, playerCount: 9, brawlModeEnabled: false }, a => a);
+  assert.equal(failuresRequiredFor(9, 4, false), 2);
+  assert.equal(failuresRequiredFor(9, 5, false), 1);
+  assert.deepEqual(projectGame(classic9).missionSizes, [3, 4, 4, 5, 5]);
+
+  // 11p classic: 7 Blue : 4 Red, mission 3 takes 2 fails, mission 4 takes 2 fails, mission 5 takes 1 fail
+  const classic11 = createGame('classic-11', p11, { ...defaultSettings, playerCount: 11, brawlModeEnabled: false }, a => a);
+  assert.equal(failuresRequiredFor(11, 3, false), 2);
+  assert.equal(failuresRequiredFor(11, 4, false), 2);
+  assert.equal(failuresRequiredFor(11, 5, false), 1);
+  assert.deepEqual(projectGame(classic11).missionSizes, [3, 4, 5, 5, 5]);
 });

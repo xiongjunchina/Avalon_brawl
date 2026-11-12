@@ -10,12 +10,14 @@ export function MissionReportDialog({
   players,
   anonymous,
   userId,
+  isBrawl,
   onClose,
 }: {
   round: RoundView;
   players: Player[];
   anonymous: boolean;
   userId?: string;
+  isBrawl?: boolean;
   onClose: () => void;
 }) {
   const result = round.result;
@@ -23,7 +25,7 @@ export function MissionReportDialog({
 
   const missionConfig = WUYUE_MISSIONS[round.mission - 1];
   const captain = players.find(p => p.id === round.captainId);
-  const twoFailsRequired = failuresRequiredFor(players.length, round.mission) >= 2;
+  const twoFailsRequired = failuresRequiredFor(players.length, round.mission, isBrawl) >= 2;
   const ballots = !anonymous ? round.vote?.ballots : undefined;
 
   return (

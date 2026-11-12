@@ -1361,6 +1361,7 @@ export function GamePanel({
           players={publicPlayers}
           anonymous={room.settings.anonymousTeamVote}
           userId={userId}
+          isBrawl={isBrawl}
           onClose={() => setMissionReportRound(null)}
         />
       )}

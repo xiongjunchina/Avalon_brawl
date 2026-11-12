@@ -22,6 +22,7 @@ import {
   createGame,
   failuresRequiredFor,
   isEnded,
+  missionSizesFor,
   projectGame,
   roleHistoryAfterDeal,
   teamOf,
@@ -655,7 +656,7 @@ function App() {
         }
       } else if (next.phase === 'proposing') {
         const cap = getCaptainId(next);
-        const size = MISSION_SIZES[next.players.length][next.mission - 1];
+        const size = missionSizesFor(next.players.length, Boolean(next.brawl))[next.mission - 1];
         const teamIds = next.players.slice(0, size).map(p => p.id);
         next = transition(
           next,
@@ -1663,8 +1664,8 @@ function App() {
               {/* Optional five-mission preview for the current player count */}
               <div className="avalon-quest-board">
                 <div className="game-score quest-circles-row" aria-label="本局五轮任务配置">
-                  {(MISSION_SIZES[room.settings.playerCount] ?? MISSION_SIZES[6]).map((count, i) => {
-                    const twoFailsRequired = failuresRequiredFor(room.settings.playerCount, i + 1) === 2;
+                  {(missionSizesFor(room.settings.playerCount, room.settings.brawlModeEnabled) ?? MISSION_SIZES[6]).map((count, i) => {
+                    const twoFailsRequired = failuresRequiredFor(room.settings.playerCount, i + 1, room.settings.brawlModeEnabled) === 2;
                     return (
                       <QuestMedallion key={i} mission={i + 1} count={count} twoFailsRequired={twoFailsRequired} />
                     );

@@ -7867,13 +7867,18 @@ button.seat-mic-badge:active {
 /* 等待室本人头像悬浮【改资料】金色小微标（方案 A） */
 .seat-avatar-edit-badge {
   position: absolute !important;
-  top: -3px !important;
-  right: -3px !important;
+  top: -2px !important;
+  right: -2px !important;
   z-index: 5 !important;
   width: 20px !important;
-  height: 20px !important;
   min-width: 20px !important;
   max-width: 20px !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  max-height: 20px !important;
+  flex: 0 0 20px !important;
+  aspect-ratio: 1 / 1 !important;
+  box-sizing: border-box !important;
   border-radius: 50% !important;
   background: radial-gradient(circle at 35% 35%, #2c3e50 0%, #0f172a 100%) !important;
   border: 1.5px solid #ffd875 !important;
@@ -7883,8 +7888,10 @@ button.seat-mic-badge:active {
   justify-content: center !important;
   padding: 0 !important;
   margin: 0 !important;
+  margin-top: 0 !important;
   cursor: pointer !important;
   outline: none !important;
+  line-height: 1 !important;
   transition: transform 0.15s ease, box-shadow 0.15s ease !important;
 }
 
@@ -7900,7 +7907,11 @@ button.seat-mic-badge:active {
 .seat-avatar-edit-badge .edit-badge-icon {
   font-size: 10px !important;
   line-height: 1 !important;
-  display: block !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.8));
 }
 

@@ -1517,8 +1517,9 @@ function App() {
                         )}
                         <span className="seat-num-badge">{i + 1}</span>
                         {m && m.id === user.id && (
-                          <button
-                            type="button"
+                          <span
+                            role="button"
+                            tabIndex={0}
                             className="seat-avatar-edit-badge"
                             title="点击修改你的昵称与头像"
                             aria-label="修改个人资料"
@@ -1526,9 +1527,37 @@ function App() {
                               e.stopPropagation();
                               setProfileModalOpen(true);
                             }}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                setProfileModalOpen(true);
+                              }
+                            }}
+                            style={{
+                              position: 'absolute',
+                              top: -2,
+                              right: -2,
+                              zIndex: 5,
+                              width: 20,
+                              minWidth: 20,
+                              maxWidth: 20,
+                              height: 20,
+                              minHeight: 20,
+                              maxHeight: 20,
+                              padding: 0,
+                              margin: 0,
+                              borderRadius: '50%',
+                              aspectRatio: '1 / 1',
+                              boxSizing: 'border-box',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                            }}
                           >
                             <span className="edit-badge-icon" aria-hidden="true">✏️</span>
-                          </button>
+                          </span>
                         )}
                       </div>
                       <strong className="seat-card-name">

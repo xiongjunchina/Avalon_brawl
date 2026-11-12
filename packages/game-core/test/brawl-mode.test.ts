@@ -73,8 +73,8 @@ test('brawl: 5 to 12 player distribution matrix strictly matches configuration',
     assert.ok(ids.includes('liuer_mihou'), 'Must include 六耳猕猴');
     assert.ok(ids.includes('hong_haier'), 'Must include 红孩儿');
 
-    // 7 人及以上局必须有黑熊精（前置对冲红方配额）；5~6 人严禁黑熊精
-    if (count >= 7) {
+    // 8 人及以上局必须有黑熊精（前置对冲红方配额）；5~7 人小局严禁黑熊精（7人局严格保持4蓝3红黄金对抗，防止选蓝后出现5比2失衡）
+    if (count >= 8) {
       assert.ok(ids.includes('heixiong_jing'), `${count}-player must have 黑熊精`);
     } else {
       assert.ok(!ids.includes('heixiong_jing'), `${count}-player must NOT have 黑熊精`);

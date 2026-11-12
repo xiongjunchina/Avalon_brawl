@@ -117,7 +117,7 @@ function StatisticsPanel() {
   useEffect(()=>{let active=true;setError('');api<Statistics>('/me/stats').then(r=>{if(active)setStats(r);}).catch(e=>{if(active)setError(describe(e));});return()=>{active=false;};},[retry]);
   return error?<p role="alert" className="error">{error}<button className="secondary" onClick={()=>setRetry(n=>n+1)}>重新读取战绩</button></p>:stats?<StatisticsView stats={stats}/>:<p role="status">正在统计战绩…</p>;
 }
-function ProfileEditor({user,onUser,onClose}:{user:User;onUser:(u:User)=>void;onClose:()=>void}) {
+export function ProfileEditor({user,onUser,onClose}:{user:User;onUser:(u:User)=>void;onClose:()=>void}) {
   const [nickname,setNickname]=useState(user.nickname);
   const avatar:Avatar=user.avatar??'leaf';
   const [avatarUrl,setAvatarUrl]=useState<string|null>(user.avatarUrl??findBuiltinAvatar(user.wechatAvatarUrl)?.src??null);

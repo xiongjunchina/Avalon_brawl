@@ -41,7 +41,7 @@ import { GamePanel } from './GamePanel';
 import { PracticeSeatPicker } from './PracticeSeatPicker';
 import { RoomConnection } from './room-connection';
 import { api, describe, errors } from './api';
-import { AccountPanel } from './AccountPanel';
+import { AccountPanel, ProfileEditor } from './AccountPanel';
 import { PresetsPanel, SettingsFields, settingsText } from './PresetsPanel';
 import { Emblem, PlayerAvatar, WECHAT_SAMPLE_AVATARS, roleTeam } from './Heraldry';
 import { GuidePanel } from './GuidePanel';
@@ -122,6 +122,7 @@ function App() {
   }));
   const pendingSettingsRef = useRef<Settings | null>(null);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [rolePrefModalOpen, setRolePrefModalOpen] = useState(false);
   const [kickTarget, setKickTarget] = useState<Member | null>(null);
   const [invite, setInvite] = useState('');
@@ -1373,6 +1374,19 @@ function App() {
                             }${m.id === user.id ? '（你）' : ''}`
                           : '邀请好友'}
                       </strong>
+                      {m && m.id === user.id && (
+                        <button
+                          type="button"
+                          className="seat-card-edit-btn"
+                          title="点击修改你的昵称与头像"
+                          onClick={e => {
+                            e.stopPropagation();
+                            setProfileModalOpen(true);
+                          }}
+                        >
+                          ✏️ 改资料
+                        </button>
+                      )}
                       <div className="seat-card-bottom">
                         {m ? (
                           <>
@@ -1611,6 +1625,30 @@ function App() {
                   </button>
                 </div>
                 <div className="settings-body">
+                  {/* 仙友个人资料（支持进房后/游戏中随时修改昵称与头像） */}
+                  <div className="settings-user-profile-bar">
+                    <div className="settings-user-profile-left">
+                      <span className="settings-user-avatar">
+                        <PlayerAvatar
+                          avatar={user.avatar ?? 'leaf'}
+                          avatarUrl={user.avatarUrl}
+                          wechatAvatarUrl={user.wechatAvatarUrl}
+                          fallbackKind="leaf"
+                        />
+                      </span>
+                      <div className="settings-user-names">
+                        <strong className="settings-user-nickname">{user.nickname}</strong>
+                        {user.playerCode && <small className="settings-user-code">仙友码 #{user.playerCode}</small>}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="secondary tool-pill settings-edit-profile-btn"
+                      onClick={() => setProfileModalOpen(true)}
+                    >
+                      ✏️ 修改昵称与头像
+                    </button>
+                  </div>
 
                   {room.phase === 'waiting' && (
                     <details className="preset-details">
@@ -1717,6 +1755,15 @@ function App() {
                     : describe(err));
                 }
               }}
+            />
+          )}
+
+          {/* Profile Editor Modal (In-game / Waiting room profile update) */}
+          {profileModalOpen && user && (
+            <ProfileEditor
+              user={user}
+              onUser={u => setUser(u)}
+              onClose={() => setProfileModalOpen(false)}
             />
           )}
 

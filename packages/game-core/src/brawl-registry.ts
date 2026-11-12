@@ -53,7 +53,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     title: '万佛之祖',
     camp: 'blue',
     isCore: false,
-    artPrefix: 'jingang-loyal',
+    artPrefix: 'brawl-rulai',
     motto: '法力无边掌乾坤，五行山下镇妖魔',
     skill: {
       skillId: 'wuxingshan_zhang',
@@ -145,7 +145,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     title: '慈航大士',
     camp: 'blue',
     isCore: false,
-    artPrefix: 'guinevere',
+    artPrefix: 'brawl-guanyin',
     motto: '杨柳甘露净尘世，紫竹林中解心魔',
     skill: {
       skillId: 'jingping_ganlu',
@@ -181,7 +181,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     title: '清源妙道真君',
     camp: 'blue',
     isCore: false,
-    artPrefix: 'bailong-loyal',
+    artPrefix: 'brawl-erlang',
     motto: '天眼洞开彻三界，听调不听封玉阶',
     skill: {
       skillId: 'tianyan_zhaoxu',
@@ -199,7 +199,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     title: '三坛海会大神',
     camp: 'blue',
     isCore: false,
-    artPrefix: 'assassin',
+    artPrefix: 'brawl-nezha',
     motto: '三头六臂乾坤圈，火尖枪动伏群妖',
     skill: {
       skillId: 'santou_liubi',
@@ -401,7 +401,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     title: '平天大圣',
     camp: 'red',
     isCore: false,
-    artPrefix: 'oberon',
+    artPrefix: 'brawl-niumowang',
     motto: '平天大力谁能敌，撼动昆仑震四方',
     skill: {
       skillId: 'pingtian_handi',
@@ -419,7 +419,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     title: '铁扇仙',
     camp: 'red',
     isCore: false,
-    artPrefix: 'minion-spider',
+    artPrefix: 'brawl-tieshan',
     motto: '翠云芭蕉扇狂风，一扇息火二生云',
     skill: {
       skillId: 'bajiao_shenfeng',
@@ -547,7 +547,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     title: '云程万里鹏',
     camp: 'red',
     isCore: false,
-    artPrefix: 'mordred',
+    artPrefix: 'brawl-dapeng',
     motto: '云程九万展双翼，三界巡视锁行者',
     skill: {
       skillId: 'yuncheng_wanli',
@@ -567,7 +567,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     title: '黑风大王 / 守山大神',
     camp: 'neutral',
     isCore: false,
-    artPrefix: 'loyal',
+    artPrefix: 'brawl-heixiong',
     motto: '一念成神，一念为魔；黑风山顶静观胜负',
     skill: {
       skillId: 'shenmo_yinian',

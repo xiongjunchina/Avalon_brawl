@@ -127,3 +127,34 @@ test('room entry accepts a room number or extracts an invitation without confusi
     assert.throws(()=>entryRoomKey(input),/INVALID_ROOM_ENTRY/);
   }
 });
+
+test('manual playerCode submission does not bind stale expectedUserId from known accounts', async () => {
+  const calls: Array<{ path: string; body?: unknown }> = [];
+  const staleKnown = { ...account, id: 'stale-id', playerCode: '999999' };
+  const freshUser = { ...user, id: 'fresh-id', playerCode: '999999' };
+  const session = new EntrySession({
+    request: requestUsing(async (path, body) => {
+      calls.push({ path, body });
+      return path === '/me' ? { user: freshUser, roomId: null } : { user: freshUser };
+    }),
+    knownAccounts: () => [staleKnown],
+    remember: () => {},
+    registrationId: () => { throw Error('must not register'); },
+  });
+  await session.authenticate({ nickname: '', playerCode: '999999' });
+  assert.deepEqual(calls[0], { path: '/sessions/switch', body: { playerCode: '999999' } });
+});
+
+test('ACCOUNT_CODE_CHANGED automatically invokes forget on stale player code', async () => {
+  const forgotten: string[] = [];
+  const staleKnown = { ...account, id: 'stale-id', playerCode: '999999' };
+  const session = new EntrySession({
+    request: requestUsing(async () => { throw Error('ACCOUNT_CODE_CHANGED'); }),
+    knownAccounts: () => [staleKnown],
+    remember: () => {},
+    forget: code => forgotten.push(code),
+    registrationId: () => 'id',
+  });
+  await assert.rejects(session.authenticate({ nickname: '老熊', account: staleKnown }), /ACCOUNT_CODE_CHANGED/);
+  assert.deepEqual(forgotten, ['999999']);
+});

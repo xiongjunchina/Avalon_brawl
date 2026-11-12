@@ -655,3 +655,69 @@ test('brawl: Nezha [santou_liubi] doubles vote weight during team vote resolutio
   assert.equal(state.rounds[0].vote?.rejections, 5);
   assert.equal(state.rounds[0].vote?.passed, true);
 });
+
+test('brawl: Jinchi Dapeng [yuncheng_wanli] excludes non-Wukong seat for Hong Haier privately', () => {
+  const players = Array.from({ length: 10 }, (_, i) => ({ id: `p${i + 1}`, nickname: `P${i + 1}`, seat: i + 1 }));
+  const game = createGame('brawl-dapeng', players, { ...defaultSettings, playerCount: 10, brawlModeEnabled: true }, a => a);
+
+  const honghaierId = game.players[0].id;
+  const dapengId = game.players[1].id;
+  const wukongId = game.players[2].id;
+  const tangsengId = game.players[3].id;
+
+  game.brawl!.playerStates[honghaierId] = {
+    userId: honghaierId,
+    seat: 1,
+    roleId: 'hong_haier',
+    camp: 'red',
+    skillUsed: false,
+  };
+  game.brawl!.playerStates[dapengId] = {
+    userId: dapengId,
+    seat: 2,
+    roleId: 'jinchi_dapeng',
+    camp: 'red',
+    skillUsed: false,
+  };
+  game.brawl!.playerStates[wukongId] = {
+    userId: wukongId,
+    seat: 3,
+    roleId: 'sun_wukong',
+    camp: 'blue',
+    skillUsed: false,
+  };
+  game.brawl!.playerStates[tangsengId] = {
+    userId: tangsengId,
+    seat: 4,
+    roleId: 'tang_seng',
+    camp: 'blue',
+    skillUsed: false,
+  };
+
+  game.phase = 'assassination';
+
+  // 大鹏雕发动【云程万里】
+  const nextGame = transition(game, dapengId, {
+    type: 'brawlCommand',
+    payload: {
+      action: 'useSkill',
+      skillId: 'yuncheng_wanli',
+    },
+  }, [dapengId]);
+
+  const excludedId = nextGame.brawl?.dapengExcludedPlayerId;
+  assert.ok(excludedId, 'Excluded target should be assigned');
+  assert.notEqual(excludedId, wukongId, 'Excluded target must NOT be Sun Wukong');
+
+  // 验证红孩儿端收到私密排除标记
+  const honghaierView = projectGame(nextGame, honghaierId);
+  assert.equal(honghaierView.selfBrawl?.dapengExcludedPlayerId, excludedId);
+
+  // 验证大鹏端收到私密排除标记
+  const dapengView = projectGame(nextGame, dapengId);
+  assert.equal(dapengView.selfBrawl?.dapengExcludedPlayerId, excludedId);
+
+  // 验证蓝方玩家看不到排除标记
+  const wukongView = projectGame(nextGame, wukongId);
+  assert.equal(wukongView.selfBrawl?.dapengExcludedPlayerId, undefined);
+});

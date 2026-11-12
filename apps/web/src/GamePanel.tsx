@@ -145,6 +145,12 @@ export function GamePanel({
     }
   }, [completedMissions.length, lastCompletedRound]);
 
+  useEffect(() => {
+    if (g.selfBrawl?.dapengExcludedPlayerId && target === g.selfBrawl.dapengExcludedPlayerId) {
+      setTarget('');
+    }
+  }, [g.selfBrawl?.dapengExcludedPlayerId, target]);
+
   const [discussionCooldown, setDiscussionCooldown] = useState(false);
   useEffect(() => {
     if (g.phase === 'discussion') {
@@ -357,6 +363,7 @@ export function GamePanel({
       return;
     }
     if (g.phase === 'assassination' && self?.role === 'assassin' && playerId !== userId) {
+      if (g.selfBrawl?.dapengExcludedPlayerId === playerId) return;
       setTarget(prev => (prev === playerId ? '' : playerId));
     }
   }
@@ -540,6 +547,27 @@ export function GamePanel({
           <p className="assassin-banner-sub">
             点击下方玩家卡片锁定目标，再点底部<strong>「确认刺杀」</strong>：刺中孙悟空则红方全员胜利，刺错则蓝方全员胜利。
           </p>
+          {g.selfBrawl?.dapengExcludedPlayerId && (() => {
+            const excluded = g.players.find(p => p.id === g.selfBrawl?.dapengExcludedPlayerId);
+            return excluded ? (
+              <div
+                className="assassin-dapeng-hint"
+                style={{
+                  marginTop: '10px',
+                  padding: '8px 12px',
+                  background: 'rgba(234, 88, 12, 0.25)',
+                  border: '1px solid #f97316',
+                  borderRadius: '8px',
+                  color: '#ffedd5',
+                  fontSize: '13px',
+                  lineHeight: '1.4',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+                }}
+              >
+                🦅 <strong>金翅大鹏雕【云程万里】天机显圣</strong>：已为你排除【<strong>{excluded.seat}号 · {excluded.nickname}</strong>】（此人绝非齐天大圣，无需刺杀）！
+              </div>
+            ) : null;
+          })()}
         </section>
       ) : (
         (() => {
@@ -687,6 +715,10 @@ export function GamePanel({
           const teamStatus = ['guanyin_window', 'mission'].includes(effectivePhase) ? '出征' : '已选';
           const isTargeted =
             g.phase === 'assassination' && target === p.id;
+          const isDapengExcluded =
+            g.phase === 'assassination' &&
+            self?.role === 'assassin' &&
+            g.selfBrawl?.dapengExcludedPlayerId === p.id;
           const isBannedFromTeam =
             g.humanBagBannedPlayerId === p.id ||
             g.brawl?.imprisonedTargetId === p.id ||
@@ -694,7 +726,7 @@ export function GamePanel({
           const canTapSeat =
             !disabled &&
             ((['proposing', 'discussion'].includes(effectivePhase) && captain && !isBannedFromTeam) ||
-              (g.phase === 'assassination' && self?.role === 'assassin' && p.id !== userId));
+              (g.phase === 'assassination' && self?.role === 'assassin' && p.id !== userId && !isDapengExcluded));
           const seatVoteChip = voteStatusMap[p.id] ?? null;
           const revealedRole = ended && g.revealedRoles ? g.revealedRoles[p.id] : undefined;
           const revealedTeam = revealedRole ? roleTeam(revealedRole) : undefined;
@@ -732,6 +764,7 @@ export function GamePanel({
                 revealedTeam ? `is-revealed-${revealedTeam}` : '',
                 isWinnerSeat ? 'is-winner-seat' : '',
                 isAssassinatedTarget ? 'is-assassinated-seat' : '',
+                isDapengExcluded ? 'is-dapeng-excluded' : '',
                 !ended && member?.online === false ? 'is-offline' : '',
                 isSpeaking ? 'seat-is-speaking' : '',
               ]

@@ -87,6 +87,16 @@ export function BrawlPanel({
                   {selfBrawl.zhaoyaoResult ? '🪞 照妖镜探照天机：当前车队中【有妖魔潜伏！】' : '🪞 照妖镜探照天机：当前车队中【无妖魔，皆是正道仙友！】'}
                 </div>
               )}
+
+              {/* 金翅大鹏雕专属：云程万里排除反馈 */}
+              {selfBrawl.roleId === 'jinchi_dapeng' && selfBrawl.dapengExcludedPlayerId && (() => {
+                const excluded = players.find(p => p.id === selfBrawl.dapengExcludedPlayerId);
+                return excluded ? (
+                  <div style={{ marginTop: '6px', fontSize: '12px', fontWeight: 'bold', color: '#fb923c' }}>
+                    🦅 云程万里俯瞰天机：已为红孩儿暗中排除【{excluded.seat}号 · {excluded.nickname}】（此人绝非孙悟空）！
+                  </div>
+                ) : null;
+              })()}
             </div>
 
             {/* 技能发动交互 */}

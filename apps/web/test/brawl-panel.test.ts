@@ -232,3 +232,52 @@ test('IdentityDetails: renders compact brawl identity card with protected avatar
   assert.match(html, /绝技 · 三昧真火/);
   assert.match(html, /发动绝技/);
 });
+
+test('BrawlPanel: battle events explain exact meaning and tactical effect instead of just skill name', () => {
+  const selfBrawl: SelfBrawlView = {
+    roleId: 'sun_wukong',
+    roleName: '孙悟空',
+    roleTitle: '齐天大圣',
+    camp: 'blue',
+    skill: {
+      skillId: 'huoyan_jinjing',
+      skillName: '火眼金睛',
+      triggerPhase: 'game_start',
+      actionType: 'passive',
+      maxUses: 1,
+      description: '开局见红方妖气。',
+    },
+    skillAvailable: false,
+    skillUsed: false,
+  };
+
+  const legacyEvent: BrawlBattleEvent = {
+    id: 'e-puti',
+    roleId: 'puti_zhushi',
+    roleName: '菩提祖师',
+    skillName: '道法点化',
+    summary: '【菩提祖师】施展【道法点化】！',
+    timestamp: new Date().toISOString(),
+  };
+
+  const detailedEvent: BrawlBattleEvent = {
+    id: 'e-rulai',
+    roleId: 'rulai_fozu',
+    roleName: '如来佛祖',
+    skillName: '五行山掌',
+    summary: '【如来佛祖】祭出绝技【五行山掌】对【3号 · 老X】！效用：镇压目标仙友一轮，使其本轮不可入选车队且表决自动弃权。',
+    description: '镇压目标仙友一轮，使其本轮不可入选车队且表决自动弃权。',
+    timestamp: new Date().toISOString(),
+  };
+
+  const html = renderToStaticMarkup(createElement(BrawlPanel, {
+    selfBrawl,
+    events: [legacyEvent, detailedEvent],
+    defaultShowEvents: true,
+  }));
+
+  // Both legacy and detailed events must explain tactical effect so players understand what it means
+  assert.match(html, /威能效用：/);
+  assert.match(html, /第 2 轮任务后，50% 概率让除孙悟空外的 1 名随机蓝方私密得知 1 位红方真名/);
+  assert.match(html, /镇压目标仙友一轮/);
+});

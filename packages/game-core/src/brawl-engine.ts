@@ -38,6 +38,7 @@ export function appendBattleEvent(
   state: BrawlGameState,
   roleId: string,
   summary: string,
+  description?: string,
 ): BrawlBattleEvent {
   const role = BRAWL_ROLE_REGISTRY[roleId];
   const roleName = role ? role.name : roleId;
@@ -48,6 +49,7 @@ export function appendBattleEvent(
     roleName,
     skillName,
     summary,
+    description: description || role?.skill.description,
     timestamp: new Date().toISOString(),
   };
   state.events.push(event);

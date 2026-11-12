@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { SelfBrawlView, BrawlBattleEvent } from '@avalon/contracts';
+import { BRAWL_ROLE_REGISTRY } from '@avalon/game-core';
 
 interface BrawlPanelProps {
   selfBrawl?: SelfBrawlView;
@@ -9,6 +10,7 @@ interface BrawlPanelProps {
   players?: { id: string; nickname: string; seat: number }[];
   privacyMode?: boolean;
   onOpenIdentity?: () => void;
+  defaultShowEvents?: boolean;
 }
 
 export function BrawlPanel({
@@ -19,8 +21,9 @@ export function BrawlPanel({
   players = [],
   privacyMode = false,
   onOpenIdentity,
+  defaultShowEvents = false,
 }: BrawlPanelProps) {
-  const [showEvents, setShowEvents] = useState(false);
+  const [showEvents, setShowEvents] = useState(defaultShowEvents);
   const [selectedTarget, setSelectedTarget] = useState<string>('');
 
   if (!selfBrawl) return null;
@@ -210,20 +213,45 @@ export function BrawlPanel({
           {showEvents && (
             <div
               style={{
-                background: 'rgba(15, 23, 42, 0.9)',
+                background: 'rgba(15, 23, 42, 0.95)',
                 border: '1px solid #334155',
                 borderRadius: '8px',
                 padding: '8px 12px',
                 marginTop: '4px',
-                maxHeight: '120px',
+                maxHeight: '160px',
                 overflowY: 'auto',
               }}
             >
-              {events.map(ev => (
-                <div key={ev.id} style={{ fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>
-                  <span style={{ color: '#f59e0b' }}>[{ev.roleName} · {ev.skillName}]</span> {ev.summary}
-                </div>
-              ))}
+              {events.map(ev => {
+                const roleDef = BRAWL_ROLE_REGISTRY[ev.roleId];
+                const detail = ev.description || roleDef?.skill.description;
+                const hasDetailedSummary = ev.summary.includes('效用：') || ev.summary.includes('：');
+                return (
+                  <div
+                    key={ev.id}
+                    style={{
+                      fontSize: '12px',
+                      color: '#cbd5e1',
+                      marginBottom: '6px',
+                      lineHeight: 1.5,
+                      borderBottom: '1px dashed rgba(148, 163, 184, 0.2)',
+                      paddingBottom: '4px',
+                    }}
+                  >
+                    <div>
+                      <span style={{ color: '#f59e0b', fontWeight: 700 }}>
+                        [{ev.roleName} · {ev.skillName}]
+                      </span>{' '}
+                      {ev.summary}
+                    </div>
+                    {!hasDetailedSummary && detail && (
+                      <div style={{ fontSize: '11px', color: '#93c5fd', marginTop: '2px' }}>
+                        ✦ 威能效用：{detail}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

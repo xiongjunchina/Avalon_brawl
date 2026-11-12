@@ -87,6 +87,7 @@ export interface BrawlBattleEvent {
   roleName: string;
   skillName: string;
   summary: string;
+  description?: string;
   timestamp: string;
 }
 

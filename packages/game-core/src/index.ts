@@ -582,7 +582,15 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         playerState.skillUsed = true;
         const role = BRAWL_ROLE_REGISTRY[playerState.roleId];
         if (role) {
-          appendBattleEvent(g.brawl, role.id, `【${role.name}】施展【${role.skill.skillName}】！`);
+          let targetText = '';
+          if (payload.targetPlayerId) {
+            const targetPlayer = g.players.find(p => p.id === payload.targetPlayerId);
+            if (targetPlayer) {
+              targetText = `对【${targetPlayer.seat}号 · ${targetPlayer.nickname}】`;
+            }
+          }
+          const summaryText = `【${role.name}】祭出绝技【${role.skill.skillName}】${targetText}！效用：${role.skill.description}`;
+          appendBattleEvent(g.brawl, role.id, summaryText, role.skill.description);
         }
       }
       break;

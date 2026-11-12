@@ -595,12 +595,12 @@ export interface BrawlPlayerCountConfig {
 export const BRAWL_PLAYER_CONFIG: Record<number, BrawlPlayerCountConfig> = {
   5: { playerCount: 5, blueTotal: 3, redTotal: 2, hasNeutral: false, blueDrawCount: 1, redDrawCount: 0 },
   6: { playerCount: 6, blueTotal: 4, redTotal: 2, hasNeutral: false, blueDrawCount: 2, redDrawCount: 0 },
-  7: { playerCount: 7, blueTotal: 4, redTotal: 3, hasNeutral: false, blueDrawCount: 2, redDrawCount: 1 },
-  8: { playerCount: 8, blueTotal: 4, redTotal: 3, hasNeutral: true, blueDrawCount: 2, redDrawCount: 1 },
-  9: { playerCount: 9, blueTotal: 5, redTotal: 3, hasNeutral: true, blueDrawCount: 3, redDrawCount: 1 },
-  10: { playerCount: 10, blueTotal: 5, redTotal: 4, hasNeutral: true, blueDrawCount: 3, redDrawCount: 2 },
-  11: { playerCount: 11, blueTotal: 6, redTotal: 4, hasNeutral: true, blueDrawCount: 4, redDrawCount: 2 },
-  12: { playerCount: 12, blueTotal: 7, redTotal: 4, hasNeutral: true, blueDrawCount: 5, redDrawCount: 2 },
+  7: { playerCount: 7, blueTotal: 4, redTotal: 2, hasNeutral: true,  blueDrawCount: 2, redDrawCount: 0 },
+  8: { playerCount: 8, blueTotal: 5, redTotal: 2, hasNeutral: true,  blueDrawCount: 3, redDrawCount: 0 },
+  9: { playerCount: 9, blueTotal: 6, redTotal: 2, hasNeutral: true,  blueDrawCount: 4, redDrawCount: 0 },
+  10: { playerCount: 10, blueTotal: 6, redTotal: 3, hasNeutral: true, blueDrawCount: 4, redDrawCount: 1 },
+  11: { playerCount: 11, blueTotal: 7, redTotal: 3, hasNeutral: true, blueDrawCount: 5, redDrawCount: 1 },
+  12: { playerCount: 12, blueTotal: 8, redTotal: 3, hasNeutral: true, blueDrawCount: 6, redDrawCount: 1 },
 };
 
 /**

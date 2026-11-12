@@ -73,8 +73,8 @@ test('brawl: 5 to 12 player distribution matrix strictly matches configuration',
     assert.ok(ids.includes('liuer_mihou'), 'Must include 六耳猕猴');
     assert.ok(ids.includes('hong_haier'), 'Must include 红孩儿');
 
-    // 8 人以上必须有黑熊精；5~7 人严禁黑熊精
-    if (count >= 8) {
+    // 7 人及以上局必须有黑熊精（前置对冲红方配额）；5~6 人严禁黑熊精
+    if (count >= 7) {
       assert.ok(ids.includes('heixiong_jing'), `${count}-player must have 黑熊精`);
     } else {
       assert.ok(!ids.includes('heixiong_jing'), `${count}-player must NOT have 黑熊精`);
@@ -89,11 +89,11 @@ test('brawl: 5 to 12 player distribution matrix strictly matches configuration',
 });
 
 test('brawl: blind box and intelligence privileges for Erlang, Baiyan, and Laoshu', () => {
-  // 模拟指定抽取含有二郎神、百眼魔君、老鼠精的局
+  // 模拟指定抽取含有二郎神、百眼魔君、老鼠精的局 (10人局包含蓝红双向盲盒池)
   const customPool: Record<string, BrawlRoleDef> = {
     ...BRAWL_ROLE_REGISTRY,
   };
-  const assignment = drawBrawlRoles(8, customPool, () => 0.1);
+  const assignment = drawBrawlRoles(10, customPool, () => 0.1);
   assert.ok(assignment.blindBox.bluePoolRoles.length > 0, 'Blind box contains blue pool');
   assert.ok(assignment.blindBox.redPoolRoles.length > 0, 'Blind box contains red pool');
   assert.equal(assignment.blindBox.neutralRole, 'heixiong_jing', 'Blind box records neutral role');
@@ -269,7 +269,7 @@ test('brawl: createGame with brawlModeEnabled assigns full brawl roles, projectG
 });
 
 test('brawl: 5-role preferences prioritize preferred characters in pool draw and player assignment', () => {
-  const players = Array.from({ length: 8 }, (_, i) => ({
+  const players = Array.from({ length: 10 }, (_, i) => ({
     id: `u${i + 1}`,
     nickname: `玩家${i + 1}`,
     seat: i + 1,
@@ -278,7 +278,7 @@ test('brawl: 5-role preferences prioritize preferred characters in pool draw and
   // u1 prefers Erlang Shen, Nezha, Zhenyuan Daxian, Guanyin, Rulai Fozu (all Blue non-core)
   const u1Prefs = ['erlang_shen', 'nezha', 'zhenyuan_daxian', 'guanyin_pusa', 'rulai_fozu'];
   // u2 prefers Niu Mowang, Dapeng, Baigu Jing, Huangfeng, Honghai'er (all Red non-core)
-  const u2Prefs = ['niu_mowang', 'dapeng_jinchibird', 'baigu_jing', 'huangfeng_guai', 'honghai_er'];
+  const u2Prefs = ['niu_mowang', 'dapeng_jinchibird', 'baigu_jing', 'huangfeng_guai', 'qingmao_shizi'];
 
   const rolePreferences = {
     u1: u1Prefs,
@@ -288,7 +288,7 @@ test('brawl: 5-role preferences prioritize preferred characters in pool draw and
   const game = createGame(
     'brawl-game-pref-5',
     players,
-    { ...defaultSettings, playerCount: 8, brawlModeEnabled: true, rolePreferenceEnabled: true },
+    { ...defaultSettings, playerCount: 10, brawlModeEnabled: true, rolePreferenceEnabled: true },
     a => a,
     { rolePreferences }
   );
@@ -302,4 +302,57 @@ test('brawl: 5-role preferences prioritize preferred characters in pool draw and
 
   const u2Match = u2Prefs.some(pref => poolRoleIds.includes(pref));
   assert.equal(u2Match, true, 'At least one of u2 red preferences was drawn into the pool');
+});
+
+test('brawl: Heixiong Jing offset mechanism guarantees 5B+2R+1N in 8-player and 6B+3R+1N in 10-player with Oberon vision isolation', () => {
+  // Test 8-player
+  const players8 = Array.from({ length: 8 }, (_, i) => ({
+    id: `p${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+  const game8 = createGame('brawl-8', players8, { ...defaultSettings, playerCount: 8, brawlModeEnabled: true }, a => a);
+  assert.ok(game8.brawl);
+  assert.ok(game8.brawlRoles);
+
+  const playerStates8 = Object.values(game8.brawl.playerStates);
+  const blue8 = playerStates8.filter(p => p.camp === 'blue').length;
+  const red8 = playerStates8.filter(p => p.camp === 'red').length;
+  const neutral8 = playerStates8.filter(p => p.camp === 'neutral').length;
+
+  assert.equal(blue8, 5, '8-player has exactly 5 blue gods');
+  assert.equal(red8, 2, '8-player has exactly 2 red demons');
+  assert.equal(neutral8, 1, '8-player has exactly 1 neutral Heixiong Jing');
+
+  const heixiongPlayer8 = playerStates8.find(p => p.roleId === 'heixiong_jing')!;
+  assert.ok(heixiongPlayer8);
+  assert.equal(game8.roles[heixiongPlayer8.userId], 'oberon', 'Heixiong Jing is mapped to Oberon for vision isolation');
+
+  // Verify vision isolation:
+  const redPlayer = playerStates8.find(p => p.camp === 'red')!;
+  const redView = projectGame(game8, redPlayer.userId);
+  assert.ok(!redView.self?.evilIds.includes(heixiongPlayer8.userId), 'Native red demon CANNOT see Heixiong Jing');
+
+  const heixiongView = projectGame(game8, heixiongPlayer8.userId);
+  assert.equal(heixiongView.self?.evilIds.length, 0, 'Heixiong Jing CANNOT see native red demons');
+
+  const merlinPlayer = playerStates8.find(p => p.roleId === 'sun_wukong')!;
+  const merlinView = projectGame(game8, merlinPlayer.userId);
+  assert.ok(merlinView.self?.evilIds.includes(heixiongPlayer8.userId), 'Sun Wukong (Merlin) CAN detect Heixiong Jing evil aura');
+
+  // Test 10-player
+  const players10 = Array.from({ length: 10 }, (_, i) => ({
+    id: `u${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+  const game10 = createGame('brawl-10', players10, { ...defaultSettings, playerCount: 10, brawlModeEnabled: true }, a => a);
+  const playerStates10 = Object.values(game10.brawl!.playerStates);
+  const blue10 = playerStates10.filter(p => p.camp === 'blue').length;
+  const red10 = playerStates10.filter(p => p.camp === 'red').length;
+  const neutral10 = playerStates10.filter(p => p.camp === 'neutral').length;
+
+  assert.equal(blue10, 6, '10-player has exactly 6 blue gods');
+  assert.equal(red10, 3, '10-player has exactly 3 red demons');
+  assert.equal(neutral10, 1, '10-player has exactly 1 neutral Heixiong Jing');
 });

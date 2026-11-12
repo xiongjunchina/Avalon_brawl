@@ -174,9 +174,10 @@ export function createGame(
         br = assignment.roles.find(x => x.id === 'liuer_mihou');
       } else if (r === 'assassin') {
         br = assignment.roles.find(x => x.id === 'hong_haier');
-      } else if (neutralRole && !neutralAssigned && r === 'loyal') {
+      } else if (neutralRole && !neutralAssigned && teamOf(r) === 'red') {
         br = neutralRole;
         neutralAssigned = true;
+        roles[p.id] = 'oberon'; // 赋予黑熊精 Oberon 孤狼视野（红方不知黑熊精，黑熊精不知红方，孙悟空能辨妖气）
       } else if (teamOf(r) === 'blue') {
         br = popPreferred(bluePool, playerPrefs);
       } else {

@@ -7864,24 +7864,53 @@ button.seat-mic-badge:active {
   cursor: pointer !important;
 }
 
-/* 等待室座位上的【改资料】小标签 */
-.seat-card-edit-btn {
-  margin-top: 4px;
-  padding: 2px 8px;
-  font-size: 11px;
-  font-weight: 700;
-  color: #ffd875;
-  background: rgba(30, 41, 59, 0.85);
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  line-height: 1.3;
+/* 等待室本人头像悬浮【改资料】金色小微标（方案 A） */
+.seat-avatar-edit-badge {
+  position: absolute !important;
+  top: -3px !important;
+  right: -3px !important;
+  z-index: 5 !important;
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  max-width: 20px !important;
+  border-radius: 50% !important;
+  background: radial-gradient(circle at 35% 35%, #2c3e50 0%, #0f172a 100%) !important;
+  border: 1.5px solid #ffd875 !important;
+  box-shadow: 0 0 6px rgba(255, 216, 117, 0.6), 0 2px 4px rgba(0, 0, 0, 0.8) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  outline: none !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
 }
-.seat-card-edit-btn:hover {
-  background: rgba(245, 158, 11, 0.2);
-  border-color: #ffd875;
-  color: #ffffff;
+
+.seat-avatar-edit-badge:hover {
+  transform: scale(1.18) !important;
+  box-shadow: 0 0 10px rgba(255, 216, 117, 0.9), 0 2px 6px rgba(0, 0, 0, 0.9) !important;
+}
+
+.seat-avatar-edit-badge:active {
+  transform: scale(0.92) !important;
+}
+
+.seat-avatar-edit-badge .edit-badge-icon {
+  font-size: 10px !important;
+  line-height: 1 !important;
+  display: block !important;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.8));
+}
+
+.seat-card-avatar-wrap.is-editable-self {
+  cursor: pointer;
+}
+
+.seat-card-avatar-wrap.is-editable-self:hover .seat-card-avatar {
+  border-color: #ffd875 !important;
+  box-shadow: 0 0 12px rgba(255, 216, 117, 0.5) !important;
 }
 
 

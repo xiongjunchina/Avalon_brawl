@@ -1484,7 +1484,14 @@ function App() {
                           )}
                         </div>
                       </div>
-                      <div className={`seat-card-avatar-wrap ${isMemberSpeaking ? 'is-speaking' : ''}`}>
+                      <div
+                        className={`seat-card-avatar-wrap ${isMemberSpeaking ? 'is-speaking' : ''} ${m?.id === user.id ? 'is-editable-self' : ''}`}
+                        onClick={m?.id === user.id ? e => {
+                          e.stopPropagation();
+                          setProfileModalOpen(true);
+                        } : undefined}
+                        title={m?.id === user.id ? '点击修改你的昵称与头像' : undefined}
+                      >
                         {isMemberSpeaking && (
                           <span className="seat-speaking-ring" aria-hidden="true" />
                         )}
@@ -1509,6 +1516,20 @@ function App() {
                           />
                         )}
                         <span className="seat-num-badge">{i + 1}</span>
+                        {m && m.id === user.id && (
+                          <button
+                            type="button"
+                            className="seat-avatar-edit-badge"
+                            title="点击修改你的昵称与头像"
+                            aria-label="修改个人资料"
+                            onClick={e => {
+                              e.stopPropagation();
+                              setProfileModalOpen(true);
+                            }}
+                          >
+                            <span className="edit-badge-icon" aria-hidden="true">✏️</span>
+                          </button>
+                        )}
                       </div>
                       <strong className="seat-card-name">
                         {m
@@ -1519,19 +1540,6 @@ function App() {
                             }${m.id === user.id ? '（你）' : ''}`
                           : '邀请好友'}
                       </strong>
-                      {m && m.id === user.id && (
-                        <button
-                          type="button"
-                          className="seat-card-edit-btn"
-                          title="点击修改你的昵称与头像"
-                          onClick={e => {
-                            e.stopPropagation();
-                            setProfileModalOpen(true);
-                          }}
-                        >
-                          ✏️ 改资料
-                        </button>
-                      )}
                       <div className="seat-card-bottom">
                         {m ? (
                           <>

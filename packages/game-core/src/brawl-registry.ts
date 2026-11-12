@@ -561,7 +561,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
 };
 
 /**
- * 5~12 人局的标准人数配置（严格遵循原版阿瓦隆蓝红比例：5人3:2, 6人4:2, 7人4:3, 8人5:3, 9人6:3, 10人6:4, 11人7:4, 12人8:4）
+ * 5~12 人局的大乱斗人数配置（9人局5蓝4红，11人局6蓝5红，12人局7蓝5红）
  */
 export interface BrawlPlayerCountConfig {
   playerCount: number;
@@ -576,10 +576,10 @@ export const BRAWL_PLAYER_CONFIG: Record<number, BrawlPlayerCountConfig> = {
   6: { playerCount: 6, blueTotal: 4, redTotal: 2, blueDrawCount: 2, redDrawCount: 0 },
   7: { playerCount: 7, blueTotal: 4, redTotal: 3, blueDrawCount: 2, redDrawCount: 1 },
   8: { playerCount: 8, blueTotal: 5, redTotal: 3, blueDrawCount: 3, redDrawCount: 1 },
-  9: { playerCount: 9, blueTotal: 6, redTotal: 3, blueDrawCount: 4, redDrawCount: 1 },
+  9: { playerCount: 9, blueTotal: 5, redTotal: 4, blueDrawCount: 3, redDrawCount: 2 },
   10: { playerCount: 10, blueTotal: 6, redTotal: 4, blueDrawCount: 4, redDrawCount: 2 },
-  11: { playerCount: 11, blueTotal: 7, redTotal: 4, blueDrawCount: 5, redDrawCount: 2 },
-  12: { playerCount: 12, blueTotal: 8, redTotal: 4, blueDrawCount: 6, redDrawCount: 2 },
+  11: { playerCount: 11, blueTotal: 6, redTotal: 5, blueDrawCount: 4, redDrawCount: 3 },
+  12: { playerCount: 12, blueTotal: 7, redTotal: 5, blueDrawCount: 5, redDrawCount: 3 },
 };
 
 /**

@@ -56,12 +56,30 @@ export const MISSION_SIZES: Record<number, number[]> = {
   8: [3,4,4,5,5], 9: [3,4,4,5,5], 10: [3,4,4,5,5],
   11: [3,4,5,5,5], 12: [3,4,5,6,6],
 };
+export const BRAWL_MISSION_SIZES: Record<number, number[]> = {
+  5: [2,3,2,3,3], 6: [2,3,4,3,4], 7: [2,3,3,4,4],
+  8: [3,4,4,5,5], 9: [3,4,4,5,5], 10: [3,4,4,5,5],
+  11: [3,4,5,5,6], 12: [3,4,5,6,6],
+};
+export const missionSizesFor = (playerCount: number, isBrawl = false): number[] =>
+  (isBrawl ? BRAWL_MISSION_SIZES[playerCount] : MISSION_SIZES[playerCount]) ?? MISSION_SIZES[playerCount] ?? [2,3,2,3,3];
+
 export const ROLE_CONFIG: Record<number, Role[]> = {
   5: ['merlin','percival','loyal','morgana','assassin'],
   6: ['merlin','percival','loyal','loyal','morgana','assassin'],
   7: ['merlin','percival','loyal','loyal','morgana','assassin','oberon'],
   8: ['merlin','percival','loyal','loyal','loyal','morgana','assassin','mordred'],
   9: ['merlin','percival','guinevere','loyal','loyal','loyal','morgana','assassin','mordred'],
+  10: ['merlin','percival','guinevere','loyal','loyal','loyal','morgana','assassin','mordred','oberon'],
+  11: ['merlin','percival','guinevere','loyal','loyal','loyal','morgana','assassin','mordred','minion','oberon'],
+  12: ['merlin','percival','guinevere','loyal','loyal','loyal','loyal','morgana','assassin','mordred','minion','oberon'],
+};
+export const BRAWL_BASE_ROLE_CONFIG: Record<number, Role[]> = {
+  5: ['merlin','percival','loyal','morgana','assassin'],
+  6: ['merlin','percival','loyal','loyal','morgana','assassin'],
+  7: ['merlin','percival','loyal','loyal','morgana','assassin','oberon'],
+  8: ['merlin','percival','loyal','loyal','loyal','morgana','assassin','mordred'],
+  9: ['merlin','percival','guinevere','loyal','loyal','morgana','assassin','mordred','oberon'],
   10: ['merlin','percival','guinevere','loyal','loyal','loyal','morgana','assassin','mordred','oberon'],
   11: ['merlin','percival','guinevere','loyal','loyal','loyal','morgana','assassin','mordred','minion','oberon'],
   12: ['merlin','percival','guinevere','loyal','loyal','loyal','loyal','morgana','assassin','mordred','minion','oberon'],
@@ -122,7 +140,9 @@ export function createGame(
 ): GameState {
   requireRule(players.length === settings.playerCount && ROLE_CONFIG[players.length], 'NOT_READY');
   const sorted = [...players].sort((a,b) => a.seat-b.seat);
-  const configRoles = [...ROLE_CONFIG[players.length]];
+  const configRoles = settings.brawlModeEnabled
+    ? [...BRAWL_BASE_ROLE_CONFIG[players.length]]
+    : [...ROLE_CONFIG[players.length]];
   const protectionOpts: RoleProtectionOptions = Array.isArray(protection)
     ? { visionGuaranteedUserIds: protection }
     : protection;
@@ -280,9 +300,20 @@ export function createGame(
 }
 export const isEnded = (g: GameState) => g.phase === 'finished' || g.phase === 'aborted';
 export const captain = (g: GameState) => g.captainOrder[g.captainIndex];
-export const failuresRequiredFor = (playerCount: number, mission: number): number =>
-  (playerCount >= 7 && mission === 4) || ((playerCount === 11 || playerCount === 12) && mission === 3) ? 2 : 1;
-export const failuresRequired = (g: GameState) => failuresRequiredFor(g.players.length, g.mission);
+export const failuresRequiredFor = (playerCount: number, mission: number, isBrawl = false): number => {
+  if (isBrawl) {
+    // 大乱斗模式数值平衡：
+    // 11、12人局（6蓝5红 / 7蓝5红）：第3难、第4难、第5难均需2败
+    if ((playerCount === 11 || playerCount === 12) && mission >= 3) return 2;
+    // 9人局（5蓝4红）：第4难、第5难均需2败
+    if (playerCount === 9 && mission >= 4) return 2;
+    // 7、8、10人局：第4难需2败
+    if (playerCount >= 7 && mission === 4) return 2;
+    return 1;
+  }
+  return (playerCount >= 7 && mission === 4) || ((playerCount === 11 || playerCount === 12) && mission === 3) ? 2 : 1;
+};
+export const failuresRequired = (g: GameState) => failuresRequiredFor(g.players.length, g.mission, Boolean(g.brawl));
 function heartBellTargets(g: GameState, userId: string): string[] {
   const round = g.rounds.at(-1);
   if (!treasuresEnabledFor(g.settings, g.players.length, g.roles[userId], g.rulesetVersion) || g.roles[userId] !== 'minion' ||
@@ -343,7 +374,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
       requireRule(['role_reveal','proposing','discussion'].includes(g.phase), 'WRONG_PHASE');
       requireRule(userId === captain(g), 'NOT_CAPTAIN');
       const { playerIds, direction } = action.payload as { playerIds: string[]; direction: RoundView['direction'] };
-      requireRule(playerIds.length <= MISSION_SIZES[g.players.length][g.mission-1] && new Set(playerIds).size === playerIds.length && playerIds.every(id => g.players.some(p => p.id === id)), 'INVALID_TEAM');
+      requireRule(playerIds.length <= missionSizesFor(g.players.length, Boolean(g.brawl))[g.mission-1] && new Set(playerIds).size === playerIds.length && playerIds.every(id => g.players.some(p => p.id === id)), 'INVALID_TEAM');
       if (g.treasuresState?.humanBag?.activeBannedMission === g.mission && g.treasuresState.humanBag.targetId) {
         requireRule(!playerIds.includes(g.treasuresState.humanBag.targetId), 'PLAYER_BANNED_BY_HUMAN_BAG');
       }
@@ -358,7 +389,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
       requireRule(g.phase === 'proposing' || g.phase === 'role_reveal', 'WRONG_PHASE');
       requireRule(userId === captain(g), 'NOT_CAPTAIN');
       const { playerIds, direction } = action.payload as { playerIds: string[]; direction: RoundView['direction'] };
-      requireRule(playerIds.length <= MISSION_SIZES[g.players.length][g.mission-1] && new Set(playerIds).size === playerIds.length && playerIds.every(id => g.players.some(p => p.id === id)), 'INVALID_TEAM');
+      requireRule(playerIds.length <= missionSizesFor(g.players.length, Boolean(g.brawl))[g.mission-1] && new Set(playerIds).size === playerIds.length && playerIds.every(id => g.players.some(p => p.id === id)), 'INVALID_TEAM');
       if (g.treasuresState?.humanBag?.activeBannedMission === g.mission && g.treasuresState.humanBag.targetId) {
         requireRule(!playerIds.includes(g.treasuresState.humanBag.targetId), 'PLAYER_BANNED_BY_HUMAN_BAG');
       }
@@ -371,7 +402,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
     case 'startTeamVote':
       requireRule(g.phase === 'discussion', 'WRONG_PHASE');
       requireRule(userId === captain(g), 'NOT_CAPTAIN');
-      requireRule(g.rounds.at(-1)!.team.length === MISSION_SIZES[g.players.length][g.mission-1], 'INVALID_TEAM');
+      requireRule(g.rounds.at(-1)!.team.length === missionSizesFor(g.players.length, Boolean(g.brawl))[g.mission-1], 'INVALID_TEAM');
       delete g.draftTeam;
       g.teamVoteStartedAt = new Date(context.now).toISOString();
       g.phase = 'team_vote'; break;
@@ -604,7 +635,7 @@ export function projectGame(g: GameState, userId?: string): GameView {
   return { id: g.id, rulesetVersion: g.rulesetVersion, phase: g.phase, players: structuredClone(g.players), mission: g.mission,
     ...(g.phase === 'dealing' ? { dealEndsAt: g.dealEndsAt } : {}),
     ...(g.phase === 'guanyin_window' ? { guanyinEndsAt: g.guanyinEndsAt } : {}),
-    missionSizes: [...MISSION_SIZES[g.players.length]], failuresRequired: failuresRequired(g), rejectionCount: g.rejectionCount,
+    missionSizes: [...missionSizesFor(g.players.length, Boolean(g.brawl))], failuresRequired: failuresRequired(g), rejectionCount: g.rejectionCount,
     captainId: captain(g), captainOrder: [...g.captainOrder], rounds: structuredClone(g.rounds),
     ...(['role_reveal','proposing','discussion'].includes(g.phase) && g.draftTeam ? { draftTeam: structuredClone(g.draftTeam) } : {}),
     ...(g.phase === 'team_vote' ? { teamVote: { startedAt: g.teamVoteStartedAt, votedIds: Object.keys(g.teamVotes), ...(!g.settings.anonymousTeamVote ? { ballots: { ...g.teamVotes } } : {}) } } : {}),

@@ -15,6 +15,7 @@ import {
   type User,
 } from '@avalon/contracts';
 import {
+  BRAWL_PLAYER_CONFIG,
   MISSION_SIZES,
   ROLE_CONFIG,
   captain as getCaptainId,
@@ -746,6 +747,8 @@ function App() {
   const setupRedRoles = setupRoles.filter(r => roleTeam(r) === 'red');
   const groupedBlue = groupRoles(setupBlueRoles);
   const groupedRed = groupRoles(setupRedRoles);
+  const isSetupBrawl = Boolean(setupSettings.brawlModeEnabled);
+  const brawlConfig = BRAWL_PLAYER_CONFIG[setupSettings.playerCount] ?? BRAWL_PLAYER_CONFIG[6];
 
   const inTableViewport = Boolean((roomId || practiceGame) && page === 'table');
   const inHomeViewport = page === 'table' && !roomId && !practiceGame && !setupOpen;
@@ -990,49 +993,190 @@ function App() {
               </button>
             </footer>
             <section className="setup-role-preview" aria-labelledby="setup-role-heading">
-              <h2 id="setup-role-heading">本局角色配置（{setupSettings.playerCount} 人）</h2>
-            <div className="mp-factions-stack">
-              <section className="mp-faction-panel is-blue">
-                <h3>蓝方 · 取经正果 ({setupBlueRoles.length}人)</h3>
-                <div className="mp-role-card-row">
-                  {groupedBlue.map(({ role, count }) => (
-                    <div key={role} className="mp-portrait-card is-blue">
-                      <div className="mp-portrait-img">
-                        <RolePortrait role={role} size="tile" />
+              {isSetupBrawl ? (
+                <>
+                  <div className="brawl-setup-header">
+                    <h2 id="setup-role-heading">
+                      西游仙魔大乱斗 · 阵营与神魔盲盒（{setupSettings.playerCount} 人局）
+                    </h2>
+                    <p className="brawl-setup-desc">
+                      30 位全明星神魔池 · 4 位领军必出 · 其余席位天机盲盒随机降临 · 局局阵容不重样
+                    </p>
+                  </div>
+
+                  <div className="mp-factions-stack">
+                    <section className="mp-faction-panel is-blue">
+                      <h3>蓝方 · 取经仙佛 ({brawlConfig.blueTotal} 人)</h3>
+                      <div className="mp-role-card-row">
+                        <div className="mp-portrait-card is-blue">
+                          <div className="mp-portrait-img">
+                            <RolePortrait role="merlin" size="tile" />
+                          </div>
+                          <div className="mp-portrait-label">
+                            <strong>孙悟空</strong>
+                            <small>齐天大圣 · 必出</small>
+                          </div>
+                        </div>
+
+                        <div className="mp-portrait-card is-blue">
+                          <div className="mp-portrait-img">
+                            <RolePortrait role="percival" size="tile" />
+                          </div>
+                          <div className="mp-portrait-label">
+                            <strong>唐三藏</strong>
+                            <small>大唐圣僧 · 必出</small>
+                          </div>
+                        </div>
+
+                        <div className="mp-portrait-card is-blue is-blindbox">
+                          <div className="mp-portrait-img blindbox-visual">
+                            <span className="blindbox-icon" aria-hidden="true">🎴</span>
+                            <span className="blindbox-tag">仙佛盲盒</span>
+                          </div>
+                          <div className="mp-portrait-label">
+                            <strong>
+                              天机神仙
+                              {brawlConfig.blueDrawCount > 1 && (
+                                <span className="mp-count-tag">x{brawlConfig.blueDrawCount}</span>
+                              )}
+                            </strong>
+                            <small>13位仙佛随机抽取</small>
+                          </div>
+                        </div>
                       </div>
-                      <div className="mp-portrait-label">
-                        <strong>
-                          {roleNames[role]}
-                          {count > 1 && <span className="mp-count-tag">x{count}</span>}
-                        </strong>
-                        <small>{roleTitles[role]}</small>
+                    </section>
+
+                    <section className="mp-faction-panel is-red">
+                      <h3>红方 · 乱世妖王 ({brawlConfig.redTotal} 人)</h3>
+                      <div className="mp-role-card-row">
+                        <div className="mp-portrait-card is-red">
+                          <div className="mp-portrait-img">
+                            <RolePortrait role="assassin" size="tile" />
+                          </div>
+                          <div className="mp-portrait-label">
+                            <strong>六耳猕猴</strong>
+                            <small>混世魔猴 · 必出</small>
+                          </div>
+                        </div>
+
+                        <div className="mp-portrait-card is-red">
+                          <div className="mp-portrait-img">
+                            <RolePortrait role="morgana" size="tile" />
+                          </div>
+                          <div className="mp-portrait-label">
+                            <strong>红孩儿</strong>
+                            <small>圣婴大王 · 必出</small>
+                          </div>
+                        </div>
+
+                        {brawlConfig.redDrawCount > 0 ? (
+                          <div className="mp-portrait-card is-red is-blindbox">
+                            <div className="mp-portrait-img blindbox-visual">
+                              <span className="blindbox-icon" aria-hidden="true">🎴</span>
+                              <span className="blindbox-tag">妖王盲盒</span>
+                            </div>
+                            <div className="mp-portrait-label">
+                              <strong>
+                                乱世妖王
+                                {brawlConfig.redDrawCount > 1 && (
+                                  <span className="mp-count-tag">x{brawlConfig.redDrawCount}</span>
+                                )}
+                              </strong>
+                              <small>13位妖王随机抽取</small>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mp-portrait-card is-red is-blindbox">
+                            <div className="mp-portrait-img blindbox-visual is-none">
+                              <span className="blindbox-icon" aria-hidden="true">⚔️</span>
+                              <span className="blindbox-tag is-none">无额外妖王</span>
+                            </div>
+                            <div className="mp-portrait-label">
+                              <strong>仅此 2 首领</strong>
+                              <small>小局精悍对决</small>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </section>
+                  </div>
+
+                  <div className="brawl-setup-features">
+                    <div className="brawl-setup-feature-pill">
+                      <span className="feature-icon" aria-hidden="true">🎭</span>
+                      <div className="feature-text">
+                        <strong>心仪神魔预选</strong>
+                        <span>入座后可在等待区自主设置最多 5 位心仪神魔，系统发牌优先满足出战志愿</span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </section>
-
-              <section className="mp-faction-panel is-red">
-                <h3>红方 · 群妖乱道 ({setupRedRoles.length}人)</h3>
-                <div className="mp-role-card-row">
-                  {groupedRed.map(({ role, count }) => (
-                    <div key={role} className="mp-portrait-card is-red">
-                      <div className="mp-portrait-img">
-                        <RolePortrait role={role} size="tile" />
-                      </div>
-                      <div className="mp-portrait-label">
-                        <strong>
-                          {roleNames[role]}
-                          {count > 1 && <span className="mp-count-tag">x{count}</span>}
-                        </strong>
-                        <small>{roleTitles[role]}</small>
+                    <div className="brawl-setup-feature-pill">
+                      <span className="feature-icon" aria-hidden="true">⚡</span>
+                      <div className="feature-text">
+                        <strong>专属本命神通</strong>
+                        <span>30 位神魔全明星皆具备独门被动或主动技能，弱技能碰撞，局局博弈全新</span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </section>
-            </div>
+                  </div>
 
+                  <div className="brawl-setup-guide-link">
+                    <button
+                      type="button"
+                      className="mp-subtle-link"
+                      onClick={() => {
+                        setSetupOpen(false);
+                        setPage('guide');
+                      }}
+                    >
+                      📖 查阅 31 位全明星神魔图鉴与神通秘卷 ›
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2 id="setup-role-heading">本局角色配置（{setupSettings.playerCount} 人）</h2>
+                  <div className="mp-factions-stack">
+                    <section className="mp-faction-panel is-blue">
+                      <h3>蓝方 · 取经正果 ({setupBlueRoles.length}人)</h3>
+                      <div className="mp-role-card-row">
+                        {groupedBlue.map(({ role, count }) => (
+                          <div key={role} className="mp-portrait-card is-blue">
+                            <div className="mp-portrait-img">
+                              <RolePortrait role={role} size="tile" />
+                            </div>
+                            <div className="mp-portrait-label">
+                              <strong>
+                                {roleNames[role]}
+                                {count > 1 && <span className="mp-count-tag">x{count}</span>}
+                              </strong>
+                              <small>{roleTitles[role]}</small>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section className="mp-faction-panel is-red">
+                      <h3>红方 · 群妖乱道 ({setupRedRoles.length}人)</h3>
+                      <div className="mp-role-card-row">
+                        {groupedRed.map(({ role, count }) => (
+                          <div key={role} className="mp-portrait-card is-red">
+                            <div className="mp-portrait-img">
+                              <RolePortrait role={role} size="tile" />
+                            </div>
+                            <div className="mp-portrait-label">
+                              <strong>
+                                {roleNames[role]}
+                                {count > 1 && <span className="mp-count-tag">x{count}</span>}
+                              </strong>
+                              <small>{roleTitles[role]}</small>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  </div>
+                </>
+              )}
             </section>
 
           </div>
@@ -1556,7 +1700,9 @@ function App() {
                   <div className="quest-faction-plaque">
                     <strong>{room.settings.playerCount}位玩家</strong>
                     <span>
-                      {(ROLE_CONFIG[room.settings.playerCount] ?? []).filter(r => roleTeam(r) === 'red').length}
+                      {room.settings.brawlModeEnabled
+                        ? (BRAWL_PLAYER_CONFIG[room.settings.playerCount]?.redTotal ?? 2)
+                        : (ROLE_CONFIG[room.settings.playerCount] ?? []).filter(r => roleTeam(r) === 'red').length}
                       名群妖乱道
                     </span>
                   </div>

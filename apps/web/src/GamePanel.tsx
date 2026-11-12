@@ -370,7 +370,7 @@ export function GamePanel({
     <div className="game table-game-screen game-play-priority" data-sound="tap" data-phase={effectivePhase} data-player-count={g.players.length}>
       <div className="game-current-summary" aria-label="本轮任务摘要">
         <strong>第 {g.mission} 难 · {size} 人出征</strong>
-        {failuresRequiredFor(g.players.length, g.mission) >= 2 && <span className="current-two-fails">需 2 败</span>}
+        {failuresRequiredFor(g.players.length, g.mission, isBrawl) >= 2 && <span className="current-two-fails">需 2 败</span>}
         <span>护经 <b>{successes}:{failures}</b> 群妖</span>
       </div>
 
@@ -1247,7 +1247,7 @@ export function GamePanel({
             const missionProposals = g.rounds.filter(r => r.mission === missionNum);
             const result = missionProposals.find(r => r.result)?.result;
             const isCurrent = !ended && g.phase !== 'assassination' && missionNum === g.mission;
-            const twoFailsRequired = failuresRequiredFor(g.players.length, missionNum) >= 2;
+            const twoFailsRequired = failuresRequiredFor(g.players.length, missionNum, isBrawl) >= 2;
             return (
               <QuestMedallion
                 key={missionNum}
@@ -1458,7 +1458,7 @@ export function GamePanel({
             <div className="table-modal-head">
               <strong className="chronicle-mission-heading">
                 {WUYUE_MISSIONS[inspectMission - 1]?.title ?? `任务 ${inspectMission}`}<small>需 {g.missionSizes[inspectMission - 1]} 人
-                {failuresRequiredFor(g.players.length, inspectMission) === 2
+                {failuresRequiredFor(g.players.length, inspectMission, isBrawl) === 2
                   ? ' · 2 张失败牌才失败'
                   : ' · 1 张失败牌即失败'}</small>
               </strong>

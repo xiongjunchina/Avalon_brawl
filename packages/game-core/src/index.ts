@@ -11,6 +11,7 @@ import {
   appendBattleEvent,
   validateBrawlMissionVote,
   projectSelfBrawlView,
+  resetRoundBrawlEffects,
 } from './brawl-engine.js';
 export const RULESET_VERSION = 'standard-no-lancelot-v6';
 export const GUANYIN_WINDOW_MS = 5_000;
@@ -313,7 +314,13 @@ export const failuresRequiredFor = (playerCount: number, mission: number, isBraw
   }
   return (playerCount >= 7 && mission === 4) || ((playerCount === 11 || playerCount === 12) && mission === 3) ? 2 : 1;
 };
-export const failuresRequired = (g: GameState) => failuresRequiredFor(g.players.length, g.mission, Boolean(g.brawl));
+export const failuresRequired = (g: GameState) => {
+  const base = failuresRequiredFor(g.players.length, g.mission, Boolean(g.brawl));
+  if (g.brawl?.taoshouActive) {
+    return Math.max(base, 2);
+  }
+  return base;
+};
 function heartBellTargets(g: GameState, userId: string): string[] {
   const round = g.rounds.at(-1);
   if (!treasuresEnabledFor(g.settings, g.players.length, g.roles[userId], g.rulesetVersion) || g.roles[userId] !== 'minion' ||
@@ -378,6 +385,9 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
       if (g.treasuresState?.humanBag?.activeBannedMission === g.mission && g.treasuresState.humanBag.targetId) {
         requireRule(!playerIds.includes(g.treasuresState.humanBag.targetId), 'PLAYER_BANNED_BY_HUMAN_BAG');
       }
+      if (g.brawl?.imprisonedTargetId) {
+        requireRule(!playerIds.includes(g.brawl.imprisonedTargetId), 'PLAYER_IMPRISONED_BY_WUXINGSHAN');
+      }
       g.draftTeam = { playerIds: [...playerIds], direction };
       if (g.phase === 'discussion') {
         g.rounds.at(-1)!.team = [...playerIds];
@@ -392,6 +402,9 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
       requireRule(playerIds.length <= missionSizesFor(g.players.length, Boolean(g.brawl))[g.mission-1] && new Set(playerIds).size === playerIds.length && playerIds.every(id => g.players.some(p => p.id === id)), 'INVALID_TEAM');
       if (g.treasuresState?.humanBag?.activeBannedMission === g.mission && g.treasuresState.humanBag.targetId) {
         requireRule(!playerIds.includes(g.treasuresState.humanBag.targetId), 'PLAYER_BANNED_BY_HUMAN_BAG');
+      }
+      if (g.brawl?.imprisonedTargetId) {
+        requireRule(!playerIds.includes(g.brawl.imprisonedTargetId), 'PLAYER_IMPRISONED_BY_WUXINGSHAN');
       }
       g.rounds.push({ number: g.rounds.length+1, mission: g.mission, captainId: userId,
         team: g.players.filter(p => playerIds.includes(p.id)).map(p => p.id), direction });
@@ -468,6 +481,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         else if (successes >= 3) { g.phase = 'assassination'; g.assassinationMode = 'normal'; }
         else {
           g.mission++; rotate(g);
+          if (g.brawl) resetRoundBrawlEffects(g.brawl);
           openEarlyWindowOrPropose(g);
           if (g.settings.rejectionScope === 'mission') g.rejectionCount = 0;
         }
@@ -595,19 +609,79 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         const playerState = g.brawl.playerStates[userId];
         requireRule(playerState, 'PLAYER_NOT_FOUND');
         requireRule(!playerState.skillUsed, 'SKILL_ALREADY_USED');
-        playerState.skillUsed = true;
         const role = BRAWL_ROLE_REGISTRY[playerState.roleId];
-        if (role) {
-          let targetText = '';
-          if (payload.targetPlayerId) {
-            const targetPlayer = g.players.find(p => p.id === payload.targetPlayerId);
-            if (targetPlayer) {
-              targetText = `对【${targetPlayer.seat}号 · ${targetPlayer.nickname}】`;
-            }
-          }
-          const summaryText = `【${role.name}】祭出绝技【${role.skill.skillName}】${targetText}！效用：${role.skill.description}`;
-          appendBattleEvent(g.brawl, role.id, summaryText, role.skill.description);
+        requireRule(role, 'ROLE_NOT_FOUND');
+
+        // 太上老君金刚琢拦截红方主动法宝
+        if (playerState.camp === 'red' && g.brawl.laojunZhuoActive) {
+          g.brawl.laojunZhuoActive = false;
+          playerState.skillUsed = true;
+          const interceptSummary = `【太上老君】金刚琢凌空显圣，半空中一道金光当场将【${role.name}】祭出的【${role.skill.skillName}】套走收缴，妖法作废失效！`;
+          appendBattleEvent(g.brawl, 'taishang_laojun', interceptSummary, '金刚琢套走妖魔绝技，收缴其法宝效果使其失效。');
+          break;
         }
+
+        playerState.skillUsed = true;
+
+        let targetText = '';
+        let targetPlayer: Player | undefined;
+        if (payload.targetPlayerId) {
+          targetPlayer = g.players.find(p => p.id === payload.targetPlayerId);
+          if (targetPlayer) {
+            targetText = `对【${targetPlayer.seat}号 · ${targetPlayer.nickname}】`;
+          }
+        }
+
+        if (role.skill.skillId === 'jingang_zhuo') {
+          // 太上老君【金刚琢】
+          g.brawl.laojunZhuoActive = true;
+        } else if (role.skill.skillId === 'renzhong_jindai') {
+          // 黄眉老怪【人种金袋】
+          requireRule(targetPlayer, 'INVALID_TARGET');
+          requireRule(targetPlayer.id !== captain(g), 'CANNOT_BAN_CAPTAIN');
+          requireRule(targetPlayer.id !== userId, 'CANNOT_BAN_SELF');
+
+          if (!g.treasuresState) {
+            g.treasuresState = {};
+          }
+          g.treasuresState.humanBag = {
+            used: true,
+            targetId: targetPlayer.id,
+            activeBannedMission: g.mission,
+          };
+
+          // 强制将目标从当前挑人队伍中吸走剔除
+          if (g.draftTeam?.playerIds.includes(targetPlayer.id)) {
+            g.draftTeam.playerIds = g.draftTeam.playerIds.filter(id => id !== targetPlayer.id);
+          }
+          const currentRound = g.rounds.at(-1);
+          if (currentRound && g.phase === 'discussion' && currentRound.team.includes(targetPlayer.id)) {
+            currentRound.team = currentRound.team.filter(id => id !== targetPlayer.id);
+            g.phase = 'proposing';
+          }
+        } else if (role.skill.skillId === 'wuxingshan_zhang') {
+          // 如来佛祖【五行山掌】
+          requireRule(targetPlayer, 'INVALID_TARGET');
+          g.brawl.imprisonedTargetId = targetPlayer.id;
+
+          if (g.draftTeam?.playerIds.includes(targetPlayer.id)) {
+            g.draftTeam.playerIds = g.draftTeam.playerIds.filter(id => id !== targetPlayer.id);
+          }
+          const currentRound = g.rounds.at(-1);
+          if (currentRound && g.phase === 'discussion' && currentRound.team.includes(targetPlayer.id)) {
+            currentRound.team = currentRound.team.filter(id => id !== targetPlayer.id);
+            g.phase = 'proposing';
+          }
+        } else if (role.skill.skillId === 'jiuzhuan_xiantao') {
+          // 王母娘娘【九转仙桃】
+          g.brawl.taoshouActive = true;
+        } else if (role.skill.skillId === 'longma_fuzhong') {
+          // 白龙马【龙马负重】
+          g.brawl.extraSeatLimit = 1;
+        }
+
+        const summaryText = `【${role.name}】祭出绝技【${role.skill.skillName}】${targetText}！效用：${role.skill.description}`;
+        appendBattleEvent(g.brawl, role.id, summaryText, role.skill.description);
       }
       break;
     }

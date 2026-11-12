@@ -26,6 +26,7 @@ export function createBrawlGameState(
     imprisonedTargetId: undefined,
     taoshouActive: false,
     extraSeatLimit: 0,
+    laojunZhuoActive: false,
   };
 }
 

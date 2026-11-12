@@ -342,6 +342,7 @@ export function GamePanel({
   function handleSeatTap(playerId: string) {
     if (disabled) return;
     if (['proposing', 'discussion'].includes(effectivePhase) && captain) {
+      if (g.humanBagBannedPlayerId === playerId) return;
       setSelected(ids =>
         ids.includes(playerId)
           ? ids.filter(id => id !== playerId)
@@ -684,7 +685,7 @@ export function GamePanel({
             g.phase === 'assassination' && target === p.id;
           const canTapSeat =
             !disabled &&
-            ((['proposing', 'discussion'].includes(effectivePhase) && captain) ||
+            ((['proposing', 'discussion'].includes(effectivePhase) && captain && g.humanBagBannedPlayerId !== p.id) ||
               (g.phase === 'assassination' && self?.role === 'assassin' && p.id !== userId));
           const seatVoteChip = voteStatusMap[p.id] ?? null;
           const revealedRole = ended && g.revealedRoles ? g.revealedRoles[p.id] : undefined;

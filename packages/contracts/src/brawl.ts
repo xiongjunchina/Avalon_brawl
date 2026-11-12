@@ -111,6 +111,7 @@ export interface BrawlGameState {
   imprisonedTargetId?: string; // 如来佛祖五指山禁锢的玩家（本轮禁止出征与表决）
   taoshouActive?: boolean;     // 王母娘娘九转仙桃庇佑（本轮需至少2张失败才算失败）
   extraSeatLimit?: number;     // 白龙马负重增加的人数上限
+  laojunZhuoActive?: boolean;  // 太上老君金刚琢法宝生效中（拦截下一个妖魔主动技能）
 }
 
 export interface SelfBrawlView {

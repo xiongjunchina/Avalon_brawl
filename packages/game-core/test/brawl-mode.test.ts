@@ -353,3 +353,119 @@ test('brawl: 9-player (5B:4R), 11-player (6B:5R), and 12-player (7B:5R) custom b
   assert.equal(failuresRequiredFor(11, 5, false), 1);
   assert.deepEqual(projectGame(classic11).missionSizes, [3, 4, 5, 5, 5]);
 });
+
+test('brawl: Huangmei Laoguai [renzhong_jindai] ejects drafted team member and bans captain nomination', () => {
+  const players = Array.from({ length: 10 }, (_, i) => ({ id: `p${i + 1}`, nickname: `P${i + 1}`, seat: i + 1 }));
+  const game = createGame('brawl-huangmei', players, { ...defaultSettings, playerCount: 10, brawlModeEnabled: true }, a => a);
+
+  // 设定 p1 为队长, p2 为目标, p3 为黄眉老怪
+  const captainId = game.captainOrder[0];
+  const targetId = game.captainOrder[1];
+  const huangmeiId = game.captainOrder[2];
+
+  game.brawl!.playerStates[huangmeiId] = {
+    userId: huangmeiId,
+    seat: 3,
+    roleId: 'huangmei_laoguai',
+    camp: 'red',
+    skillUsed: false,
+  };
+
+  // 进入 proposing 阶段
+  game.phase = 'proposing';
+  // 队长草拟队伍包含 targetId 和另外一位玩家
+  const otherId = game.captainOrder[3];
+  game.draftTeam = { playerIds: [targetId, otherId], direction: 'clockwise' };
+
+  // 黄眉老怪发动绝技【人种金袋】对 targetId
+  const nextGame = transition(game, huangmeiId, {
+    type: 'brawlCommand',
+    payload: {
+      action: 'useSkill',
+      skillId: 'renzhong_jindai',
+      targetPlayerId: targetId,
+    },
+  }, [huangmeiId]);
+
+  // 1. 验证目标被立即从队伍草稿中吸走剔除
+  assert.ok(!nextGame.draftTeam?.playerIds.includes(targetId), 'Target should be ejected from draftTeam');
+  assert.deepEqual(nextGame.draftTeam?.playerIds, [otherId], 'Only other member remains');
+
+  // 2. 验证前端投影包含禁选状态
+  const view = projectGame(nextGame, captainId);
+  assert.equal(view.humanBagBannedPlayerId, targetId, 'View marks target as banned by human bag');
+
+  // 3. 验证队长若再次尝试把被吸走的目标加入队伍，会被系统规则拦截
+  assert.throws(
+    () => {
+      transition(nextGame, captainId, {
+        type: 'updateTeamDraft',
+        payload: { playerIds: [targetId, otherId], direction: 'clockwise' },
+      }, [captainId]);
+    },
+    /PLAYER_BANNED_BY_HUMAN_BAG/,
+    'Captain cannot draft the banned target',
+  );
+});
+
+test('brawl: Taishang Laojun [jingang_zhuo] intercepts Huangmei Laoguai [renzhong_jindai] skill', () => {
+  const players = Array.from({ length: 10 }, (_, i) => ({ id: `p${i + 1}`, nickname: `P${i + 1}`, seat: i + 1 }));
+  const game = createGame('brawl-laojun-intercept', players, { ...defaultSettings, playerCount: 10, brawlModeEnabled: true }, a => a);
+
+  const captainId = game.captainOrder[0];
+  const targetId = game.captainOrder[1];
+  const huangmeiId = game.captainOrder[2];
+  const laojunId = game.captainOrder[3];
+
+  game.brawl!.playerStates[laojunId] = {
+    userId: laojunId,
+    seat: 4,
+    roleId: 'taishang_laojun',
+    camp: 'blue',
+    skillUsed: false,
+  };
+  game.brawl!.playerStates[huangmeiId] = {
+    userId: huangmeiId,
+    seat: 3,
+    roleId: 'huangmei_laoguai',
+    camp: 'red',
+    skillUsed: false,
+  };
+
+  game.phase = 'proposing';
+  const otherId = game.captainOrder[4];
+  game.draftTeam = { playerIds: [targetId, otherId], direction: 'clockwise' };
+
+  // 1. 太上老君发动绝技【金刚琢】
+  let state = transition(game, laojunId, {
+    type: 'brawlCommand',
+    payload: {
+      action: 'useSkill',
+      skillId: 'jingang_zhuo',
+    },
+  }, [laojunId]);
+
+  assert.equal(state.brawl!.laojunZhuoActive, true, 'Laojun Jingang Zhuo is armed and active');
+
+  // 2. 妖魔黄眉老怪发动绝技【人种金袋】试图吸走 targetId
+  state = transition(state, huangmeiId, {
+    type: 'brawlCommand',
+    payload: {
+      action: 'useSkill',
+      skillId: 'renzhong_jindai',
+      targetPlayerId: targetId,
+    },
+  }, [huangmeiId]);
+
+  // 3. 验证金刚琢当场拦截并解除充能
+  assert.equal(state.brawl!.laojunZhuoActive, false, 'Jingang Zhuo consumed upon intercepting demon');
+
+  // 4. 验证战报中记录了金刚琢显圣套走妖法的通报
+  const lastEvent = state.brawl!.events.at(-1);
+  assert.ok(lastEvent?.summary.includes('【太上老君】金刚琢凌空显圣'), 'Battle event reports intercept');
+  assert.ok(lastEvent?.summary.includes('黄眉老怪'), 'Battle event specifies intercepted demon');
+
+  // 5. 验证黄眉老怪法宝被收缴作废，targetId 未被剔除，依然在队伍中！
+  assert.ok(state.draftTeam?.playerIds.includes(targetId), 'Target should remain in team because skill was confiscated');
+  assert.equal(state.treasuresState?.humanBag?.targetId, undefined, 'No human bag ban should be active');
+});

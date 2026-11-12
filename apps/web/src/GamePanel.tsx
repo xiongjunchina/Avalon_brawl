@@ -1244,11 +1244,17 @@ export function GamePanel({
           {self && (
             <button
               type="button"
-              className="secondary tool-pill dock-utility-btn treasure-trigger-btn"
-              disabled={!connected || !treasureEntry.canOpen}
+              className={`secondary tool-pill dock-utility-btn treasure-trigger-btn ${
+                Boolean(
+                  g.selfBrawl && (
+                    g.selfBrawl.skillAvailable && !g.selfBrawl.skillUsed && g.selfBrawl.skill.actionType !== 'passive'
+                  )
+                ) ? 'pulse-action' : ''
+              }`}
+              disabled={!connected || (!g.selfBrawl && !treasureEntry.canOpen)}
               aria-label="法宝"
-              aria-expanded={treasureOpen || privateNoticeVisible}
-              onClick={openTreasure}
+              aria-expanded={g.selfBrawl ? identityVisible : (treasureOpen || privateNoticeVisible)}
+              onClick={g.selfBrawl ? () => setIdentityOpen(v => !v) : openTreasure}
             >
               法宝
             </button>

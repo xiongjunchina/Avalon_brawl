@@ -97,6 +97,20 @@ export function BrawlPanel({
                   </div>
                 ) : null;
               })()}
+
+              {/* 菩提祖师专属私密点化天机 */}
+              {selfBrawl.putiDianhuaNotice && (
+                <div style={{ marginTop: '6px', fontSize: '12px', fontWeight: 'bold', color: '#c084fc' }}>
+                  {selfBrawl.putiDianhuaNotice}
+                </div>
+              )}
+
+              {/* 观音菩萨专属：净瓶甘露探查结果 */}
+              {selfBrawl.guanyinGanluResult && (
+                <div style={{ marginTop: '6px', fontSize: '12px', fontWeight: 'bold', color: selfBrawl.guanyinGanluResult.success ? '#4ade80' : '#f87171' }}>
+                  🪷 净瓶甘露探照天机：目标【{selfBrawl.guanyinGanluResult.targetSeat}号 · {selfBrawl.guanyinGanluResult.targetNickname}】在方才失败的任务中投出了【{selfBrawl.guanyinGanluResult.success ? '成功牌' : '失败牌'}】！
+                </div>
+              )}
             </div>
 
             {/* 技能发动交互 */}

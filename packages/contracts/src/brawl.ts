@@ -118,6 +118,16 @@ export interface BrawlGameState {
   dapengArmed?: boolean;       // 金翅大鹏雕云程万里是否已发动待命
   dapengExcludedPlayerId?: string; // 金翅大鹏雕云程万里排除的非大圣席位
   zhaoyaoResult?: { hasDemon: boolean; teamPlayerIds: string[] }; // 托塔李天王照妖镜探查私密结果
+  shawujingBaozhangArmed?: boolean; // 沙悟净降妖宝杖平票定海待命
+  zhubajieDaodaArmed?: boolean;     // 猪八戒倒打一耙反转票待命
+  tieshanShenfengArmed?: boolean;   // 铁扇公主芭蕉神风1票优势吹散待命
+  yuhuangYuzhiArmed?: boolean;      // 玉皇大帝天尊玉旨赦免1败待命
+  guanyinGanluTargetId?: string;    // 观音菩萨净瓶甘露标记目标
+  guanyinGanluResult?: { targetId: string; targetSuccess: boolean }; // 观音菩萨净瓶甘露探查结果
+  putiDianhuaNotice?: { targetBlueUserId: string; redRoleName: string }; // 菩提祖师点化揭露的红方真名
+  jinjiaoHuluTargetId?: string;     // 金角大王紫金葫芦锁定的队员
+  yutuMihunTargetId?: string;       // 玉兔精捣药迷魂锁定的队员
+  qingshiTuntianTargetId?: string;  // 青毛狮子怪大口吞天锁定的队员
 }
 
 export interface SelfBrawlView {
@@ -134,6 +144,8 @@ export interface SelfBrawlView {
   peekedRoles?: { roleId: string; roleName: string; camp: BrawlCamp }[];
   zhaoyaoResult?: boolean; // 李天王专属：当前车队是否有妖魔
   dapengExcludedPlayerId?: string; // 终局刺杀阶段排除的非孙悟空席位
+  putiDianhuaNotice?: string; // 菩提祖师专属私密点化天机
+  guanyinGanluResult?: { targetSeat: number; targetNickname: string; success: boolean }; // 观音菩萨专属私密出征探查
 }
 
 export const brawlCommandPayloadSchema = z.object({

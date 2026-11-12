@@ -240,6 +240,29 @@ export function IdentityDetails({
                   🔍 <strong>盲盒天机：</strong>侦察到本局潜伏敌手包含【{selfBrawl.peekedRoles.map(r => r.roleName).join('、')}】
                 </div>
               )}
+              {selfBrawl.zhaoyaoResult !== undefined && (
+                <div style={{ fontSize: '11px', fontWeight: 'bold', color: selfBrawl.zhaoyaoResult ? '#f87171' : '#4ade80', marginTop: '4px' }}>
+                  {selfBrawl.zhaoyaoResult ? '🪞 照妖镜探照天机：当前车队中【有妖魔潜伏！】' : '🪞 照妖镜探照天机：当前车队中【无妖魔，皆是正道仙友！】'}
+                </div>
+              )}
+              {selfBrawl.dapengExcludedPlayerId && (() => {
+                const excluded = players.find(p => p.id === selfBrawl.dapengExcludedPlayerId);
+                return excluded ? (
+                  <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#fb923c', marginTop: '4px' }}>
+                    🦅 云程万里俯瞰天机：已暗中排除【{excluded.seat}号 · {excluded.nickname}】（此人绝非孙悟空）！
+                  </div>
+                ) : null;
+              })()}
+              {selfBrawl.putiDianhuaNotice && (
+                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#c084fc', marginTop: '4px' }}>
+                  {selfBrawl.putiDianhuaNotice}
+                </div>
+              )}
+              {selfBrawl.guanyinGanluResult && (
+                <div style={{ fontSize: '11px', fontWeight: 'bold', color: selfBrawl.guanyinGanluResult.success ? '#4ade80' : '#f87171', marginTop: '4px' }}>
+                  🪷 净瓶甘露探照天机：目标【{selfBrawl.guanyinGanluResult.targetSeat}号 · {selfBrawl.guanyinGanluResult.targetNickname}】在方才失败的任务中投出了【{selfBrawl.guanyinGanluResult.success ? '成功牌' : '失败牌'}】！
+                </div>
+              )}
               <div style={{ marginTop: '4px' }}>
                 <button
                   type="button"

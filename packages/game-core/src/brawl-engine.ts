@@ -33,6 +33,16 @@ export function createBrawlGameState(
     dapengArmed: false,
     dapengExcludedPlayerId: undefined,
     zhaoyaoResult: undefined,
+    shawujingBaozhangArmed: false,
+    zhubajieDaodaArmed: false,
+    tieshanShenfengArmed: false,
+    yuhuangYuzhiArmed: false,
+    guanyinGanluTargetId: undefined,
+    guanyinGanluResult: undefined,
+    putiDianhuaNotice: undefined,
+    jinjiaoHuluTargetId: undefined,
+    yutuMihunTargetId: undefined,
+    qingshiTuntianTargetId: undefined,
   };
 }
 
@@ -102,6 +112,10 @@ export function resetRoundBrawlEffects(state: BrawlGameState): void {
   state.doubleVoteUserId = undefined;
   state.yishanTargetId = undefined;
   state.zhaoyaoResult = undefined;
+  state.guanyinGanluTargetId = undefined;
+  state.jinjiaoHuluTargetId = undefined;
+  state.yutuMihunTargetId = undefined;
+  state.qingshiTuntianTargetId = undefined;
 }
 
 /**
@@ -112,6 +126,7 @@ export function projectSelfBrawlView(
   userId: string,
   mission: number,
   peekedMap: Record<string, { roleId: string; roleName: string; camp: 'blue' | 'red' }[]> = {},
+  players: { id: string; seat: number; nickname: string }[] = [],
 ): SelfBrawlView | undefined {
   const playerState = state.playerStates[userId];
   if (!playerState) return undefined;
@@ -120,7 +135,25 @@ export function projectSelfBrawlView(
   if (!roleDef) return undefined;
 
   const isLiTianwang = playerState.roleId === 'li_tianwang';
+  const isGuanyin = playerState.roleId === 'guanyin_pusa';
   const isAssassinOrDapeng = playerState.roleId === 'hong_haier' || playerState.roleId === 'jinchi_dapeng';
+
+  let guanyinNotice: { targetSeat: number; targetNickname: string; success: boolean } | undefined;
+  if (isGuanyin && state.guanyinGanluResult) {
+    const targetPlayer = players.find(p => p.id === state.guanyinGanluResult?.targetId);
+    if (targetPlayer) {
+      guanyinNotice = {
+        targetSeat: targetPlayer.seat,
+        targetNickname: targetPlayer.nickname,
+        success: state.guanyinGanluResult.targetSuccess,
+      };
+    }
+  }
+
+  let dianhuaNoticeText: string | undefined;
+  if (state.putiDianhuaNotice?.targetBlueUserId === userId) {
+    dianhuaNoticeText = `🔮 菩提祖师道法点化真传：天机暗授，场上潜伏群妖之一的真名为【${state.putiDianhuaNotice.redRoleName}】！`;
+  }
 
   return {
     roleId: playerState.roleId,
@@ -136,5 +169,7 @@ export function projectSelfBrawlView(
     peekedRoles: peekedMap[playerState.roleId]?.length ? peekedMap[playerState.roleId] : undefined,
     ...(isLiTianwang && state.zhaoyaoResult ? { zhaoyaoResult: state.zhaoyaoResult.hasDemon } : {}),
     ...(isAssassinOrDapeng && state.dapengExcludedPlayerId ? { dapengExcludedPlayerId: state.dapengExcludedPlayerId } : {}),
+    ...(guanyinNotice ? { guanyinGanluResult: guanyinNotice } : {}),
+    ...(dianhuaNoticeText ? { putiDianhuaNotice: dianhuaNoticeText } : {}),
   };
 }

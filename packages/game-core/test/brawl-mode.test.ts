@@ -734,3 +734,162 @@ test('brawl: Jinchi Dapeng [yuncheng_wanli] excludes non-Wukong seat for Hong Ha
   const wukongView = projectGame(nextGame, wukongId);
   assert.equal(wukongView.selfBrawl?.dapengExcludedPlayerId, undefined);
 });
+
+test('brawl: Sha Wujing [xiangyao_baozhang] forces tie vote to pass', () => {
+  const players = Array.from({ length: 6 }, (_, i) => ({
+    id: `p${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+  const game = createGame('brawl-sha', players, { ...defaultSettings, playerCount: 6, brawlModeEnabled: true }, a => a);
+  const shaId = 'p1';
+  game.captainOrder = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'];
+  game.brawl!.playerStates[shaId] = {
+    userId: shaId,
+    seat: 1,
+    roleId: 'sha_wujing',
+    camp: 'blue',
+    skillUsed: false,
+  };
+
+  // 沙悟净发动法宝
+  let next = transition(game, shaId, {
+    type: 'brawlCommand',
+    payload: { action: 'useSkill', skillId: 'xiangyao_baozhang' },
+  }, [shaId]);
+  assert.equal(next.brawl?.shawujingBaozhangArmed, true);
+
+  // 沙僧提议挑人进入表决
+  next.phase = 'proposing';
+  next = transition(next, shaId, {
+    type: 'proposeTeam',
+    payload: { playerIds: ['p1', 'p2'], direction: 'clockwise' },
+  }, [shaId]);
+  next = transition(next, shaId, { type: 'startTeamVote', payload: {} }, [shaId]);
+
+  // 6 人局：3 赞成 3 反对（平票）
+  next = transition(next, 'p1', { type: 'teamVote', payload: { approve: true } }, ['p1']);
+  next = transition(next, 'p2', { type: 'teamVote', payload: { approve: true } }, ['p2']);
+  next = transition(next, 'p3', { type: 'teamVote', payload: { approve: true } }, ['p3']);
+  next = transition(next, 'p4', { type: 'teamVote', payload: { approve: false } }, ['p4']);
+  next = transition(next, 'p5', { type: 'teamVote', payload: { approve: false } }, ['p5']);
+  next = transition(next, 'p6', { type: 'teamVote', payload: { approve: false } }, ['p6']);
+
+  // 验证在宝杖加持下，平票判定通过并进入出征阶段
+  assert.equal(next.rounds.at(-1)?.vote?.passed, true);
+  assert.equal(next.phase, 'mission');
+});
+
+test('brawl: Zhu Bajie [daoda_yipa] reverses rejection ballot to approval and passes', () => {
+  const players = Array.from({ length: 6 }, (_, i) => ({
+    id: `p${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+  const game = createGame('brawl-zhu', players, { ...defaultSettings, playerCount: 6, brawlModeEnabled: true }, a => a);
+  const zhuId = 'p2';
+  game.brawl!.playerStates[zhuId] = {
+    userId: zhuId,
+    seat: 2,
+    roleId: 'zhu_bajie',
+    camp: 'blue',
+    skillUsed: false,
+  };
+
+  // 猪八戒发动法宝【倒打一耙】
+  let next = transition(game, zhuId, {
+    type: 'brawlCommand',
+    payload: { action: 'useSkill', skillId: 'daoda_yipa' },
+  }, [zhuId]);
+  assert.equal(next.brawl?.zhubajieDaodaArmed, true);
+
+  // 正常提议表决
+  next.phase = 'discussion';
+  next.rounds.push({ number: 1, mission: 1, captainId: 'p1', team: ['p1', 'p2'], direction: 'clockwise' });
+  next.phase = 'team_vote';
+
+  // 原本投票：3 赞成 3 反对 -> 反转 1 张变为 4 赞成 2 反对 -> 逆风通过！
+  next = transition(next, 'p1', { type: 'teamVote', payload: { approve: true } }, ['p1']);
+  next = transition(next, 'p2', { type: 'teamVote', payload: { approve: true } }, ['p2']);
+  next = transition(next, 'p3', { type: 'teamVote', payload: { approve: true } }, ['p3']);
+  next = transition(next, 'p4', { type: 'teamVote', payload: { approve: false } }, ['p4']);
+  next = transition(next, 'p5', { type: 'teamVote', payload: { approve: false } }, ['p5']);
+  next = transition(next, 'p6', { type: 'teamVote', payload: { approve: false } }, ['p6']);
+
+  assert.equal(next.rounds.at(-1)?.vote?.passed, true, 'Reversed vote should pass');
+  assert.equal(next.phase, 'mission');
+});
+
+test('brawl: Bai Longma [longma_fuzhong] allows +1 extra team member and proposes successfully', () => {
+  const players = Array.from({ length: 6 }, (_, i) => ({
+    id: `p${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+  const game = createGame('brawl-longma', players, { ...defaultSettings, playerCount: 6, brawlModeEnabled: true }, a => a);
+  const longmaId = 'p3';
+  game.brawl!.playerStates[longmaId] = {
+    userId: longmaId,
+    seat: 3,
+    roleId: 'bai_longma',
+    camp: 'blue',
+    skillUsed: false,
+  };
+
+  // 白龙马发动负重
+  let next = transition(game, longmaId, {
+    type: 'brawlCommand',
+    payload: { action: 'useSkill', skillId: 'longma_fuzhong' },
+  }, [longmaId]);
+  assert.equal(next.brawl?.extraSeatLimit, 1);
+
+  // 6人局第1难原本限制 2 人，现在负重可带 3 人
+  next.phase = 'proposing';
+  next = transition(next, 'p1', {
+    type: 'proposeTeam',
+    payload: { playerIds: ['p1', 'p2', 'p3'], direction: 'clockwise' },
+  }, ['p1']);
+
+  assert.equal(next.rounds.at(-1)?.team.length, 3);
+  // 能够正常进入表决
+  next = transition(next, 'p1', { type: 'startTeamVote', payload: {} }, ['p1']);
+  assert.equal(next.phase, 'team_vote');
+});
+
+test('brawl: Tieshan [bajiao_shenfeng] blows away 1-vote margin passed proposal', () => {
+  const players = Array.from({ length: 5 }, (_, i) => ({
+    id: `p${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+  const game = createGame('brawl-tieshan', players, { ...defaultSettings, playerCount: 5, brawlModeEnabled: true }, a => a);
+  const tieshanId = 'p4';
+  game.brawl!.playerStates[tieshanId] = {
+    userId: tieshanId,
+    seat: 4,
+    roleId: 'tieshan_gongzhu',
+    camp: 'red',
+    skillUsed: false,
+  };
+
+  // 铁扇公主发动芭蕉神风
+  let next = transition(game, tieshanId, {
+    type: 'brawlCommand',
+    payload: { action: 'useSkill', skillId: 'bajiao_shenfeng' },
+  }, [tieshanId]);
+  assert.equal(next.brawl?.tieshanShenfengArmed, true);
+
+  next.phase = 'discussion';
+  next.rounds.push({ number: 1, mission: 1, captainId: 'p1', team: ['p1', 'p2'], direction: 'clockwise' });
+  next.phase = 'team_vote';
+
+  // 5人局：3 赞成 2 反对（微弱 1 票优势通过）
+  next = transition(next, 'p1', { type: 'teamVote', payload: { approve: true } }, ['p1']);
+  next = transition(next, 'p2', { type: 'teamVote', payload: { approve: true } }, ['p2']);
+  next = transition(next, 'p3', { type: 'teamVote', payload: { approve: true } }, ['p3']);
+  next = transition(next, 'p4', { type: 'teamVote', payload: { approve: false } }, ['p4']);
+  next = transition(next, 'p5', { type: 'teamVote', payload: { approve: false } }, ['p5']);
+
+  // 应当被芭蕉神风吹散，判定不通过
+  assert.equal(next.rounds.at(-1)?.vote?.passed, false);
+});

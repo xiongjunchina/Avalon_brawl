@@ -30,6 +30,7 @@ export function createBrawlGameState(
     zhizhuBannedTargetId: undefined,
     doubleVoteUserId: undefined,
     yishanTargetId: undefined,
+    dapengArmed: false,
     dapengExcludedPlayerId: undefined,
     zhaoyaoResult: undefined,
   };

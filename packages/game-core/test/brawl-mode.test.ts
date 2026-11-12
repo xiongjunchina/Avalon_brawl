@@ -694,19 +694,32 @@ test('brawl: Jinchi Dapeng [yuncheng_wanli] excludes non-Wukong seat for Hong Ha
     skillUsed: false,
   };
 
-  game.phase = 'assassination';
-
-  // 大鹏雕发动【云程万里】
-  const nextGame = transition(game, dapengId, {
+  // 1. 验证在 proposing 阶段大鹏提前发动绝技蓄力，不会抛出 WRONG_PHASE 错误
+  game.phase = 'proposing';
+  let nextGame = transition(game, dapengId, {
     type: 'brawlCommand',
     payload: {
       action: 'useSkill',
       skillId: 'yuncheng_wanli',
     },
   }, [dapengId]);
+  assert.equal(nextGame.brawl?.dapengArmed, true, 'Dapeng skill armed successfully before assassination');
+
+  // 2. 模拟蓝方完成 3 胜进入刺杀阶段
+  nextGame.rounds.push(
+    { number: 1, mission: 1, captainId: players[0].id, team: [players[0].id, players[1].id], direction: 'clockwise', result: { successes: 2, failures: 0, passed: true } },
+    { number: 2, mission: 2, captainId: players[1].id, team: [players[0].id, players[1].id, players[2].id], direction: 'clockwise', result: { successes: 3, failures: 0, passed: true } },
+    { number: 3, mission: 3, captainId: players[2].id, team: [players[0].id, players[1].id, players[2].id], direction: 'clockwise', result: { successes: 3, failures: 0, passed: true } },
+  );
+  nextGame.phase = 'mission';
+  nextGame.rounds.push({ number: 4, mission: 3, captainId: players[2].id, team: [players[0].id, players[1].id], direction: 'clockwise' });
+  nextGame = transition(nextGame, players[0].id, { type: 'missionVote', payload: { success: true } }, [players[0].id]);
+  nextGame = transition(nextGame, players[1].id, { type: 'missionVote', payload: { success: true } }, [players[1].id]);
+
+  assert.equal(nextGame.phase, 'assassination');
 
   const excludedId = nextGame.brawl?.dapengExcludedPlayerId;
-  assert.ok(excludedId, 'Excluded target should be assigned');
+  assert.ok(excludedId, 'Excluded target should be assigned upon entering assassination');
   assert.notEqual(excludedId, wukongId, 'Excluded target must NOT be Sun Wukong');
 
   // 验证红孩儿端收到私密排除标记

@@ -345,6 +345,17 @@ function canUseEarlyAssassination(g: GameState): boolean {
     !['dealing', 'role_reveal', 'assassination'].includes(g.phase)
   );
 }
+function triggerDapengExclude(g: GameState) {
+  if (!g.brawl || g.brawl.dapengExcludedPlayerId) return;
+  const candidateBluePlayers = g.players.filter(p => {
+    const pState = g.brawl?.playerStates[p.id];
+    return pState?.camp === 'blue' && pState?.roleId !== 'sun_wukong';
+  });
+  if (candidateBluePlayers.length > 0) {
+    const excluded = candidateBluePlayers[Math.floor(Math.random() * candidateBluePlayers.length)];
+    g.brawl.dapengExcludedPlayerId = excluded.id;
+  }
+}
 function openEarlyWindowOrPropose(g: GameState) {
   g.phase = 'proposing';
 }
@@ -509,7 +520,11 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         g.missionVotes = {};
         const completed = g.rounds.filter(r => r.result), successes = completed.filter(r => r.result!.passed).length;
         if (completed.length-successes >= 3) finish(g, { winner: 'red', reason: 'three_failures' });
-        else if (successes >= 3) { g.phase = 'assassination'; g.assassinationMode = 'normal'; }
+        else if (successes >= 3) {
+          g.phase = 'assassination';
+          g.assassinationMode = 'normal';
+          if (g.brawl?.dapengArmed) triggerDapengExclude(g);
+        }
         else {
           g.mission++; rotate(g);
           if (g.brawl) resetRoundBrawlEffects(g.brawl);
@@ -531,6 +546,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         g.teamVotes = {};
         g.missionVotes = {};
         g.phase = 'assassination';
+        if (g.brawl?.dapengArmed) triggerDapengExclude(g);
       } else if (g.phase === 'early_window') {
         g.phase = 'proposing';
       }
@@ -738,15 +754,10 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           const hasDemon = currentTeam.some(id => g.brawl?.playerStates[id]?.camp === 'red');
           g.brawl.zhaoyaoResult = { hasDemon, teamPlayerIds: [...currentTeam] };
         } else if (role.skill.skillId === 'yuncheng_wanli') {
-          // 金翅大鹏雕【云程万里】
-          requireRule(g.phase === 'assassination', 'WRONG_PHASE');
-          const candidateBluePlayers = g.players.filter(p => {
-            const pState = g.brawl?.playerStates[p.id];
-            return pState?.camp === 'blue' && pState?.roleId !== 'sun_wukong';
-          });
-          if (candidateBluePlayers.length > 0) {
-            const excluded = candidateBluePlayers[Math.floor(Math.random() * candidateBluePlayers.length)];
-            g.brawl.dapengExcludedPlayerId = excluded.id;
+          // 金翅大鹏雕【云程万里】：任意时刻均可提前蓄力，刺杀阶段自动排除非大圣目标
+          g.brawl.dapengArmed = true;
+          if (g.phase === 'assassination') {
+            triggerDapengExclude(g);
           }
         } else if (role.skill.skillId === 'santou_liubi' || role.skill.skillId === 'pingtian_handi') {
           // 哪吒三太子【三头六臂】/ 牛魔王【平天撼地】

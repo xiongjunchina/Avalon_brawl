@@ -19,6 +19,8 @@ export function IdentityDetails({
   send,
   treasuresEnabled = false,
   userId,
+  onChooseBrawlCamp,
+  onUseBrawlSkill,
 }: {
   self: NonNullable<GameView['self']>;
   players: Player[];
@@ -27,10 +29,30 @@ export function IdentityDetails({
   send?: (action: Pick<Command, 'type' | 'payload'>) => void;
   treasuresEnabled?: boolean;
   userId?: string;
+  onChooseBrawlCamp?: (camp: 'blue' | 'red') => void;
+  onUseBrawlSkill?: (skillId: string, targetId?: string) => void;
 }) {
   const [viewingArt, setViewingArt] = useState(false);
   const [viewingBrawlArt, setViewingBrawlArt] = useState(false);
   const [treasureOpen, setTreasureOpen] = useState(false);
+  const [brawlTarget, setBrawlTarget] = useState<string>('');
+  const selfBrawl = game?.selfBrawl;
+
+  const handleChooseCamp = (camp: 'blue' | 'red') => {
+    if (onChooseBrawlCamp) {
+      onChooseBrawlCamp(camp);
+    } else {
+      send?.({ type: 'brawlCommand', payload: { action: 'chooseCamp', camp } });
+    }
+  };
+
+  const handleUseSkill = (skillId: string, targetId?: string) => {
+    if (onUseBrawlSkill) {
+      onUseBrawlSkill(skillId, targetId);
+    } else {
+      send?.({ type: 'brawlCommand', payload: { action: 'useSkill', skillId, targetPlayerId: targetId } });
+    }
+  };
   const galleryItem = getRoleGalleryItem(self.role, self.loyalGuardian, self.femaleDemon);
   const brawlGalleryItem = game?.selfBrawl && game.selfBrawl.artPrefix ? {
     id: game.selfBrawl.roleId,
@@ -126,95 +148,240 @@ export function IdentityDetails({
 
   return (
     <>
-      {game?.selfBrawl && (
+      {selfBrawl && (
         <section
           className="brawl-identity-banner"
           style={{
             background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%)',
-            border: `1.5px solid ${game.selfBrawl.camp === 'blue' ? '#3b82f6' : game.selfBrawl.camp === 'red' ? '#ef4444' : '#f59e0b'}`,
+            border: `1.5px solid ${selfBrawl.camp === 'blue' ? '#3b82f6' : selfBrawl.camp === 'red' ? '#ef4444' : '#f59e0b'}`,
             borderRadius: '12px',
-            padding: '12px 14px',
-            marginBottom: '12px',
+            padding: '10px 12px',
+            marginBottom: '10px',
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
             display: 'flex',
-            gap: '12px',
-            alignItems: 'flex-start',
+            flexDirection: 'column',
+            gap: '8px',
+            width: '100%',
+            boxSizing: 'border-box',
           }}
         >
-          {game.selfBrawl.artPrefix && (
-            <button
-              type="button"
-              onClick={() => setViewingBrawlArt(true)}
-              title="点击查看大乱斗专属法相"
-              style={{
-                flexShrink: 0,
-                padding: 0,
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                borderRadius: '8px',
-                overflow: 'hidden',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
-                position: 'relative',
-              }}
-            >
-              <img
-                src={assetUrl(`/art/roles/${game.selfBrawl.artPrefix}-160.webp?v=brawl-art-v2`)}
-                alt={game.selfBrawl.roleName}
-                width={56}
-                height={56}
+          {/* 上部：真身法相头像与基础描述 */}
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', width: '100%' }}>
+            {selfBrawl.artPrefix && (
+              <button
+                type="button"
+                className="brawl-identity-avatar-btn"
+                onClick={() => setViewingBrawlArt(true)}
+                title="点击放大查看专属法相"
                 style={{
-                  display: 'block',
+                  width: '56px',
+                  minWidth: '56px',
+                  maxWidth: '56px',
+                  height: '56px',
+                  flex: '0 0 56px',
+                  flexShrink: 0,
+                  padding: 0,
+                  margin: 0,
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
                   borderRadius: '8px',
-                  objectFit: 'cover',
-                  border: `2px solid ${game.selfBrawl.camp === 'blue' ? '#60a5fa' : game.selfBrawl.camp === 'red' ? '#f87171' : '#fbbf24'}`,
+                  overflow: 'hidden',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                  position: 'relative',
+                  display: 'block',
                 }}
-              />
-              <span style={{
-                position: 'absolute',
-                bottom: 2,
-                right: 2,
-                fontSize: '9px',
-                background: 'rgba(0,0,0,0.7)',
-                color: '#fef08a',
-                padding: '1px 3px',
-                borderRadius: '3px',
-                lineHeight: 1,
-              }}>
-                🔍
-              </span>
-            </button>
-          )}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{
-                fontWeight: 700,
-                fontSize: '15px',
-                color: game.selfBrawl.camp === 'blue' ? '#60a5fa' : game.selfBrawl.camp === 'red' ? '#f87171' : '#fbbf24',
-              }}>
-                【{game.selfBrawl.roleName}】· {game.selfBrawl.roleTitle}
-              </span>
-              <span style={{
-                fontSize: '11px',
-                padding: '2px 8px',
-                borderRadius: '999px',
-                background: game.selfBrawl.camp === 'blue' ? 'rgba(59, 130, 246, 0.2)' : game.selfBrawl.camp === 'red' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                color: game.selfBrawl.camp === 'blue' ? '#93c5fd' : game.selfBrawl.camp === 'red' ? '#fca5a5' : '#fde68a',
-                flexShrink: 0,
-              }}>
-                {game.selfBrawl.camp === 'blue' ? '仙佛阵营' : game.selfBrawl.camp === 'red' ? '妖魔阵营' : '初始中立'}
-              </span>
-            </div>
-            <div style={{ fontSize: '12px', color: '#e2e8f0', marginTop: '4px', lineHeight: 1.5 }}>
-              <strong style={{ color: '#fbbf24' }}>绝技 · {game.selfBrawl.skill.skillName}：</strong>
-              <span style={{ color: '#cbd5e1' }}>{game.selfBrawl.skill.description}</span>
-            </div>
-            {game.selfBrawl.peekedRoles && game.selfBrawl.peekedRoles.length > 0 && (
-              <div style={{ fontSize: '11px', color: '#fbbf24', marginTop: '6px', borderTop: '1px dashed rgba(245, 158, 11, 0.3)', paddingTop: '4px' }}>
-                🔍 <strong>盲盒天机：</strong>侦察到本局潜伏敌手包含【{game.selfBrawl.peekedRoles.map(r => r.roleName).join('、')}】
-              </div>
+              >
+                <img
+                  src={assetUrl(`/art/roles/${selfBrawl.artPrefix}-160.webp?v=brawl-art-v2`)}
+                  alt={selfBrawl.roleName}
+                  width={56}
+                  height={56}
+                  style={{
+                    display: 'block',
+                    width: '56px',
+                    height: '56px',
+                    borderRadius: '8px',
+                    objectFit: 'cover',
+                    border: `2px solid ${selfBrawl.camp === 'blue' ? '#60a5fa' : selfBrawl.camp === 'red' ? '#f87171' : '#fbbf24'}`,
+                  }}
+                />
+                <span style={{
+                  position: 'absolute',
+                  bottom: 2,
+                  right: 2,
+                  fontSize: '9px',
+                  background: 'rgba(0,0,0,0.7)',
+                  color: '#fef08a',
+                  padding: '1px 3px',
+                  borderRadius: '3px',
+                  lineHeight: 1,
+                }}>
+                  🔍
+                </span>
+              </button>
             )}
+            <div style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px', marginBottom: '4px' }}>
+                <span style={{
+                  fontWeight: 700,
+                  fontSize: '15px',
+                  color: selfBrawl.camp === 'blue' ? '#60a5fa' : selfBrawl.camp === 'red' ? '#f87171' : '#fbbf24',
+                }}>
+                  【{selfBrawl.roleName}】· {selfBrawl.roleTitle}
+                </span>
+                <span style={{
+                  fontSize: '11px',
+                  padding: '2px 8px',
+                  borderRadius: '999px',
+                  background: selfBrawl.camp === 'blue' ? 'rgba(59, 130, 246, 0.2)' : selfBrawl.camp === 'red' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                  color: selfBrawl.camp === 'blue' ? '#93c5fd' : selfBrawl.camp === 'red' ? '#fca5a5' : '#fde68a',
+                  flexShrink: 0,
+                }}>
+                  {selfBrawl.camp === 'blue' ? '仙佛阵营' : selfBrawl.camp === 'red' ? '妖魔阵营' : '初始中立'}
+                </span>
+              </div>
+              <div style={{ fontSize: '12px', color: '#e2e8f0', marginTop: '2px', lineHeight: 1.45 }}>
+                <strong style={{ color: '#fbbf24' }}>绝技 · {selfBrawl.skill.skillName}：</strong>
+                <span style={{ color: '#cbd5e1' }}>{selfBrawl.skill.description}</span>
+              </div>
+              {selfBrawl.peekedRoles && selfBrawl.peekedRoles.length > 0 && (
+                <div style={{ fontSize: '11px', color: '#fbbf24', marginTop: '4px', borderTop: '1px dashed rgba(245, 158, 11, 0.3)', paddingTop: '3px' }}>
+                  🔍 <strong>盲盒天机：</strong>侦察到本局潜伏敌手包含【{selfBrawl.peekedRoles.map(r => r.roleName).join('、')}】
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* 黑熊精非阻塞异步天命抉择（纯私下决定，全场不通报） */}
+          {selfBrawl.roleId === 'heixiong_jing' && selfBrawl.neutralDecisionPending && (
+            <div style={{
+              background: 'rgba(15, 23, 42, 0.85)',
+              border: '1.5px solid #f59e0b',
+              borderRadius: '8px',
+              padding: '8px 10px',
+              marginTop: '2px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontSize: '12px', color: '#fbbf24', fontWeight: 700 }}>
+                  🐻 天命抉择（全场暗中行事，绝不通报）
+                </span>
+                <span style={{ fontSize: '11px', color: '#94a3b8' }}>第2轮表决前随时可决</span>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => handleChooseCamp('blue')}
+                  style={{
+                    flex: 1,
+                    background: 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '8px 4px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    margin: 0,
+                  }}
+                >
+                  🌟 皈依佛门 (蓝方)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleChooseCamp('red')}
+                  style={{
+                    flex: 1,
+                    background: 'linear-gradient(180deg, #ef4444 0%, #b91c1c 100%)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '8px 4px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    margin: 0,
+                  }}
+                >
+                  🔥 啸聚为妖 (红方)
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 技能发动交互区 */}
+          {selfBrawl.skillAvailable && !selfBrawl.skillUsed && selfBrawl.skill.actionType !== 'passive' && (
+            <div style={{
+              background: 'rgba(15, 23, 42, 0.8)',
+              border: '1px solid rgba(245, 158, 11, 0.5)',
+              borderRadius: '8px',
+              padding: '8px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '8px',
+              marginTop: '2px',
+            }}>
+              <span style={{ fontSize: '12px', color: '#fde68a', fontWeight: 700 }}>
+                ✨ 绝技蓄势待发
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {selfBrawl.skill.actionType === 'target_player' && (
+                  <select
+                    value={brawlTarget}
+                    onChange={e => setBrawlTarget(e.target.value)}
+                    style={{
+                      background: '#0f172a',
+                      color: '#fff',
+                      border: '1px solid #475569',
+                      borderRadius: '6px',
+                      padding: '4px 6px',
+                      fontSize: '12px',
+                    }}
+                  >
+                    <option value="">选目标</option>
+                    {players.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.seat}号 {p.nickname}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <button
+                  type="button"
+                  disabled={disabled || (selfBrawl.skill.actionType === 'target_player' && !brawlTarget)}
+                  onClick={() => handleUseSkill(selfBrawl.skill.skillId, brawlTarget || undefined)}
+                  style={{
+                    background: '#f59e0b',
+                    color: '#000',
+                    fontWeight: 'bold',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    margin: 0,
+                  }}
+                >
+                  发动绝技
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 技能已消耗状态提示 */}
+          {selfBrawl.skillUsed && (
+            <div style={{
+              fontSize: '11px',
+              color: '#94a3b8',
+              background: 'rgba(15, 23, 42, 0.5)',
+              padding: '4px 8px',
+              borderRadius: '6px',
+              textAlign: 'right',
+            }}>
+              ✦ 本命绝技已施展（已消耗）
+            </div>
+          )}
         </section>
       )}
       <IdentityCard

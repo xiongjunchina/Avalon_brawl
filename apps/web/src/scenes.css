@@ -7737,3 +7737,64 @@ button.seat-mic-badge:active {
 }
 .mission-overview-heading { background: rgba(40, 14, 13, 0.88); border-radius: 10px; padding: 6px 10px; }
 .is-live-table .game-play-priority .dock-inline-controls .btn-cloud-flourish { display: none !important; }
+
+/* === 大乱斗法相底牌弹窗防全局按钮污染与自适应紧凑样式 === */
+.brawl-identity-banner {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+.brawl-identity-banner button.brawl-identity-avatar-btn {
+  width: 56px !important;
+  min-width: 56px !important;
+  max-width: 56px !important;
+  height: 56px !important;
+  flex: 0 0 56px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  display: block !important;
+}
+.brawl-identity-banner button:not(.brawl-identity-avatar-btn) {
+  min-height: 28px !important;
+  margin-top: 0 !important;
+  box-shadow: none !important;
+}
+
+/* === 线下对局防偷窥隐私提示胶囊 === */
+.brawl-privacy-notice-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  margin: 4px 0 8px 0;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  border-radius: 20px;
+  color: #fde68a;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+  animation: brawl-pill-pulse 2.2s infinite ease-in-out;
+  user-select: none;
+}
+.brawl-privacy-notice-pill:hover {
+  background: linear-gradient(135deg, rgba(40, 53, 76, 0.95) 0%, rgba(20, 30, 52, 1) 100%);
+  border-color: #fbbf24;
+}
+@keyframes brawl-pill-pulse {
+  0%, 100% {
+    border-color: rgba(245, 158, 11, 0.4);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    border-color: rgba(245, 158, 11, 0.9);
+    box-shadow: 0 2px 14px rgba(245, 158, 11, 0.35);
+  }
+}
+

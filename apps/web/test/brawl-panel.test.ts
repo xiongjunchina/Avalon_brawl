@@ -152,3 +152,83 @@ test('GuideRoles(mode="brawl"): renders all 31 all-star Journey to the West char
   assert.match(panelHtml, /经典原版（真假猴王）/);
   assert.match(panelHtml, /如来佛祖/);
 });
+
+test('BrawlPanel: privacyMode hides sensitive role/camp/skills from public board and only shows neutral notice', () => {
+  const selfBrawl: SelfBrawlView = {
+    roleId: 'hong_hai_er',
+    roleName: '红孩儿',
+    roleTitle: '圣婴大王',
+    camp: 'red',
+    skill: {
+      skillId: 'sanmei_zhenhuo',
+      skillName: '三昧真火',
+      triggerPhase: 'assassination',
+      actionType: 'single_button',
+      maxUses: 1,
+      description: '开局见红方同伙；任务3胜后负责辨识并一击刺杀孙悟空。',
+    },
+    skillAvailable: true,
+    skillUsed: false,
+  };
+
+  const html = renderToStaticMarkup(createElement(BrawlPanel, { selfBrawl, privacyMode: true }));
+
+  // In privacy mode on public board, sensitive identity must be completely absent!
+  assert.doesNotMatch(html, /【红孩儿】/);
+  assert.doesNotMatch(html, /三昧真火/);
+  assert.doesNotMatch(html, /圣婴大王/);
+  assert.doesNotMatch(html, /发动法宝/);
+  // It should only show a neutral privacy notice pill
+  assert.match(html, /brawl-privacy-notice-pill/);
+  assert.match(html, /你有神魔法宝待决，点击「真身」私下查看与发动/);
+});
+
+test('IdentityDetails: renders compact brawl identity card with protected avatar button and skill trigger', async () => {
+  const { IdentityDetails } = await import('../src/IdentityDetails.js');
+  const selfBrawl: SelfBrawlView = {
+    roleId: 'hong_hai_er',
+    roleName: '红孩儿',
+    roleTitle: '圣婴大王',
+    camp: 'red',
+    artPrefix: 'assassin',
+    skill: {
+      skillId: 'sanmei_zhenhuo',
+      skillName: '三昧真火',
+      triggerPhase: 'assassination',
+      actionType: 'single_button',
+      maxUses: 1,
+      description: '开局见红方同伙；任务3胜后负责辨识并一击刺杀孙悟空。',
+    },
+    skillAvailable: true,
+    skillUsed: false,
+  };
+
+  const fakeSelf: any = {
+    role: 'assassin',
+    team: 'red',
+    evilIds: ['p2'],
+    merlinCandidates: [],
+    confirmed: true,
+    teamVoted: false,
+    missionVoted: false,
+    canDecideEarly: false,
+  };
+
+  const fakeGame: any = {
+    selfBrawl,
+    players: [{ id: 'p1', seat: 1, nickname: '老X' }, { id: 'p2', seat: 2, nickname: '豪哥' }],
+  };
+
+  const html = renderToStaticMarkup(createElement(IdentityDetails, {
+    self: fakeSelf,
+    players: fakeGame.players,
+    game: fakeGame,
+  }));
+
+  // Verifies banner, protected button class, role information and skill action inside private sheet
+  assert.match(html, /brawl-identity-banner/);
+  assert.match(html, /brawl-identity-avatar-btn/);
+  assert.match(html, /【红孩儿】· 圣婴大王/);
+  assert.match(html, /绝技 · 三昧真火/);
+  assert.match(html, /发动绝技/);
+});

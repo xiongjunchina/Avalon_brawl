@@ -1150,6 +1150,8 @@ export function GamePanel({
             selfBrawl={g.selfBrawl}
             events={g.brawl?.events}
             players={g.players}
+            privacyMode={true}
+            onOpenIdentity={() => setIdentityOpen(true)}
             onChooseCamp={camp => send({ type: 'brawlCommand', payload: { action: 'chooseCamp', camp } })}
             onUseSkill={(skillId, targetId) => send({ type: 'brawlCommand', payload: { action: 'useSkill', skillId, targetPlayerId: targetId } })}
           />
@@ -1158,7 +1160,14 @@ export function GamePanel({
           {!ended && self && (
             <button
               type="button"
-              className="secondary tool-pill dock-utility-btn identity-trigger-btn"
+              className={`secondary tool-pill dock-utility-btn identity-trigger-btn ${
+                Boolean(
+                  g.selfBrawl && (
+                    (g.selfBrawl.roleId === 'heixiong_jing' && g.selfBrawl.neutralDecisionPending) ||
+                    (g.selfBrawl.skillAvailable && !g.selfBrawl.skillUsed && g.selfBrawl.skill.actionType !== 'passive')
+                  )
+                ) ? 'pulse-action' : ''
+              }`}
               disabled={!connected}
               aria-expanded={identityVisible}
               aria-label="私下查看我的身份"
@@ -1315,6 +1324,8 @@ export function GamePanel({
                 send={sendTreasure}
                 userId={userId}
                 treasuresEnabled={room.settings.treasuresEnabled}
+                onChooseBrawlCamp={camp => send({ type: 'brawlCommand', payload: { action: 'chooseCamp', camp } })}
+                onUseBrawlSkill={(skillId, targetId) => send({ type: 'brawlCommand', payload: { action: 'useSkill', skillId, targetPlayerId: targetId } })}
               />
             <PrivateExtensions
               game={g}

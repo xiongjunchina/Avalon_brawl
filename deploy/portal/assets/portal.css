@@ -23,20 +23,29 @@ a:focus-visible { outline: 3px solid #fff1ac; outline-offset: 4px; }
 .game-art { position: absolute; inset: 0; z-index: -2; pointer-events: none; }
 .game-art img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center top; }
 .game-frame { position: absolute; inset: 4px; border: 1px solid #efcf8acc; border-radius: 4px; z-index: 1; pointer-events: none; }
-.game[data-game="avalon"] { text-shadow: 0 1px 2px #fff7e0, 0 0 4px #fff7e0; }
-.game[data-game="avalon"]::before, .game[data-game="avalon"]::after {
+.game[data-game="avalon"], .game[data-game="avalon_vs"] { text-shadow: 0 1px 2px #fff8e5, 0 0 5px #fff3cb; }
+.game[data-game="avalon"]::before, .game[data-game="avalon"]::after,
+.game[data-game="avalon_vs"]::before, .game[data-game="avalon_vs"]::after {
   content: ""; position: absolute; z-index: 2; top: 0; bottom: 0; width: 7px;
   background: linear-gradient(90deg,#6d3910,#e8b958 38%,#fff0a5 55%,#a86b20 85%); border: 1px solid #e7bc66; border-block: 5px double #e7bc66; border-radius: 5px; pointer-events: none; box-shadow: 1px 0 3px #3c1c0c80;
 }
-.game[data-game="avalon"]::before { left: 0; } .game[data-game="avalon"]::after { right: 0; }
+.game[data-game="avalon"]::before, .game[data-game="avalon_vs"]::before { left: 0; }
+.game[data-game="avalon"]::after, .game[data-game="avalon_vs"]::after { right: 0; }
 .game[data-game="mafia"] { color: #fff6e5; background: #102329; text-shadow: 0 1px 3px #000, 0 0 5px #000c; }
 .game[data-game="mafia"] .game-frame { border-color: #d5b778cc; border-radius: 1px; }
 .game[data-game="mafia"] .game-frame::before, .game[data-game="mafia"] .game-frame::after { content: ""; position: absolute; top: -4px; width: 7px; height: 25px; border: 2px solid #d4ba82; border-radius: 5px; transform: rotate(14deg); box-shadow: 1px 1px 2px #0008; }
 .game[data-game="mafia"] .game-frame::before { left: 8px; } .game[data-game="mafia"] .game-frame::after { right: 8px; }
 .content { position: absolute; z-index: 0; inset: auto 14px 10px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0; text-align: center; background: transparent; }
 .content h2 { position: relative; margin: 0; font: 400 clamp(27px,7.8vw,34px)/1.1 var(--display); letter-spacing: .01em; text-wrap: balance; }
-.game[data-game="avalon"] h2 { color: #8c160e; }
-.game[data-game="avalon"] h2 .title-lead { color: #102126; }
+.game[data-game="avalon"] h2, .game[data-game="avalon_vs"] h2 { color: #8c160e; }
+.game[data-game="avalon"] h2 .title-lead, .game[data-game="avalon_vs"] h2 .title-lead { color: #102126; }
+@media (max-width: 759px) {
+  .game[data-game="avalon_vs"] .content {
+    background: radial-gradient(ellipse at center bottom, rgba(255, 250, 240, 0.88) 0%, rgba(255, 248, 230, 0.65) 65%, transparent 100%);
+    padding: 6px 12px;
+    border-radius: 6px;
+  }
+}
 .game[data-game="mafia"] h2 { font-size: clamp(35px,10vw,42px); }
 .game[data-game="mafia"] h2::after { content: ""; position: absolute; height: 2px; width: 55%; bottom: 0; left: 42%; background: #af231f; transform: rotate(-10deg); }
 .hook { margin: 0; font-size: clamp(14px,4.15vw,17px); line-height: 1.25; font-weight: 700; text-wrap: balance; }
@@ -60,7 +69,13 @@ a:focus-visible { outline: 3px solid #fff1ac; outline-offset: 4px; }
   .games { gap: 24px; }
   .game { aspect-ratio: 3.4 / 1; min-height: 0; border-radius: 4px; }
   .game-art img { object-fit: cover; object-position: center; }
-  .game[data-game="avalon"]::before,.game[data-game="avalon"]::after { width: 12px; }
+  .game[data-game="avalon"]::before,.game[data-game="avalon"]::after,
+  .game[data-game="avalon_vs"]::before,.game[data-game="avalon_vs"]::after { width: 12px; }
+  .game[data-game="avalon_vs"] .content {
+    background: linear-gradient(90deg, rgba(255, 250, 240, 0.78) 0%, rgba(255, 248, 232, 0.50) 65%, transparent 100%);
+    border-radius: 4px;
+    padding-left: 36px;
+  }
   .content { position: relative; inset: auto; width: 44%; height: 100%; min-height: 0; padding: 20px 16px 20px 34px; gap: 7px; align-items: flex-start; justify-content: center; text-align: left; }
   .content h2 { font-size: clamp(30px,4.2vw,59px); line-height: 1.05; white-space: nowrap; }
   .game[data-game="mafia"] h2 { font-size: clamp(45px,5.8vw,78px); }
@@ -85,4 +100,4 @@ a:focus-visible { outline: 3px solid #fff1ac; outline-offset: 4px; }
 }
 @media (max-width: 359px) { .portal-shell { padding-inline: 8px; } .content { inset-inline: 12px; gap: 3px; } .meta { font-size: 10px; } .enter { min-height: 44px; font-size: 16px; } .slogan { font-size: 11px; } }
 @media (prefers-reduced-motion: reduce) { .enter { transition: none; } }
-@media (forced-colors: active) { .game { background: Canvas; color: CanvasText; border: 1px solid CanvasText; text-shadow: none; } .game-art,.game-frame { display: none; } .game[data-game="avalon"] h2,.game[data-game="avalon"] h2 .title-lead { color: CanvasText; } .enter { background: ButtonFace; color: ButtonText; } }
+@media (forced-colors: active) { .game { background: Canvas; color: CanvasText; border: 1px solid CanvasText; text-shadow: none; } .game-art,.game-frame { display: none; } .game[data-game="avalon"] h2,.game[data-game="avalon"] h2 .title-lead,.game[data-game="avalon_vs"] h2,.game[data-game="avalon_vs"] h2 .title-lead { color: CanvasText; } .enter { background: ButtonFace; color: ButtonText; } }

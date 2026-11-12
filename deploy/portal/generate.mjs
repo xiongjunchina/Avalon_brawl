@@ -37,9 +37,11 @@ function gameCard(game, index) {
     : `<div class="art" aria-hidden="true"><svg viewBox="0 0 160 150" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">${art(game.id)}</svg></div>`;
   const genre = game.genre ?? game.label;
   const action = game.action ?? '进入游戏';
-  const title = game.id === 'avalon' && game.name === '嘻游 · 真假猴王'
+  const title = (game.id === 'avalon' && game.name === '嘻游 · 真假猴王')
     ? '<span class="title-lead">嘻游 · </span><span>真假猴王</span>'
-    : escapeHtml(game.name);
+    : (game.id === 'avalon_vs' && (game.name === '西游 · 仙魔大乱斗' || game.name === '嘻游 · 大乱斗'))
+      ? `<span class="title-lead">${escapeHtml(game.name.slice(0, 5))}</span><span>${escapeHtml(game.name.slice(5))}</span>`
+      : escapeHtml(game.name);
   return `<article class="game${illustrated ? '' : ' game--fallback'}" data-game="${escapeHtml(game.id)}" aria-labelledby="game-${escapeHtml(game.id)}">${illustration}<div class="game-frame" aria-hidden="true"></div><div class="content"><h2 id="game-${escapeHtml(game.id)}">${title}</h2>${game.hook ? `<p class="hook">${escapeHtml(game.hook)}</p>` : ''}<p class="description">${escapeHtml(game.description)}</p><p class="meta"><span>${escapeHtml(game.players)}</span><span class="meta-separator" aria-hidden="true">·</span><span>${escapeHtml(genre)}</span></p><a class="enter" href="${escapeHtml(game.path)}" aria-label="${escapeHtml(`${action}：${game.name}`)}"><span>${escapeHtml(action)}</span><span aria-hidden="true">→</span>${entranceOrnament}</a></div></article>`;
 }
 

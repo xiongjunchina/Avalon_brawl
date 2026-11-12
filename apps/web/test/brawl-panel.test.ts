@@ -5,31 +5,29 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { BrawlPanel } from '../src/BrawlPanel.js';
 import type { SelfBrawlView, BrawlBattleEvent } from '@avalon/contracts';
 
-test('BrawlPanel: renders Heixiong Jing non-blocking choice banner when decision pending', () => {
+test('BrawlPanel: renders active skill trigger button when skill available', () => {
   const selfBrawl: SelfBrawlView = {
-    roleId: 'heixiong_jing',
-    roleName: '黑熊精',
-    roleTitle: '黑风大王 / 守山大神',
-    camp: 'neutral',
+    roleId: 'hong_haier',
+    roleName: '红孩儿',
+    roleTitle: '圣婴大王',
+    camp: 'red',
     skill: {
-      skillId: 'shenmo_yinian',
-      skillName: '神魔一念',
-      triggerPhase: 'team_building',
-      actionType: 'camp_choice',
+      skillId: 'sanmei_zhenhuo',
+      skillName: '三昧真火',
+      triggerPhase: 'assassination',
+      actionType: 'single_button',
       maxUses: 1,
-      description: '首轮必投成功；R1 结算后私下抉择加入蓝方或红方。',
+      description: '开局见红方同伙；任务3胜后负责辨识并一击刺杀孙悟空。',
     },
     skillAvailable: true,
     skillUsed: false,
-    neutralDecisionPending: true,
   };
 
   const html = renderToStaticMarkup(createElement(BrawlPanel, { selfBrawl }));
 
-  assert.match(html, /黑熊精 · 天命抉择（纯私下决定，全场不通报）/);
-  assert.match(html, /皈依佛门 · 守山大神/);
-  assert.match(html, /啸聚为妖 · 黑风大王/);
-  assert.match(html, /第2轮投票前随时可定/);
+  assert.match(html, /【红孩儿】/);
+  assert.match(html, /三昧真火/);
+  assert.match(html, /发动法宝/);
 });
 
 test('BrawlPanel: does not render neutral choice banner for regular players or already decided', () => {
@@ -48,7 +46,6 @@ test('BrawlPanel: does not render neutral choice banner for regular players or a
     },
     skillAvailable: false,
     skillUsed: false,
-    neutralDecisionPending: false,
   };
 
   const html = renderToStaticMarkup(createElement(BrawlPanel, { selfBrawl }));
@@ -125,30 +122,29 @@ test('BrawlPanel: renders battle events strictly obeying Event Public Player Ano
   assert.doesNotMatch(html, /施法者/);
 });
 
-test('GuideRoles(mode="brawl"): renders all 31 all-star Journey to the West characters', async () => {
+test('GuideRoles(mode="brawl"): renders all 30 all-star Journey to the West characters', async () => {
   const { GuideRoles, GuideRules, GuidePanel } = await import('../src/GuidePanel.js');
   const rolesHtml = renderToStaticMarkup(createElement(GuideRoles, { mode: 'brawl' }));
   const rulesHtml = renderToStaticMarkup(createElement(GuideRules, { mode: 'brawl' }));
   const panelHtml = renderToStaticMarkup(createElement(GuidePanel, { onBack: () => {} }));
 
-  // Check 31 roles exist in brawl guide
+  // Check 30 roles exist in brawl guide
   for (const name of [
     '孙悟空', '唐三藏', '如来佛祖', '玉皇大帝', '王母娘娘', '太上老君', '菩提祖师',
     '观音菩萨', '镇元大仙', '二郎神', '哪吒三太子', '托塔李天王', '猪八戒', '沙悟净', '白龙马',
     '红孩儿', '六耳猕猴', '白骨精', '蜘蛛精', '玉兔精', '老鼠精', '牛魔王', '铁扇公主',
     '黄眉老怪', '金角大王', '银角大王', '黄风怪', '百眼魔君', '青毛狮子怪', '金翅大鹏雕',
-    '黑熊精',
   ]) {
     assert.match(rolesHtml, new RegExp(name), `Missing brawl role in guide: ${name}`);
   }
 
   // Check key brawl mechanics in rules
-  assert.match(rulesHtml, /31位全明星神魔/);
-  assert.match(rulesHtml, /黑熊精专属暗身中立机制/);
+  assert.match(rulesHtml, /30位全明星神魔/);
+  assert.match(rulesHtml, /30位弱技能设计原则/);
   assert.match(rulesHtml, /天机战报“公法不公人”原则/);
 
   // Check GuidePanel includes mode switch and defaults to brawl
-  assert.match(panelHtml, /仙魔大乱斗（31位全明星）/);
+  assert.match(panelHtml, /仙魔大乱斗（30位全明星）/);
   assert.match(panelHtml, /经典原版（真假猴王）/);
   assert.match(panelHtml, /如来佛祖/);
 });

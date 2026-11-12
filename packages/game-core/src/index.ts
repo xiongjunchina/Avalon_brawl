@@ -10,8 +10,6 @@ import {
   createBrawlGameState,
   appendBattleEvent,
   validateBrawlMissionVote,
-  processNeutralChoice,
-  ensureNeutralResolvedBeforeVote,
   projectSelfBrawlView,
 } from './brawl-engine.js';
 export const RULESET_VERSION = 'standard-no-lancelot-v6';
@@ -146,8 +144,6 @@ export function createGame(
 
     const bluePool = shuffle(assignment.roles.filter(r => r.camp === 'blue' && !r.isCore));
     const redPool = shuffle(assignment.roles.filter(r => r.camp === 'red' && !r.isCore));
-    const neutralRole = assignment.roles.find(r => r.camp === 'neutral');
-    let neutralAssigned = false;
 
     // 辅助函数：根据玩家心仪偏好优先匹配出战角色
     const popPreferred = (pool: typeof bluePool, prefs?: string[]) => {
@@ -174,10 +170,6 @@ export function createGame(
         br = assignment.roles.find(x => x.id === 'liuer_mihou');
       } else if (r === 'assassin') {
         br = assignment.roles.find(x => x.id === 'hong_haier');
-      } else if (neutralRole && !neutralAssigned && teamOf(r) === 'red') {
-        br = neutralRole;
-        neutralAssigned = true;
-        roles[p.id] = 'oberon'; // 赋予黑熊精 Oberon 孤狼视野（红方不知黑熊精，黑熊精不知红方，孙悟空能辨妖气）
       } else if (teamOf(r) === 'blue') {
         br = popPreferred(bluePool, playerPrefs);
       } else {
@@ -204,7 +196,6 @@ export function createGame(
       playerStates,
       assignment.blindBox.bluePoolRoles,
       assignment.blindBox.redPoolRoles,
-      assignment.blindBox.neutralRole,
     );
     brawlPeekedMap = assignment.peekedMap;
   }
@@ -383,9 +374,6 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
       requireRule(g.rounds.at(-1)!.team.length === MISSION_SIZES[g.players.length][g.mission-1], 'INVALID_TEAM');
       delete g.draftTeam;
       g.teamVoteStartedAt = new Date(context.now).toISOString();
-      if (g.brawl) {
-        ensureNeutralResolvedBeforeVote(g.brawl);
-      }
       g.phase = 'team_vote'; break;
     case 'teamVote': {
       requireRule(g.phase === 'team_vote', 'WRONG_PHASE');
@@ -572,10 +560,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
     case 'brawlCommand': {
       requireRule(g.brawl, 'BRAWL_NOT_ENABLED');
       const payload = action.payload as BrawlCommandPayload;
-      if (payload.action === 'chooseCamp') {
-        const res = processNeutralChoice(g.brawl, userId, payload.camp, g.mission, false);
-        requireRule(res.success, res.error || 'BRAWL_CHOICE_FAILED');
-      } else if (payload.action === 'useSkill') {
+      if (payload.action === 'useSkill') {
         const playerState = g.brawl.playerStates[userId];
         requireRule(playerState, 'PLAYER_NOT_FOUND');
         requireRule(!playerState.skillUsed, 'SKILL_ALREADY_USED');

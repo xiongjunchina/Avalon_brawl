@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export type BrawlCamp = 'blue' | 'red' | 'neutral';
+export type BrawlCamp = 'blue' | 'red';
 
 export type BrawlRoleId =
   // 蓝方 15 仙佛
@@ -34,9 +34,7 @@ export type BrawlRoleId =
   | 'huangfeng_guai'
   | 'baiyan_mojun'
   | 'qingmao_shizi'
-  | 'jinchi_dapeng'
-  // 初始中立 1 位
-  | 'heixiong_jing';
+  | 'jinchi_dapeng';
 
 export const brawlRoleIdSchema = z.string().min(1).max(64);
 
@@ -94,7 +92,6 @@ export interface BrawlBattleEvent {
 export interface BrawlBlindBox {
   bluePoolRoles: string[];
   redPoolRoles: string[];
-  neutralRole?: string;
 }
 
 export interface BrawlPlayerState {
@@ -111,11 +108,6 @@ export interface BrawlGameState {
   blindBox: BrawlBlindBox;
   playerStates: Record<string, BrawlPlayerState>;
   events: BrawlBattleEvent[];
-  neutralChoice?: {
-    chosenCamp: 'blue' | 'red';
-    chosenAtRound: number;
-    autoAssigned: boolean;
-  };
   imprisonedTargetId?: string; // 如来佛祖五指山禁锢的玩家（本轮禁止出征与表决）
   taoshouActive?: boolean;     // 王母娘娘九转仙桃庇佑（本轮需至少2张失败才算失败）
   extraSeatLimit?: number;     // 白龙马负重增加的人数上限
@@ -133,20 +125,13 @@ export interface SelfBrawlView {
   skillUsed: boolean;
   isAwakened?: boolean;
   peekedRoles?: { roleId: string; roleName: string; camp: BrawlCamp }[];
-  neutralDecisionPending?: boolean;
 }
 
-export const brawlCommandPayloadSchema = z.discriminatedUnion('action', [
-  z.object({
-    action: z.literal('chooseCamp'),
-    camp: z.enum(['blue', 'red']),
-  }),
-  z.object({
-    action: z.literal('useSkill'),
-    skillId: z.string(),
-    targetPlayerId: z.string().uuid().optional(),
-    targetPlayerId2: z.string().uuid().optional(),
-  }),
-]);
+export const brawlCommandPayloadSchema = z.object({
+  action: z.literal('useSkill'),
+  skillId: z.string(),
+  targetPlayerId: z.string().uuid().optional(),
+  targetPlayerId2: z.string().uuid().optional(),
+});
 
 export type BrawlCommandPayload = z.infer<typeof brawlCommandPayloadSchema>;

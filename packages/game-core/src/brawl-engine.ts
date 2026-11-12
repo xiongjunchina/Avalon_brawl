@@ -14,14 +14,12 @@ export function createBrawlGameState(
   playerStates: Record<string, BrawlPlayerState>,
   bluePoolRoles: string[],
   redPoolRoles: string[],
-  neutralRole?: string,
 ): BrawlGameState {
   return {
     enabled: true,
     blindBox: {
       bluePoolRoles,
       redPoolRoles,
-      neutralRole,
     },
     playerStates,
     events: [],
@@ -57,7 +55,7 @@ export function appendBattleEvent(
 }
 
 /**
- * 黑熊精首轮出牌校验（只能且必须出成功）
+ * 任务出牌合法性校验（蓝方仙友只能出成功）
  */
 export function validateBrawlMissionVote(
   state: BrawlGameState,
@@ -68,14 +66,6 @@ export function validateBrawlMissionVote(
   const player = state.playerStates[userId];
   if (!player) return { valid: true };
 
-  // 黑熊精在首轮未抉择前只能出成功牌
-  if (player.roleId === 'heixiong_jing' && mission === 1 && !success) {
-    return {
-      valid: false,
-      error: 'HEIXIONG_MUST_VOTE_SUCCESS_IN_ROUND_1: 黑熊精在首轮天命抉择前只能投成功牌',
-    };
-  }
-
   // 蓝方不能出失败牌
   if (player.camp === 'blue' && !success) {
     return {
@@ -85,56 +75,6 @@ export function validateBrawlMissionVote(
   }
 
   return { valid: true };
-}
-
-/**
- * 黑熊精异步非阻塞私密抉择
- * 零全场广播、零队友通知，纯个人意愿绑定
- */
-export function processNeutralChoice(
-  state: BrawlGameState,
-  userId: string,
-  chosenCamp: 'blue' | 'red',
-  currentRound: number = 2,
-  autoAssigned: boolean = false,
-): { success: boolean; error?: string } {
-  const player = state.playerStates[userId];
-  if (!player || player.roleId !== 'heixiong_jing') {
-    return { success: false, error: 'NOT_NEUTRAL_PLAYER: 仅黑熊精可进行阵营抉择' };
-  }
-
-  if (state.neutralChoice) {
-    return { success: false, error: 'ALREADY_CHOSEN: 黑熊精已完成天命抉择' };
-  }
-
-  // 更新阵营绑定
-  player.camp = chosenCamp;
-  state.neutralChoice = {
-    chosenCamp,
-    chosenAtRound: currentRound,
-    autoAssigned,
-  };
-
-  return { success: true };
-}
-
-/**
- * Round 2 投票发起时的截止保护：若黑熊精未手动选定，系统 0.1 秒内自动摇骰保底
- */
-export function ensureNeutralResolvedBeforeVote(
-  state: BrawlGameState,
-  rng: () => number = Math.random,
-): void {
-  if (state.neutralChoice) return;
-
-  const neutralEntry = Object.entries(state.playerStates).find(
-    ([_, p]) => p.roleId === 'heixiong_jing',
-  );
-  if (!neutralEntry) return;
-
-  const [userId] = neutralEntry;
-  const autoCamp: 'blue' | 'red' = rng() < 0.5 ? 'blue' : 'red';
-  processNeutralChoice(state, userId, autoCamp, 2, true);
 }
 
 /**
@@ -160,16 +100,13 @@ export function projectSelfBrawlView(
   state: BrawlGameState,
   userId: string,
   mission: number,
-  peekedMap: Record<string, { roleId: string; roleName: string; camp: 'blue' | 'red' | 'neutral' }[]> = {},
+  peekedMap: Record<string, { roleId: string; roleName: string; camp: 'blue' | 'red' }[]> = {},
 ): SelfBrawlView | undefined {
   const playerState = state.playerStates[userId];
   if (!playerState) return undefined;
 
   const roleDef = BRAWL_ROLE_REGISTRY[playerState.roleId];
   if (!roleDef) return undefined;
-
-  const isHeixiong = playerState.roleId === 'heixiong_jing';
-  const neutralDecisionPending = isHeixiong && mission >= 2 && !state.neutralChoice;
 
   return {
     roleId: playerState.roleId,
@@ -183,6 +120,5 @@ export function projectSelfBrawlView(
     skillUsed: playerState.skillUsed,
     isAwakened: playerState.isAwakened,
     peekedRoles: peekedMap[playerState.roleId]?.length ? peekedMap[playerState.roleId] : undefined,
-    neutralDecisionPending,
   };
 }

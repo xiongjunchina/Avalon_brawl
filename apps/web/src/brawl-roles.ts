@@ -18,5 +18,5 @@ export function getBrawlRoleArtPrefix(roleId: string): string {
 }
 
 export function getBrawlRoleCamp(roleId: string): BrawlCamp {
-  return BRAWL_ROLE_REGISTRY[roleId]?.camp || 'neutral';
+  return BRAWL_ROLE_REGISTRY[roleId]?.camp || 'blue';
 }

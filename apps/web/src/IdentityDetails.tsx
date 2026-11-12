@@ -19,7 +19,6 @@ export function IdentityDetails({
   send,
   treasuresEnabled = false,
   userId,
-  onChooseBrawlCamp,
   onUseBrawlSkill,
 }: {
   self: NonNullable<GameView['self']>;
@@ -29,7 +28,6 @@ export function IdentityDetails({
   send?: (action: Pick<Command, 'type' | 'payload'>) => void;
   treasuresEnabled?: boolean;
   userId?: string;
-  onChooseBrawlCamp?: (camp: 'blue' | 'red') => void;
   onUseBrawlSkill?: (skillId: string, targetId?: string) => void;
 }) {
   const [viewingArt, setViewingArt] = useState(false);
@@ -37,14 +35,6 @@ export function IdentityDetails({
   const [treasureOpen, setTreasureOpen] = useState(false);
   const [brawlTarget, setBrawlTarget] = useState<string>('');
   const selfBrawl = game?.selfBrawl;
-
-  const handleChooseCamp = (camp: 'blue' | 'red') => {
-    if (onChooseBrawlCamp) {
-      onChooseBrawlCamp(camp);
-    } else {
-      send?.({ type: 'brawlCommand', payload: { action: 'chooseCamp', camp } });
-    }
-  };
 
   const handleUseSkill = (skillId: string, targetId?: string) => {
     if (onUseBrawlSkill) {
@@ -274,62 +264,6 @@ export function IdentityDetails({
             </div>
           </div>
 
-          {/* 黑熊精非阻塞异步天命抉择（纯私下决定，全场不通报） */}
-          {selfBrawl.roleId === 'heixiong_jing' && selfBrawl.neutralDecisionPending && (
-            <div style={{
-              background: 'rgba(15, 23, 42, 0.85)',
-              border: '1.5px solid #f59e0b',
-              borderRadius: '8px',
-              padding: '8px 10px',
-              marginTop: '2px',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <span style={{ fontSize: '12px', color: '#fbbf24', fontWeight: 700 }}>
-                  🐻 天命抉择（全场暗中行事，绝不通报）
-                </span>
-                <span style={{ fontSize: '11px', color: '#94a3b8' }}>第2轮表决前随时可决</span>
-              </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => handleChooseCamp('blue')}
-                  style={{
-                    flex: 1,
-                    background: 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '8px 4px',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    margin: 0,
-                  }}
-                >
-                  🌟 皈依佛门 (蓝方)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleChooseCamp('red')}
-                  style={{
-                    flex: 1,
-                    background: 'linear-gradient(180deg, #ef4444 0%, #b91c1c 100%)',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '8px 4px',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    margin: 0,
-                  }}
-                >
-                  🔥 啸聚为妖 (红方)
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* 技能发动交互区 */}
           {selfBrawl.skillAvailable && !selfBrawl.skillUsed && selfBrawl.skill.actionType !== 'passive' && (
             <div style={{
@@ -433,9 +367,7 @@ export function IdentityDetails({
             {selfBrawl.motto ? `「${selfBrawl.motto}」—— ` : ''}
             {selfBrawl.camp === 'blue'
               ? '凝聚仙佛神力，明辨真假猴王，严防妖魔作祟，护持灵山大道。'
-              : selfBrawl.camp === 'red'
-                ? '潜伏同流隐匿妖气，伺机制造失败，混淆视听以夺天机。'
-                : '首轮必投成功以明哲保身，静观众仙妖胜负走向，随时私下暗择归宿。'}
+              : '潜伏同流隐匿妖气，伺机制造失败，混淆视听以夺天机。'}
           </p>
         </div>
       ) : roleDescriptions[self.role]?.tip ? (

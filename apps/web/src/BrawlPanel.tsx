@@ -5,7 +5,6 @@ import { BRAWL_ROLE_REGISTRY } from '@avalon/game-core';
 interface BrawlPanelProps {
   selfBrawl?: SelfBrawlView;
   events?: BrawlBattleEvent[];
-  onChooseCamp?: (camp: 'blue' | 'red') => void;
   onUseSkill?: (skillId: string, targetId?: string) => void;
   players?: { id: string; nickname: string; seat: number }[];
   privacyMode?: boolean;
@@ -16,7 +15,6 @@ interface BrawlPanelProps {
 export function BrawlPanel({
   selfBrawl,
   events = [],
-  onChooseCamp,
   onUseSkill,
   players = [],
   privacyMode = false,
@@ -28,9 +26,7 @@ export function BrawlPanel({
 
   if (!selfBrawl) return null;
 
-  const isHeixiong = selfBrawl.roleId === 'heixiong_jing';
-  const showNeutralChoice = isHeixiong && selfBrawl.neutralDecisionPending;
-  const hasPendingAction = showNeutralChoice || (
+  const hasPendingAction = Boolean(
     selfBrawl.skillAvailable && !selfBrawl.skillUsed && selfBrawl.skill.actionType !== 'passive'
   );
 
@@ -49,67 +45,7 @@ export function BrawlPanel({
         )
       ) : (
         <>
-          {/* 1. 黑熊精非阻塞异步天命抉择卡片 */}
-          {showNeutralChoice && (
-            <div
-              className="brawl-neutral-choice-banner"
-              style={{
-                background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                border: '2px solid #f59e0b',
-                borderRadius: '12px',
-                padding: '12px 16px',
-                color: '#fff',
-                marginBottom: '10px',
-                boxShadow: '0 4px 12px rgba(245, 158, 11, 0.25)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 'bold', fontSize: '15px', color: '#fbbf24' }}>
-                  🐻 黑熊精 · 天命抉择（纯私下决定，全场不通报）
-                </span>
-                <span style={{ fontSize: '12px', color: '#94a3b8' }}>第2轮投票前随时可定</span>
-              </div>
-              <p style={{ fontSize: '13px', color: '#cbd5e1', margin: '0 0 10px 0' }}>
-                观照三界胜负，选择你即将暗中支持的阵营。胜负与出牌权限将随之转变：
-              </p>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  type="button"
-                  onClick={() => onChooseCamp?.('blue')}
-                  style={{
-                    flex: 1,
-                    background: 'linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '10px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                  }}
-                >
-                  🌟 皈依佛门 · 守山大神 (蓝方)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onChooseCamp?.('red')}
-                  style={{
-                    flex: 1,
-                    background: 'linear-gradient(180deg, #ef4444 0%, #b91c1c 100%)',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '10px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                  }}
-                >
-                  🔥 啸聚为妖 · 黑风大王 (红方)
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* 2. 个人乱斗真身与弱技能胶囊卡 */}
+          {/* 个人乱斗真身与弱技能胶囊卡 */}
           <div
             className="brawl-skill-card"
             style={{

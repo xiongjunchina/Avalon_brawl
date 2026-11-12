@@ -54,7 +54,6 @@ function RolePreferenceForm({
 
   const brawlBlue = brawlMode ? Object.values(BRAWL_ROLE_REGISTRY).filter(r => r.camp === 'blue') : [];
   const brawlRed = brawlMode ? Object.values(BRAWL_ROLE_REGISTRY).filter(r => r.camp === 'red') : [];
-  const brawlNeutral = brawlMode ? Object.values(BRAWL_ROLE_REGISTRY).filter(r => r.camp === 'neutral') : [];
 
   const handleToggleRole = (roleId: string) => {
     if (disabled || saving) return;
@@ -219,18 +218,6 @@ function RolePreferenceForm({
                   {brawlRed.map(r => renderBrawlCard(r))}
                 </div>
               </div>
-
-              {/* Brawl Neutral (1) */}
-              {brawlNeutral.length > 0 && (
-                <div className="role-camp-group">
-                  <h4 className="camp-heading" style={{ color: '#ffd54f' }}>
-                    <span>🟡 摇摆天命 · 守山中立 ({brawlNeutral.length}位)</span>
-                  </h4>
-                  <div className="role-cards-grid">
-                    {brawlNeutral.map(r => renderBrawlCard(r))}
-                  </div>
-                </div>
-              )}
             </>
           ) : (
             <>

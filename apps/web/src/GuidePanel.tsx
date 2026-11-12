@@ -17,8 +17,7 @@ const classicRuleChapters = ['胜负条件', '对局流程', '人数配置', '�
 const brawlRuleChapters = [
   '仙魔三界对决',
   '全明星抽卡与盲盒',
-  '黑熊精暗身抉择',
-  '31位弱技能设计',
+  '30位弱技能设计',
   '天机战报公法不公人',
 ];
 
@@ -55,8 +54,6 @@ const brawlRolesList: BrawlRoleDef[] = [
   BRAWL_ROLE_REGISTRY.baiyan_mojun,
   BRAWL_ROLE_REGISTRY.qingmao_shizi,
   BRAWL_ROLE_REGISTRY.jinchi_dapeng,
-  // 中立 1 守山大神
-  BRAWL_ROLE_REGISTRY.heixiong_jing,
 ].filter(Boolean);
 
 const brawlTacticalTips: Record<string, string> = {
@@ -90,7 +87,6 @@ const brawlTacticalTips: Record<string, string> = {
   baiyan_mojun: '盲盒千眼。千眼金光窥破天机，开局私密掌握蓝方抽中的仙佛神仙名号，全盘掌控好人阵容底细。',
   qingmao_shizi: '吞天震慑。队伍表决通过后强行吞除 1 名队员资格，迫使队长现场重新补选，打乱节奏。',
   jinchi_dapeng: '绝杀明灯。终局刺杀时大鹏展翅俯瞰，直接为红孩儿排除 1 个绝对非悟空的席位，大幅提高刺杀胜率。',
-  heixiong_jing: '暗度陈仓。7人及以上局出场（对冲红方配额，孤狼盲降互不知晓），首轮必投成功；R1结算私下暗选阵营，R2表决前超时系统摇骰保底，全场零通知，暗助所选阵营！',
 };
 
 type GuideSection = 'rules' | 'roles';
@@ -132,7 +128,7 @@ export function BrawlGuideRules() {
     <div className="guide-rules">
       <section id="guide-brawl-rule-1" className="panel guide-section">
         <p className="eyebrow">01 / 仙魔三界对决</p>
-        <h2>31位全明星神魔，弱技能碰撞，天机盲盒推理博弈</h2>
+        <h2>30位全明星神魔，弱技能碰撞，天机盲盒推理博弈</h2>
         <div className="guide-victories">
           <div className="allegiance-blue">
             <h3><Emblem kind="blue" />蓝方 · 取经仙佛</h3>
@@ -142,37 +138,21 @@ export function BrawlGuideRules() {
             <h3><Emblem kind="red" />红方 · 混世妖魔</h3>
             <p>破坏三次任务、让流局次数达到五次，或由红孩儿在终局刺杀中准确刺中孙悟空，任一成立即可翻盘获胜！</p>
           </div>
-          <div className="allegiance-neutral" style={{ background: '#2b2316e6', border: '1px solid #f59e0b80', borderRadius: '12px', padding: '8px 10px' }}>
-            <h3 style={{ color: '#fbbf24' }}>🐻 中立 · 守山大神黑熊精</h3>
-            <p style={{ color: '#fef3c7' }}>8人以上对局必出黑熊精！首轮必投成功，首轮结束后私下暗选皈依佛门（蓝方）或割据称王（红方），全场零通知，暗助一方！</p>
-          </div>
         </div>
       </section>
 
       <section id="guide-brawl-rule-2" className="panel guide-section">
         <p className="eyebrow">02 / 全明星抽卡与盲盒机制</p>
         <h2>无放回随机抽取，情报与盲盒</h2>
-        <p>西游大乱斗拥有 15 位蓝方仙佛、15 位红方妖魔与 1 位中立黑熊精（共 31 位西游高知名度全明星神魔）。</p>
+        <p>西游大乱斗拥有 15 位蓝方仙佛与 15 位红方妖魔（共 30 位西游全明星神魔）。</p>
         <ul>
-          <li><strong>5~7人局（纯乱斗模式）</strong>：蓝方必定包含核心神魔（孙悟空、唐三藏），红方必定包含（红孩儿、六耳猕猴），其余席位从全明星池中<strong>无放回随机抽取</strong>！</li>
-          <li><strong>8~12人局（大乱斗模式）</strong>：8人及以上局必定抽入中立角色【黑熊精】，其余席位严格按蓝红配额无放回抽取！</li>
+          <li><strong>5~12人局</strong>：蓝方必定包含核心神魔（孙悟空、唐三藏），红方必定包含核心（红孩儿、六耳猕猴），其余席位严格按阿瓦隆经典蓝红配额从各阵营全明星神魔池中<strong>无放回随机抽取</strong>！</li>
           <li><strong>天机盲盒</strong>：未被抽入本局的神仙与妖魔隐藏于“盲盒”中，二郎神（天眼照虚）、老鼠精（偷吃灯油）、百眼魔君（千眼窥机）等角色拥有窥探盲盒的专属特异灵觉！</li>
         </ul>
       </section>
 
       <section id="guide-brawl-rule-3" className="panel guide-section">
-        <p className="eyebrow">03 / 黑熊精专属暗身中立机制</p>
-        <h2>异步私密抉择，节奏零阻塞，全场零通知</h2>
-        <ul>
-          <li><strong>首轮立地成佛</strong>：黑熊精首轮出征必定投出成功牌（好人属性保底）。</li>
-          <li><strong>非阻塞暗身抉择</strong>：第 1 轮结束后，全场无缝推进第 2 轮（绝不停顿打断节奏）。黑熊精手机端私密浮现【天命抉择卡】，在第 2 轮投票前随时可私下选择皈依蓝方或割据红方！</li>
-          <li><strong>摇骰超时保底</strong>：若直至第 2 轮投票开始黑熊精仍未选定，系统在 0.1 秒内自动随机摇骰分配并私信告知他本人，不卡全场！</li>
-          <li><strong>单向绝对保密</strong>：全场零广播、零弹窗、零提示，除黑熊精本人外没有任何人知道他的选择，保持绝对单向暗身！</li>
-        </ul>
-      </section>
-
-      <section id="guide-brawl-rule-4" className="panel guide-section">
-        <p className="eyebrow">04 / 31位弱技能设计原则</p>
+        <p className="eyebrow">03 / 30位弱技能设计原则</p>
         <h2>彻底脱离实体坐席几何限制，重在博弈与配合</h2>
         <p>所有神魔弱技能均严格脱离现场实体的顺逆时针或几何相邻座位，不依赖现场物理排座：</p>
         <ul>
@@ -183,8 +163,8 @@ export function BrawlGuideRules() {
         </ul>
       </section>
 
-      <section id="guide-brawl-rule-5" className="panel guide-section">
-        <p className="eyebrow">05 / 天机战报“公法不公人”原则</p>
+      <section id="guide-brawl-rule-4" className="panel guide-section">
+        <p className="eyebrow">04 / 天机战报“公法不公人”原则</p>
         <h2>法宝公开播报，施法者席位绝对隐匿</h2>
         <p>任何仙魔在手机端发动其专属法宝时，全场公屏将实时弹窗滚动【天机战报】（如“【五行山掌】如来佛祖施展五行山掌，将一名仙友禁锢于五行山下”）：</p>
         <ul>
@@ -196,11 +176,10 @@ export function BrawlGuideRules() {
   );
 }
 
-/** 大乱斗模式 31 位全明星角色图鉴 */
+/** 大乱斗模式 30 位全明星角色图鉴（15 蓝方仙佛 vs 15 红方混世妖魔） */
 export function BrawlGuideRoles({ onSelectRole }: { onSelectRole?: (role: BrawlRoleDef) => void }) {
   const blueRoles = brawlRolesList.filter(r => r.camp === 'blue');
   const redRoles = brawlRolesList.filter(r => r.camp === 'red');
-  const neutralRoles = brawlRolesList.filter(r => r.camp === 'neutral');
 
   const phaseNames: Record<string, string> = {
     game_start: '开局生效（常驻/私密盲盒视野）',
@@ -212,9 +191,8 @@ export function BrawlGuideRoles({ onSelectRole }: { onSelectRole?: (role: BrawlR
   };
 
   const renderRoleCard = (role: BrawlRoleDef) => {
-    const isNeutral = role.camp === 'neutral';
-    const factionClass = isNeutral ? 'allegiance-neutral' : `allegiance-${role.camp}`;
-    const factionLabel = isNeutral ? '中立 · 守山大神' : role.camp === 'blue' ? '蓝方 · 取经仙佛' : '红方 · 混世妖魔';
+    const factionClass = `allegiance-${role.camp}`;
+    const factionLabel = role.camp === 'blue' ? '蓝方 · 取经仙佛' : '红方 · 混世妖魔';
 
     return (
       <article id={`guide-brawl-role-${role.id}`} className={`guide-role ${factionClass}`} key={role.id}>
@@ -276,7 +254,7 @@ export function BrawlGuideRoles({ onSelectRole }: { onSelectRole?: (role: BrawlR
   return (
     <div className="guide-roles">
       <p className="hint">
-        这里展示《西游 · 仙魔大乱斗》全部 31 位全明星神魔人物图鉴。每局按人数从仙魔池中无放回随机抽取，点击任意法相可鉴赏高清立绘大图。
+        这里展示《西游 · 仙魔大乱斗》全部 30 位全明星神魔人物图鉴。每局按人数从仙魔池中无放回随机抽取，点击任意法相可鉴赏高清立绘大图。
       </p>
 
       {/* 蓝方 15 仙佛 */}
@@ -298,17 +276,6 @@ export function BrawlGuideRoles({ onSelectRole }: { onSelectRole?: (role: BrawlR
         </h2>
         <div className="guide-role-grid">
           {redRoles.map(renderRoleCard)}
-        </div>
-      </section>
-
-      {/* 中立 1 守山大神 */}
-      <section aria-label="中立神兽介绍" className="guide-faction allegiance-neutral" style={{ marginTop: '20px' }}>
-        <h2>
-          <span style={{ fontSize: '20px', marginRight: '6px' }}>🐻</span>
-          中立 · 守山大神（1位 · 8人以上必出）
-        </h2>
-        <div className="guide-role-grid">
-          {neutralRoles.map(renderRoleCard)}
         </div>
       </section>
     </div>
@@ -675,14 +642,6 @@ export function GuidePanel({ onBack }: { onBack: () => void }) {
   return (
     <section className="guide guide-flow" ref={guideRef}>
       <style>{`
-        .allegiance-neutral {
-          background: #2b2316e6;
-          border: 1px solid #f59e0b80;
-        }
-        .allegiance-neutral .guide-role-faction-pill {
-          background: #78350f;
-          color: #fde68a;
-        }
         .guide-mode-switch {
           display: flex;
           gap: 6px;
@@ -738,7 +697,7 @@ export function GuidePanel({ onBack }: { onBack: () => void }) {
           className={`guide-mode-btn ${guideMode === 'brawl' ? 'active' : ''}`}
           onClick={() => { setGuideMode('brawl'); setDestination(''); }}
         >
-          ⚔️ 仙魔大乱斗（31位全明星）
+          ⚔️ 仙魔大乱斗（30位全明星）
         </button>
         <button
           type="button"
@@ -756,7 +715,7 @@ export function GuidePanel({ onBack }: { onBack: () => void }) {
           <div>
             <p className="eyebrow">WESTWARD BRAWL / 仙魔对决天机卷</p>
             <h1>《西游 · 仙魔大乱斗》</h1>
-            <p className="muted">31位西游神魔全明星阵容，弱技能碰撞，天机盲盒推理博弈</p>
+            <p className="muted">30位西游神魔全明星阵容，弱技能碰撞，天机盲盒推理博弈</p>
           </div>
         </div>
       ) : (

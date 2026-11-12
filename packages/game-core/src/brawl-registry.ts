@@ -558,49 +558,28 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
       description: '终局刺杀阶段大鹏展翅俯瞰，为红孩儿直接排除 1 个绝对不是孙悟空的席位。',
     },
   },
-
-  // ==================== 初始中立 1 位 ====================
-  heixiong_jing: {
-    id: 'heixiong_jing',
-    name: '黑熊精',
-    fullName: '黑风大王 · 守山大神',
-    title: '黑风大王 / 守山大神',
-    camp: 'neutral',
-    isCore: false,
-    artPrefix: 'brawl-heixiong',
-    motto: '一念成神，一念为魔；黑风山顶静观胜负',
-    skill: {
-      skillId: 'shenmo_yinian',
-      skillName: '神魔一念',
-      triggerPhase: 'team_building',
-      actionType: 'camp_choice',
-      maxUses: 1,
-      description: '首轮必投成功；R1 结算后私下抉择加入蓝方（守山大神）或红方（黑风大王）。',
-    },
-  },
 };
 
 /**
- * 5~12 人局的标准人数配置
+ * 5~12 人局的标准人数配置（严格遵循原版阿瓦隆蓝红比例：5人3:2, 6人4:2, 7人4:3, 8人5:3, 9人6:3, 10人6:4, 11人7:4, 12人8:4）
  */
 export interface BrawlPlayerCountConfig {
   playerCount: number;
   blueTotal: number;
   redTotal: number;
-  hasNeutral: boolean;
   blueDrawCount: number;
   redDrawCount: number;
 }
 
 export const BRAWL_PLAYER_CONFIG: Record<number, BrawlPlayerCountConfig> = {
-  5: { playerCount: 5, blueTotal: 3, redTotal: 2, hasNeutral: false, blueDrawCount: 1, redDrawCount: 0 },
-  6: { playerCount: 6, blueTotal: 4, redTotal: 2, hasNeutral: false, blueDrawCount: 2, redDrawCount: 0 },
-  7: { playerCount: 7, blueTotal: 4, redTotal: 3, hasNeutral: false, blueDrawCount: 2, redDrawCount: 1 },
-  8: { playerCount: 8, blueTotal: 5, redTotal: 2, hasNeutral: true,  blueDrawCount: 3, redDrawCount: 0 },
-  9: { playerCount: 9, blueTotal: 6, redTotal: 2, hasNeutral: true,  blueDrawCount: 4, redDrawCount: 0 },
-  10: { playerCount: 10, blueTotal: 6, redTotal: 3, hasNeutral: true, blueDrawCount: 4, redDrawCount: 1 },
-  11: { playerCount: 11, blueTotal: 7, redTotal: 3, hasNeutral: true, blueDrawCount: 5, redDrawCount: 1 },
-  12: { playerCount: 12, blueTotal: 8, redTotal: 3, hasNeutral: true, blueDrawCount: 6, redDrawCount: 1 },
+  5: { playerCount: 5, blueTotal: 3, redTotal: 2, blueDrawCount: 1, redDrawCount: 0 },
+  6: { playerCount: 6, blueTotal: 4, redTotal: 2, blueDrawCount: 2, redDrawCount: 0 },
+  7: { playerCount: 7, blueTotal: 4, redTotal: 3, blueDrawCount: 2, redDrawCount: 1 },
+  8: { playerCount: 8, blueTotal: 5, redTotal: 3, blueDrawCount: 3, redDrawCount: 1 },
+  9: { playerCount: 9, blueTotal: 6, redTotal: 3, blueDrawCount: 4, redDrawCount: 1 },
+  10: { playerCount: 10, blueTotal: 6, redTotal: 4, blueDrawCount: 4, redDrawCount: 2 },
+  11: { playerCount: 11, blueTotal: 7, redTotal: 4, blueDrawCount: 5, redDrawCount: 2 },
+  12: { playerCount: 12, blueTotal: 8, redTotal: 4, blueDrawCount: 6, redDrawCount: 2 },
 };
 
 /**
@@ -655,14 +634,6 @@ export function drawBrawlRoles(
 
   assigned.push(sunWukong, tangSeng);
   assigned.push(liuerMihou, hongHaier);
-
-  // 2. 初始中立角色（8人局及以上才出现）
-  let neutralRole: BrawlRoleDef | undefined;
-  if (config.hasNeutral) {
-    neutralRole = customRegistry.heixiong_jing;
-    if (!neutralRole) throw new Error('Neutral role missing from registry');
-    assigned.push(neutralRole);
-  }
 
   // 提取心仪偏好角色集合
   const preferredBlue = new Set<string>();
@@ -720,7 +691,6 @@ export function drawBrawlRoles(
   const blindBox: BrawlBlindBox = {
     bluePoolRoles: pickedBlue.map(r => r.id),
     redPoolRoles: pickedRed.map(r => r.id),
-    neutralRole: neutralRole?.id,
   };
 
   // 生成特定情报特权（二郎神看 1 妖，百眼魔君看 1 仙，老鼠精看 1 仙）

@@ -250,6 +250,27 @@ export function IdentityDetails({
                   🔍 <strong>盲盒天机：</strong>侦察到本局潜伏敌手包含【{selfBrawl.peekedRoles.map(r => r.roleName).join('、')}】
                 </div>
               )}
+              <div style={{ marginTop: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => setViewingBrawlArt(true)}
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid rgba(255, 216, 117, 0.3)',
+                    borderRadius: '12px',
+                    color: '#ffd875',
+                    fontSize: '11px',
+                    padding: '2px 8px',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title="点击赏析高清专属神魔法相与生平典故"
+                >
+                  🔍 点击赏析专属法相大图
+                </button>
+              </div>
             </div>
           </div>
 
@@ -384,12 +405,17 @@ export function IdentityDetails({
           )}
         </section>
       )}
-      <IdentityCard
-        role={self.role}
-        loyalGuardian={self.loyalGuardian}
-        femaleDemon={self.femaleDemon}
-        onInspect={() => setViewingArt(true)}
-      />
+
+      {/* 经典模式下渲染经典原版身份卡；大乱斗模式下上面唯一神魔卡即是玩家真身，绝不显示双角色 */}
+      {!selfBrawl && (
+        <IdentityCard
+          role={self.role}
+          loyalGuardian={self.loyalGuardian}
+          femaleDemon={self.femaleDemon}
+          onInspect={() => setViewingArt(true)}
+        />
+      )}
+
       <section className="identity-knowledge" aria-label="你的身份视野">
         <h3>{title}</h3>
         {!!candidates.length && <div className="identity-vision" data-count={candidates.length}>{candidates.map(id => {
@@ -399,31 +425,45 @@ export function IdentityDetails({
         <p>{description}</p>
       </section>
 
-      {/* Role Strategy Tip */}
-      {roleDescriptions[self.role]?.tip && (
+      {/* 玩法心法：大乱斗模式展示神魔专属心法与座右铭；经典模式展示原版心法 */}
+      {selfBrawl ? (
+        <div className="identity-tip-capsule" title="本角色的神魔破局心法">
+          <span className="tip-capsule-badge">💡 神魔心法</span>
+          <p className="tip-capsule-text">
+            {selfBrawl.motto ? `「${selfBrawl.motto}」—— ` : ''}
+            {selfBrawl.camp === 'blue'
+              ? '凝聚仙佛神力，明辨真假猴王，严防妖魔作祟，护持灵山大道。'
+              : selfBrawl.camp === 'red'
+                ? '潜伏同流隐匿妖气，伺机制造失败，混淆视听以夺天机。'
+                : '首轮必投成功以明哲保身，静观众仙妖胜负走向，随时私下暗择归宿。'}
+          </p>
+        </div>
+      ) : roleDescriptions[self.role]?.tip ? (
         <div className="identity-tip-capsule" title="本角色的取经心法秘诀">
           <span className="tip-capsule-badge">💡 玩法心法</span>
           <p className="tip-capsule-text">{roleDescriptions[self.role].tip}</p>
         </div>
-      )}
+      ) : null}
 
-      {/* Unified Treasure Entry Button inside Identity Sheet */}
-      <div className="identity-treasure-row">
-        <button
-          type="button"
-          className={`identity-treasure-entry-btn ${canClickTreasure ? 'is-enabled' : 'is-locked'}`}
-          disabled={!canClickTreasure}
-          onClick={() => setTreasureOpen(true)}
-          title={access.reason}
-        >
-          <span className="treasure-entry-icon">📿</span>
-          <span className="treasure-entry-info">
-            <strong>本命法宝 · 仙家神兵</strong>
-            <small>{treasureSub}</small>
-          </span>
-          <span className="treasure-entry-chevron">{canClickTreasure ? '❯' : '🔒'}</span>
-        </button>
-      </div>
+      {/* 法宝栏：大乱斗模式下神魔绝技即为本命法宝（在上方法相底牌中完整发动）；经典法宝栏仅在非大乱斗模式时展示 */}
+      {!selfBrawl && (
+        <div className="identity-treasure-row">
+          <button
+            type="button"
+            className={`identity-treasure-entry-btn ${canClickTreasure ? 'is-enabled' : 'is-locked'}`}
+            disabled={!canClickTreasure}
+            onClick={() => setTreasureOpen(true)}
+            title={access.reason}
+          >
+            <span className="treasure-entry-icon">📿</span>
+            <span className="treasure-entry-info">
+              <strong>本命法宝 · 仙家神兵</strong>
+              <small>{treasureSub}</small>
+            </span>
+            <span className="treasure-entry-chevron">{canClickTreasure ? '❯' : '🔒'}</span>
+          </button>
+        </div>
+      )}
 
       {viewingArt && (
         <RoleViewerModal

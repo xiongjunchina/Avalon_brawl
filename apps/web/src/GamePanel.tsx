@@ -95,6 +95,10 @@ export function GamePanel({
     send(action);
   };
   const openTreasure = () => {
+    if (g.selfBrawl) {
+      setIdentityOpen(true);
+      return;
+    }
     if (!treasureEntry.canOpen || !connected) return;
     if (bellNotice.unread) { bellNotice.open(); return; }
     if (guanyinResult) { guanyinNotice.open(); return; }

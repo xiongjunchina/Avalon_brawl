@@ -127,6 +127,7 @@ export interface SelfBrawlView {
   roleTitle: string;
   camp: BrawlCamp;
   artPrefix?: string;
+  motto?: string;
   skill: BrawlSkillDef;
   skillAvailable: boolean;
   skillUsed: boolean;

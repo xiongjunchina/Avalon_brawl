@@ -231,6 +231,10 @@ test('IdentityDetails: renders compact brawl identity card with protected avatar
   assert.match(html, /【红孩儿】· 圣婴大王/);
   assert.match(html, /绝技 · 三昧真火/);
   assert.match(html, /发动绝技/);
+  assert.match(html, /神魔心法/);
+  // Strictly verifies that the second classic role card and redundant legacy treasures are NOT rendered in brawl mode
+  assert.doesNotMatch(html, /identity-card/);
+  assert.doesNotMatch(html, /identity-treasure-row/);
 });
 
 test('BrawlPanel: battle events explain exact meaning and tactical effect instead of just skill name', () => {

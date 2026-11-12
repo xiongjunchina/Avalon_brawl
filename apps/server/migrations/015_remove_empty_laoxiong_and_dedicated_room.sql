@@ -58,7 +58,7 @@ BEGIN
   DELETE FROM sessions WHERE user_id = v_target_user_id;
   DELETE FROM command_receipts WHERE user_id = v_target_user_id;
   DELETE FROM setting_presets WHERE user_id = v_target_user_id;
-  DELETE FROM favorites WHERE user_id = v_target_user_id OR target_user_id = v_target_user_id;
+  DELETE FROM favorites WHERE user_id = v_target_user_id;
   DELETE FROM room_members WHERE user_id = v_target_user_id;
 
   -- 7. 若在靓号预留或安全审计中存在引用，重置其关联

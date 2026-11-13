@@ -315,11 +315,7 @@ export const failuresRequiredFor = (playerCount: number, mission: number, isBraw
   return (playerCount >= 7 && mission === 4) || ((playerCount === 11 || playerCount === 12) && mission === 3) ? 2 : 1;
 };
 export const failuresRequired = (g: GameState) => {
-  const base = failuresRequiredFor(g.players.length, g.mission, Boolean(g.brawl));
-  if (g.brawl?.taoshouActive) {
-    return Math.max(base, 2);
-  }
-  return base;
+  return failuresRequiredFor(g.players.length, g.mission, Boolean(g.brawl));
 };
 function heartBellTargets(g: GameState, userId: string): string[] {
   const round = g.rounds.at(-1);
@@ -471,18 +467,23 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         }
         let passed = approvals > rejections;
 
-        // 沙悟净【降妖宝杖】：自己当队长提议平票时，宝杖定海强制判定通过
-        if (!passed && approvals === rejections && approvals > 0 && g.brawl?.shawujingBaozhangArmed) {
-          const captainPlayer = g.players.find(p => p.id === captain(g));
-          const captainState = captainPlayer ? g.brawl.playerStates[captainPlayer.id] : undefined;
-          if (captainState?.roleId === 'sha_wujing') {
+        // 沙悟净【降妖宝杖】：任意一轮组队表决未通过流局时，沙僧祭起降妖宝杖定风波，50% 概率将流局强行镇压反转为发车通过！
+        if (!passed && g.brawl?.shawujingBaozhangArmed) {
+          g.brawl.shawujingBaozhangArmed = false;
+          if (Math.random() < 0.5) {
             passed = true;
-            g.brawl.shawujingBaozhangArmed = false;
             appendBattleEvent(
               g.brawl,
               'sha_wujing',
-              `【沙悟净】降妖宝杖定海神威！队长提议表决平票（各 ${approvals} 票），宝杖定风波强制判定队伍通过！`,
-              '自己当队长提议平票时，宝杖定海强制判定通过。',
+              `【沙悟净】降妖宝杖定海神威！队伍表决本已流局，沙僧祭起降妖宝杖定风波，神威显圣强行判定队伍通过发车！`,
+              '任意一轮组队表决未通过流局时，沙僧祭起降妖宝杖定风波，50% 概率将流局强行镇压反转为发车通过！',
+            );
+          } else {
+            appendBattleEvent(
+              g.brawl,
+              'sha_wujing',
+              `【沙悟净】降妖宝杖定海，风波势大未能平息，仍旧流局。`,
+              '任意一轮组队表决未通过流局时，沙僧祭起降妖宝杖定风波，50% 概率将流局强行镇压反转为发车通过！',
             );
           }
         }
@@ -508,18 +509,6 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
               '组队表决未通过时倒打一耙，强制将全场最后 1 张反对票反转为赞成票！',
             );
           }
-        }
-
-        // 铁扇公主【芭蕉神风】：当队伍以微弱 1 票优势通过时煽风吹散，强制全场重新公开表决一次
-        if (passed && approvals === rejections + 1 && g.brawl?.tieshanShenfengArmed) {
-          g.brawl.tieshanShenfengArmed = false;
-          passed = false;
-          appendBattleEvent(
-            g.brawl,
-            'tieshan_gongzhu',
-            `【铁扇公主】祭出【芭蕉神风】狂风呼啸！队伍仅以微弱 1 票优势通过（赞成 ${approvals} / 反对 ${rejections}），被铁扇仙一扇吹散发车作废！`,
-            '当队伍以微弱 1 票优势通过时煽风吹散，强制全场重新公开表决一次。',
-          );
         }
 
         g.rounds.at(-1)!.vote = { approvals, rejections, abstentions, passed,
@@ -608,32 +597,55 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           g.brawl.yutuMihunTargetId = undefined;
         }
 
+        // 王母娘娘【九转仙桃】：出征前赐仙桃护体，本轮任务若出现失败牌，50% 概率当场化解赦免 1 张失败牌！
+        if (g.brawl?.taoshouActive && failures > 0) {
+          g.brawl.taoshouActive = false;
+          if (Math.random() < 0.5) {
+            failures = Math.max(0, failures - 1);
+            successes = round.team.length - failures;
+            appendBattleEvent(
+              g.brawl,
+              'wangmu_niangniang',
+              `【王母娘娘】瑶池九转仙桃神力显圣！仙桃延寿护体，当场化解吸收了队伍中的 1 张失败牌！`,
+              '出征前赐九转仙桃护体：本轮任务若出现失败牌，仙桃有 50% 概率当场化解赦免 1 张失败牌！',
+            );
+          } else {
+            appendBattleEvent(
+              g.brawl,
+              'wangmu_niangniang',
+              `【王母娘娘】九转仙桃护体，劫数深重未能抵消失败牌。`,
+              '出征前赐九转仙桃护体：本轮任务若出现失败牌，仙桃有 50% 概率当场化解赦免 1 张失败牌！',
+            );
+          }
+        }
+
         let passed = failures < failuresRequired(g);
 
-        // 玉皇大帝【天尊玉旨】：任务仅出现 1 张失败牌时降旨，50% 概率将该失败牌赦免为成功
-        if (!passed && failures === 1 && g.brawl?.yuhuangYuzhiArmed) {
+        // 玉皇大帝【天尊玉旨】：任务失败时降旨赦免（1败 60% 概率逆转，2败 30% 概率逆转）
+        if (!passed && failures > 0 && g.brawl?.yuhuangYuzhiArmed) {
           g.brawl.yuhuangYuzhiArmed = false;
-          if (Math.random() < 0.5) {
+          const pardonChance = failures === 1 ? 0.6 : (failures === 2 ? 0.3 : 0);
+          if (pardonChance > 0 && Math.random() < pardonChance) {
             passed = true;
             failures = 0;
             successes = round.team.length;
             appendBattleEvent(
               g.brawl,
               'yuhuang_dadi',
-              `【玉皇大帝】昊天金阙降下天尊玉旨！三界至尊金口御言赦免此难唯一的劫数，任务绝境逆转为大获全胜！`,
-              '任务仅出现 1 张失败牌时降旨，50% 概率将该失败牌赦免为成功。',
+              `【玉皇大帝】昊天金阙降下天尊玉旨！三界至尊金口御言赦免此难劫数，任务绝境逆转为大获全胜！`,
+              '任一轮任务失败时降旨赦免（若为 1 败则 60% 概率逆转为胜，若为 2 败则 30% 概率逆转为胜）！',
             );
           } else {
             appendBattleEvent(
               g.brawl,
               'yuhuang_dadi',
               `【玉皇大帝】天尊降旨，群魔势大劫数难消，未能化解此次失败。`,
-              '任务仅出现 1 张失败牌时降旨，50% 概率将该失败牌赦免为成功。',
+              '任一轮任务失败时降旨赦免（若为 1 败则 60% 概率逆转为胜，若为 2 败则 30% 概率逆转为胜）！',
             );
           }
         }
 
-        // 观音菩萨【净瓶甘露】：若洒甘露者出征且任务失败，私密获知该人是否投了成功
+        // 观音菩萨【净瓶甘露】：若洒甘露者出征且任务失败，100% 私密获知该人是否投了成功
         if (g.brawl?.guanyinGanluTargetId && round.team.includes(g.brawl.guanyinGanluTargetId)) {
           const targetVote = g.missionVotes[g.brawl.guanyinGanluTargetId];
           if (failures > 0) {
@@ -807,6 +819,8 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           }
         }
 
+        let customSummary: string | undefined;
+
         if (role.skill.skillId === 'jingang_zhuo') {
           // 太上老君【金刚琢】
           g.brawl.laojunZhuoActive = true;
@@ -907,15 +921,6 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         } else if (role.skill.skillId === 'tianzun_yuzhi') {
           // 玉皇大帝【天尊玉旨】
           g.brawl.yuhuangYuzhiArmed = true;
-          const lastRound = g.rounds.filter(r => r.result).at(-1);
-          if (lastRound?.result && lastRound.result.failures === 1 && !lastRound.result.passed) {
-            const success = Math.random() < 0.5;
-            if (success) {
-              lastRound.result.passed = true;
-              lastRound.result.failures = 0;
-              lastRound.result.successes = lastRound.team.length;
-            }
-          }
         } else if (role.skill.skillId === 'xiangyao_baozhang') {
           // 沙悟净【降妖宝杖】
           g.brawl.shawujingBaozhangArmed = true;
@@ -923,8 +928,38 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           // 猪八戒【倒打一耙】
           g.brawl.zhubajieDaodaArmed = true;
         } else if (role.skill.skillId === 'bajiao_shenfeng') {
-          // 铁扇公主【芭蕉神风】
-          g.brawl.tieshanShenfengArmed = true;
+          // 铁扇公主【芭蕉神风 · 窥破仙阶】
+          // 刺探蓝方入局阵容是天庭灵山至尊大能还是散仙护法，且 50% 概率获知 1 位具体仙佛法号
+          const supremeRoleIds = ['rulai_fozu', 'yuhuang_dadi', 'guanyin_pusa', 'taishang_laojun', 'wangmu_niangniang', 'zhenyuan_daxian', 'puti_zhushi'];
+          const blueInPlay = g.players.map(p => g.brawl?.playerStates[p.id]).filter(ps => ps?.camp === 'blue').map(ps => ps!.roleId);
+          const inPlaySupreme = blueInPlay.filter(id => supremeRoleIds.includes(id));
+          const hasSupreme = inPlaySupreme.length > 0;
+          let tierText = hasSupreme
+            ? '🍃 芭蕉神风窥得天机：本局蓝方入局阵容包含【天庭至尊/灵山大能】（如来/玉帝/王母/老君/观音/镇元/菩提等顶级神仙）！'
+            : '🍃 芭蕉神风窥得天机：本局蓝方无大能坐镇，全员皆为【散仙护法】（八戒/沙僧/白龙/哪吒等，无五行山或金刚琢威胁）！';
+          if (Math.random() < 0.5) {
+            const nonCoreBlues = blueInPlay.filter(id => id !== 'sun_wukong' && id !== 'tang_seng');
+            const targetId = nonCoreBlues.length > 0 ? nonCoreBlues[Math.floor(Math.random() * nonCoreBlues.length)] : blueInPlay[0];
+            const def = BRAWL_ROLE_REGISTRY[targetId];
+            if (def) {
+              tierText += ` 且灵光乍现探得仙班之一为【${def.name}】！`;
+            }
+          }
+          g.brawl.tieshanSecret = tierText;
+        } else if (role.skill.skillId === 'sanmei_shenfeng') {
+          // 黄风怪【三昧神风】
+          if (Math.random() < 0.5) {
+            const blueRoles = g.players.map(p => g.brawl?.playerStates[p.id]).filter(ps => ps?.camp === 'blue' && ps?.roleId !== 'sun_wukong').map(ps => ps!.roleId);
+            if (blueRoles.length > 0) {
+              const targetRole = BRAWL_ROLE_REGISTRY[blueRoles[Math.floor(Math.random() * blueRoles.length)]];
+              if (targetRole) {
+                customSummary = `【黄风怪】祭起【三昧神风】黄风蔽日！狂风大作吹探出蓝方盲盒中暗藏【${targetRole.name}】气机！`;
+              }
+            }
+          }
+          if (!customSummary) {
+            customSummary = `【黄风怪】祭起【三昧神风】黄风蔽日，但神佛宝相庄严，未能吹探出仙佛名号。`;
+          }
         } else if (role.skill.skillId === 'jingping_ganlu') {
           // 观音菩萨【净瓶甘露】
           if (targetPlayer) {
@@ -975,7 +1010,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           }
         }
 
-        const summaryText = `【${role.name}】祭出绝技【${role.skill.skillName}】${targetText}！效用：${role.skill.description}`;
+        const summaryText = customSummary || `【${role.name}】祭出绝技【${role.skill.skillName}】${targetText}！效用：${role.skill.description}`;
         appendBattleEvent(g.brawl, role.id, summaryText, role.skill.description);
       }
       break;
@@ -987,7 +1022,14 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
 export function projectGame(g: GameState, userId?: string): GameView {
   const role = userId && g.phase !== 'dealing' ? g.roles[userId] : undefined;
   const evilIds = role === 'merlin'
-    ? g.players.filter(p => teamOf(g.roles[p.id]) === 'red' && g.roles[p.id] !== 'mordred').map(p => p.id)
+    ? g.players.filter(p => {
+        if (teamOf(g.roles[p.id]) !== 'red') return false;
+        if (g.brawl) {
+          const brawlRoleId = g.brawl.playerStates[p.id]?.roleId;
+          return brawlRoleId !== 'huangmei_laoguai';
+        }
+        return g.roles[p.id] !== 'mordred';
+      }).map(p => p.id)
     : role && teamOf(role) === 'red' && role !== 'oberon'
       ? g.players.filter(p => p.id !== userId && teamOf(g.roles[p.id]) === 'red' && g.roles[p.id] !== 'oberon').map(p => p.id) : [];
   const treasureModeActive = Boolean(g.settings.treasuresEnabled && g.players.length >= 8);

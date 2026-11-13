@@ -36,6 +36,8 @@ export function createBrawlGameState(
     shawujingBaozhangArmed: false,
     zhubajieDaodaArmed: false,
     tieshanShenfengArmed: false,
+    tieshanSecret: undefined,
+    huangfengMihuoActive: false,
     yuhuangYuzhiArmed: false,
     guanyinGanluTargetId: undefined,
     guanyinGanluResult: undefined,
@@ -171,5 +173,6 @@ export function projectSelfBrawlView(
     ...(isAssassinOrDapeng && state.dapengExcludedPlayerId ? { dapengExcludedPlayerId: state.dapengExcludedPlayerId } : {}),
     ...(guanyinNotice ? { guanyinGanluResult: guanyinNotice } : {}),
     ...(dianhuaNoticeText ? { putiDianhuaNotice: dianhuaNoticeText } : {}),
+    ...(playerState.roleId === 'tieshan_gongzhu' && state.tieshanSecret ? { tieshanSecret: state.tieshanSecret } : {}),
   };
 }

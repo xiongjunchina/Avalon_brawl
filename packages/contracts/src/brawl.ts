@@ -120,8 +120,10 @@ export interface BrawlGameState {
   zhaoyaoResult?: { hasDemon: boolean; teamPlayerIds: string[] }; // 托塔李天王照妖镜探查私密结果
   shawujingBaozhangArmed?: boolean; // 沙悟净降妖宝杖平票定海待命
   zhubajieDaodaArmed?: boolean;     // 猪八戒倒打一耙反转票待命
-  tieshanShenfengArmed?: boolean;   // 铁扇公主芭蕉神风1票优势吹散待命
-  yuhuangYuzhiArmed?: boolean;      // 玉皇大帝天尊玉旨赦免1败待命
+  tieshanShenfengArmed?: boolean;   // 铁扇公主芭蕉神风待命
+  tieshanSecret?: string;           // 铁扇公主芭蕉神风窥破仙阶私密情报
+  huangfengMihuoActive?: boolean;   // 黄风怪三昧神风生效中
+  yuhuangYuzhiArmed?: boolean;      // 玉皇大帝天尊玉旨赦免待命
   guanyinGanluTargetId?: string;    // 观音菩萨净瓶甘露标记目标
   guanyinGanluResult?: { targetId: string; targetSuccess: boolean }; // 观音菩萨净瓶甘露探查结果
   putiDianhuaNotice?: { targetBlueUserId: string; redRoleName: string }; // 菩提祖师点化揭露的红方真名
@@ -146,6 +148,7 @@ export interface SelfBrawlView {
   dapengExcludedPlayerId?: string; // 终局刺杀阶段排除的非孙悟空席位
   putiDianhuaNotice?: string; // 菩提祖师专属私密点化天机
   guanyinGanluResult?: { targetSeat: number; targetNickname: string; success: boolean }; // 观音菩萨专属私密出征探查
+  tieshanSecret?: string; // 铁扇公主专属芭蕉神风窥破仙阶天机
 }
 
 export const brawlCommandPayloadSchema = z.object({

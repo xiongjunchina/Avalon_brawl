@@ -263,6 +263,11 @@ export function IdentityDetails({
                   🪷 净瓶甘露探照天机：目标【{selfBrawl.guanyinGanluResult.targetSeat}号 · {selfBrawl.guanyinGanluResult.targetNickname}】在方才失败的任务中投出了【{selfBrawl.guanyinGanluResult.success ? '成功牌' : '失败牌'}】！
                 </div>
               )}
+              {selfBrawl.tieshanSecret && (
+                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#34d399', marginTop: '4px' }}>
+                  {selfBrawl.tieshanSecret}
+                </div>
+              )}
               <div style={{ marginTop: '4px' }}>
                 <button
                   type="button"

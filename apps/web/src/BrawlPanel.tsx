@@ -111,6 +111,13 @@ export function BrawlPanel({
                   🪷 净瓶甘露探照天机：目标【{selfBrawl.guanyinGanluResult.targetSeat}号 · {selfBrawl.guanyinGanluResult.targetNickname}】在方才失败的任务中投出了【{selfBrawl.guanyinGanluResult.success ? '成功牌' : '失败牌'}】！
                 </div>
               )}
+
+              {/* 铁扇公主专属：芭蕉神风窥破仙阶 */}
+              {selfBrawl.tieshanSecret && (
+                <div style={{ marginTop: '6px', fontSize: '12px', fontWeight: 'bold', color: '#34d399' }}>
+                  {selfBrawl.tieshanSecret}
+                </div>
+              )}
             </div>
 
             {/* 技能发动交互 */}

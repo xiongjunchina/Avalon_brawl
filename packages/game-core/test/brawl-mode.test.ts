@@ -768,16 +768,22 @@ test('brawl: Sha Wujing [xiangyao_baozhang] forces tie vote to pass', () => {
   next = transition(next, shaId, { type: 'startTeamVote', payload: {} }, [shaId]);
 
   // 6 人局：3 赞成 3 反对（平票）
-  next = transition(next, 'p1', { type: 'teamVote', payload: { approve: true } }, ['p1']);
-  next = transition(next, 'p2', { type: 'teamVote', payload: { approve: true } }, ['p2']);
-  next = transition(next, 'p3', { type: 'teamVote', payload: { approve: true } }, ['p3']);
-  next = transition(next, 'p4', { type: 'teamVote', payload: { approve: false } }, ['p4']);
-  next = transition(next, 'p5', { type: 'teamVote', payload: { approve: false } }, ['p5']);
-  next = transition(next, 'p6', { type: 'teamVote', payload: { approve: false } }, ['p6']);
+  const originalRandom = Math.random;
+  try {
+    Math.random = () => 0.1; // 50% 概率强行通过
+    next = transition(next, 'p1', { type: 'teamVote', payload: { approve: true } }, ['p1']);
+    next = transition(next, 'p2', { type: 'teamVote', payload: { approve: true } }, ['p2']);
+    next = transition(next, 'p3', { type: 'teamVote', payload: { approve: true } }, ['p3']);
+    next = transition(next, 'p4', { type: 'teamVote', payload: { approve: false } }, ['p4']);
+    next = transition(next, 'p5', { type: 'teamVote', payload: { approve: false } }, ['p5']);
+    next = transition(next, 'p6', { type: 'teamVote', payload: { approve: false } }, ['p6']);
 
-  // 验证在宝杖加持下，平票判定通过并进入出征阶段
-  assert.equal(next.rounds.at(-1)?.vote?.passed, true);
-  assert.equal(next.phase, 'mission');
+    // 验证在宝杖加持下，平票判定通过并进入出征阶段
+    assert.equal(next.rounds.at(-1)?.vote?.passed, true);
+    assert.equal(next.phase, 'mission');
+  } finally {
+    Math.random = originalRandom;
+  }
 });
 
 test('brawl: Zhu Bajie [daoda_yipa] reverses rejection ballot to approval and passes', () => {
@@ -856,13 +862,13 @@ test('brawl: Bai Longma [longma_fuzhong] allows +1 extra team member and propose
   assert.equal(next.phase, 'team_vote');
 });
 
-test('brawl: Tieshan [bajiao_shenfeng] blows away 1-vote margin passed proposal', () => {
-  const players = Array.from({ length: 5 }, (_, i) => ({
+test('brawl: Tieshan [bajiao_shenfeng] probes blue camp tiers and reveals secret', () => {
+  const players = Array.from({ length: 6 }, (_, i) => ({
     id: `p${i + 1}`,
     nickname: `玩家${i + 1}`,
     seat: i + 1,
   }));
-  const game = createGame('brawl-tieshan', players, { ...defaultSettings, playerCount: 5, brawlModeEnabled: true }, a => a);
+  const game = createGame('brawl-tieshan-secret', players, { ...defaultSettings, playerCount: 6, brawlModeEnabled: true }, a => a);
   const tieshanId = 'p4';
   game.brawl!.playerStates[tieshanId] = {
     userId: tieshanId,
@@ -873,23 +879,158 @@ test('brawl: Tieshan [bajiao_shenfeng] blows away 1-vote margin passed proposal'
   };
 
   // 铁扇公主发动芭蕉神风
-  let next = transition(game, tieshanId, {
+  const next = transition(game, tieshanId, {
     type: 'brawlCommand',
     payload: { action: 'useSkill', skillId: 'bajiao_shenfeng' },
   }, [tieshanId]);
-  assert.equal(next.brawl?.tieshanShenfengArmed, true);
 
-  next.phase = 'discussion';
+  assert.equal(next.brawl?.playerStates[tieshanId].skillUsed, true);
+  assert.ok(next.brawl?.tieshanSecret, 'Secret tier information should be generated');
+
+  // 验证铁扇公主的自视角能看到仙阶情报
+  const tieshanView = projectGame(next, tieshanId);
+  assert.equal(tieshanView.selfBrawl?.tieshanSecret, next.brawl?.tieshanSecret);
+});
+
+test('brawl: Huangmei Laoguai is strictly hidden from Sun Wukong vision in brawl mode', () => {
+  const players = Array.from({ length: 6 }, (_, i) => ({
+    id: `p${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+  const game = createGame('brawl-huangmei-vision', players, { ...defaultSettings, playerCount: 6, brawlModeEnabled: true }, a => a);
+  const wukongId = 'p1';
+  const huangmeiId = 'p5';
+  const normalRedId = 'p6';
+
+  game.roles[wukongId] = 'merlin';
+  game.brawl!.playerStates[wukongId] = { userId: wukongId, seat: 1, roleId: 'sun_wukong', camp: 'blue', skillUsed: false };
+
+  game.roles[huangmeiId] = 'minion'; // 哪怕底牌角色不是 mordred
+  game.brawl!.playerStates[huangmeiId] = { userId: huangmeiId, seat: 5, roleId: 'huangmei_laoguai', camp: 'red', skillUsed: false };
+
+  game.roles[normalRedId] = 'assassin';
+  game.brawl!.playerStates[normalRedId] = { userId: normalRedId, seat: 6, roleId: 'hong_haier', camp: 'red', skillUsed: false };
+
+  const wukongView = projectGame(game, wukongId);
+  assert.ok(wukongView.self?.evilIds.includes(normalRedId), 'Wukong should see normal red role Hong Haier');
+  assert.equal(wukongView.self?.evilIds.includes(huangmeiId), false, 'Wukong MUST NOT see Huangmei Laoguai');
+});
+
+test('brawl: Yuhuang Dadi [tianzun_yuzhi] pardons mission failure', () => {
+  const players = Array.from({ length: 6 }, (_, i) => ({
+    id: `p${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+  const game = createGame('brawl-yuhuang', players, { ...defaultSettings, playerCount: 6, brawlModeEnabled: true }, a => a);
+  const yuhuangId = 'p2';
+  game.brawl!.playerStates[yuhuangId] = { userId: yuhuangId, seat: 2, roleId: 'yuhuang_dadi', camp: 'blue', skillUsed: false };
+
+  // 玉帝激活天尊玉旨
+  let next = transition(game, yuhuangId, {
+    type: 'brawlCommand',
+    payload: { action: 'useSkill', skillId: 'tianzun_yuzhi' },
+  }, [yuhuangId]);
+  assert.equal(next.brawl?.yuhuangYuzhiArmed, true);
+
+  // 模拟任务投票：1 成功 1 失败（原本应判定失败）
+  next.phase = 'mission';
   next.rounds.push({ number: 1, mission: 1, captainId: 'p1', team: ['p1', 'p2'], direction: 'clockwise' });
-  next.phase = 'team_vote';
+  next.roles.p1 = 'assassin';
+  next.roles.p2 = 'merlin';
+  next.brawl!.playerStates.p1.camp = 'red';
 
-  // 5人局：3 赞成 2 反对（微弱 1 票优势通过）
-  next = transition(next, 'p1', { type: 'teamVote', payload: { approve: true } }, ['p1']);
-  next = transition(next, 'p2', { type: 'teamVote', payload: { approve: true } }, ['p2']);
-  next = transition(next, 'p3', { type: 'teamVote', payload: { approve: true } }, ['p3']);
-  next = transition(next, 'p4', { type: 'teamVote', payload: { approve: false } }, ['p4']);
-  next = transition(next, 'p5', { type: 'teamVote', payload: { approve: false } }, ['p5']);
+  // 使用确定的 Math.random 使得赦免判定成功
+  const originalRandom = Math.random;
+  try {
+    Math.random = () => 0.1; // 0.1 < 0.6，必然赦免
+    next = transition(next, 'p1', { type: 'missionVote', payload: { success: false } }, ['p1']);
+    next = transition(next, 'p2', { type: 'missionVote', payload: { success: true } }, ['p2']);
 
-  // 应当被芭蕉神风吹散，判定不通过
-  assert.equal(next.rounds.at(-1)?.vote?.passed, false);
+    assert.equal(next.rounds.at(-1)?.result?.passed, true, 'Mission should be pardoned and passed by Yuhuang Dadi');
+    assert.equal(next.rounds.at(-1)?.result?.failures, 0);
+  } finally {
+    Math.random = originalRandom;
+  }
+});
+
+test('brawl: Wangmu Niangniang [jiuzhuan_xiantao] pardons 1 failure card in any team size', () => {
+  const players = Array.from({ length: 5 }, (_, i) => ({
+    id: `p${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+  const game = createGame('brawl-wangmu', players, { ...defaultSettings, playerCount: 5, brawlModeEnabled: true }, a => a);
+  const wangmuId = 'p3';
+  game.brawl!.playerStates[wangmuId] = { userId: wangmuId, seat: 3, roleId: 'wangmu_niangniang', camp: 'blue', skillUsed: false };
+
+  // 王母娘娘赐仙桃
+  let next = transition(game, wangmuId, {
+    type: 'brawlCommand',
+    payload: { action: 'useSkill', skillId: 'jiuzhuan_xiantao' },
+  }, [wangmuId]);
+  assert.equal(next.brawl?.taoshouActive, true);
+
+  // 5人局第1难只有 2 人队伍，原本王母不能发动，现在任意人数均可生效
+  next.phase = 'mission';
+  next.rounds.push({ number: 1, mission: 1, captainId: 'p1', team: ['p1', 'p2'], direction: 'clockwise' });
+  next.roles.p1 = 'assassin';
+  next.roles.p2 = 'merlin';
+  next.brawl!.playerStates.p1.camp = 'red';
+
+  const originalRandom = Math.random;
+  try {
+    Math.random = () => 0.1; // 0.1 < 0.5，必然抵消
+    next = transition(next, 'p1', { type: 'missionVote', payload: { success: false } }, ['p1']);
+    next = transition(next, 'p2', { type: 'missionVote', payload: { success: true } }, ['p2']);
+
+    assert.equal(next.rounds.at(-1)?.result?.failures, 0, 'Failure card should be absorbed by Xiantao');
+    assert.equal(next.rounds.at(-1)?.result?.passed, true);
+  } finally {
+    Math.random = originalRandom;
+  }
+});
+
+test('brawl: Guanyin Pusa [jingping_ganlu] inspects team member vote privately when mission fails', () => {
+  const players = Array.from({ length: 6 }, (_, i) => ({
+    id: `p${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+  const game = createGame('brawl-guanyin', players, { ...defaultSettings, playerCount: 6, brawlModeEnabled: true }, a => a);
+  const guanyinId = 'p4';
+  game.brawl!.playerStates[guanyinId] = { userId: guanyinId, seat: 4, roleId: 'guanyin_pusa', camp: 'blue', skillUsed: false };
+
+  // 队伍敲定包含 p1, p2
+  game.phase = 'proposing';
+  game.draftTeam = { playerIds: ['p1', 'p2'], direction: 'clockwise' };
+
+  // 观音对 p1 洒甘露
+  let next = transition(game, guanyinId, {
+    type: 'brawlCommand',
+    payload: { action: 'useSkill', skillId: 'jingping_ganlu', targetPlayerId: 'p1' },
+  }, [guanyinId]);
+  assert.equal(next.brawl?.guanyinGanluTargetId, 'p1');
+
+  // 进入出征阶段
+  next.phase = 'mission';
+  next.rounds.push({ number: 1, mission: 1, captainId: 'p1', team: ['p1', 'p2'], direction: 'clockwise' });
+  next.roles.p1 = 'assassin';
+  next.roles.p2 = 'merlin';
+  next.brawl!.playerStates.p1.camp = 'red';
+
+  // p1 投失败，p2 投成功 -> 任务失败
+  next = transition(next, 'p1', { type: 'missionVote', payload: { success: false } }, ['p1']);
+  next = transition(next, 'p2', { type: 'missionVote', payload: { success: true } }, ['p2']);
+
+  // 验证观音私密收到探查结果：p1 投了失败牌 (success = false)
+  const viewGuanyin = projectGame(next, guanyinId);
+  assert.ok(viewGuanyin.selfBrawl?.guanyinGanluResult, 'Guanyin receives ganlu result');
+  assert.equal(viewGuanyin.selfBrawl?.guanyinGanluResult?.targetSeat, 1);
+  assert.equal(viewGuanyin.selfBrawl?.guanyinGanluResult?.success, false);
+
+  // 其他玩家绝不能看到该私密结果
+  const viewP2 = projectGame(next, 'p2');
+  assert.equal(viewP2.selfBrawl?.guanyinGanluResult, undefined);
 });

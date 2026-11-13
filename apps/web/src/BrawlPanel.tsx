@@ -188,8 +188,8 @@ export function BrawlPanel({
         </>
       )}
 
-      {/* 3. 天机战报收折抽屉（公法不公人） */}
-      {events.length > 0 && (
+      {/* 3. 天机战报收折抽屉（公法不公人，仅在非隐私模式且有战报时作为调试/回顾辅助展示） */}
+      {!privacyMode && events.length > 0 && (
         <div style={{ marginTop: '6px' }}>
           <button
             type="button"

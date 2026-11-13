@@ -112,8 +112,9 @@ export function projectBrawlGameState(
     return structuredClone(brawl);
   }
   const sanitized = structuredClone(brawl);
-  // 对局中严格删除复盘时间线
+  // 对局中严格删除复盘时间线与全局战报，确保对局中零剧透、不显示谁发动了什么法宝
   delete sanitized.replayTimeline;
+  sanitized.events = [];
 
   // 对局中清理私密目标，防止通过客户端全局状态窥探暗中施法
   delete sanitized.baiyanDuchaTargetId;

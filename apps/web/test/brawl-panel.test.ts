@@ -182,6 +182,24 @@ test('BrawlPanel: privacyMode hides sensitive role/camp/skills from public board
   // It should only show a neutral privacy notice pill
   assert.match(html, /brawl-privacy-notice-pill/);
   assert.match(html, /你有神魔法宝待决，点击「真身」私下查看与发动/);
+
+  // Even if events are supplied, privacyMode must strictly suppress the public events drawer!
+  const htmlWithEvents = renderToStaticMarkup(createElement(BrawlPanel, {
+    selfBrawl,
+    privacyMode: true,
+    events: [
+      {
+        id: 'e1',
+        roleId: 'rulai_fozu',
+        roleName: '如来佛祖',
+        skillName: '五行山掌',
+        summary: '如来佛祖降下五行山',
+        timestamp: new Date().toISOString(),
+      },
+    ],
+  }));
+  assert.doesNotMatch(htmlWithEvents, /天机战报记录/);
+  assert.doesNotMatch(htmlWithEvents, /五行山掌/);
 });
 
 test('IdentityDetails: renders compact brawl identity card with protected avatar button and skill trigger', async () => {

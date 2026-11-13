@@ -1219,7 +1219,6 @@ export function GamePanel({
         {g.selfBrawl && (
           <BrawlPanel
             selfBrawl={g.selfBrawl}
-            events={g.brawl?.events}
             players={g.players}
             privacyMode={true}
             onOpenIdentity={() => setIdentityOpen(true)}

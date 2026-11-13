@@ -1183,9 +1183,10 @@ test('brawl: post-game replay timeline is strictly hidden during active game and
   const players = Array.from({ length: 8 }, (_, i) => ({ id: `p${i + 1}`, nickname: `P${i + 1}`, seat: i + 1 }));
   let game = createGame('brawl-replay-test', players, { ...defaultSettings, playerCount: 8, brawlModeEnabled: true }, a => a);
 
-  // 1. 对局进行中（未分胜负）：projectGame 绝不泄露 replayTimeline 与暗中施法目标
+  // 1. 对局进行中（未分胜负）：projectGame 绝不泄露 replayTimeline 与暗中施法目标，且 events 为空
   const inGameView = projectGame(game, 'p1');
   assert.equal(inGameView.brawl?.replayTimeline, undefined, 'Replay timeline MUST be undefined during active game');
+  assert.deepEqual(inGameView.brawl?.events, [], 'Public battle events MUST be empty during active game');
   assert.equal(inGameView.brawl?.baiyanDuchaTargetId, undefined, 'Secret target MUST be scrubbed');
   assert.equal(inGameView.brawl?.huangmeiDianhuaNotice, undefined, 'Fake notice MUST be scrubbed');
 
@@ -1206,6 +1207,7 @@ test('brawl: post-game replay timeline is strictly hidden during active game and
   // 对局中再次校验：依然严格保密
   const midGameView = projectGame(game, 'p2');
   assert.equal(midGameView.brawl?.replayTimeline, undefined, 'Still hidden during mid-game');
+  assert.deepEqual(midGameView.brawl?.events, [], 'Public battle events MUST stay empty during mid-game');
 
   // 3. 模拟一轮任务出征并毒化翻车
   game.phase = 'mission';

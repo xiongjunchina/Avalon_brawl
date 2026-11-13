@@ -332,13 +332,13 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     artPrefix: 'minion-baigu',
     motto: '骷髅红颜三般变，粉面含笑乱佛心',
     skill: {
-      skillId: 'huapi_sanbian',
-      skillName: '画皮三变',
-      triggerPhase: 'game_start',
-      actionType: 'passive',
+      skillId: 'huapi_lijian',
+      skillName: '画皮离间',
+      triggerPhase: 'team_building',
+      actionType: 'single_button',
       maxUses: 1,
       awakeningChance: 0.5,
-      description: '开局 50% 概率不显红光妖气（处于孙悟空视野盲区）。',
+      description: '本轮出征若失败，静默虚增1张失败牌引车内好人自相残杀！',
     },
   },
   zhizhu_jing: {
@@ -443,12 +443,12 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     artPrefix: 'brawl-huangmei',
     motto: '假设雷音瞒正果，后天袋内困神仙',
     skill: {
-      skillId: 'renzhong_jindai',
-      skillName: '人种金袋 · 假佛匿形',
+      skillId: 'jiashe_leiyin',
+      skillName: '假设雷音',
       triggerPhase: 'team_building',
       actionType: 'target_player',
       maxUses: 1,
-      description: '佛相匿形（大圣看不见）；挑人时祭起人种袋剔除队长选的1人。',
+      description: '佛相匿形；挑人时向1名随机蓝方私密点化选定之人为妖魔！',
     },
   },
   jinjiao_dawang: {
@@ -537,10 +537,10 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     skill: {
       skillId: 'dakou_tuntian',
       skillName: '大口吞天',
-      triggerPhase: 'team_voting',
+      triggerPhase: 'team_building',
       actionType: 'target_player',
       maxUses: 1,
-      description: '队伍表决通过后强行吞除 1 名队员资格，迫使队长现场重新补选。',
+      description: '挑人时张开巨口，将队长选的1人强行吞走剔除出队！',
     },
   },
   jinchi_dapeng: {

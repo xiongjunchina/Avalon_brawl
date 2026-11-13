@@ -355,19 +355,19 @@ test('brawl: 9-player (5B:4R), 11-player (6B:5R), and 12-player (7B:5R) custom b
   assert.deepEqual(projectGame(classic11).missionSizes, [3, 4, 5, 5, 5]);
 });
 
-test('brawl: Huangmei Laoguai [renzhong_jindai] ejects drafted team member and bans captain nomination', () => {
+test('brawl: Qingmao Shizi [dakou_tuntian] ejects drafted team member and bans captain nomination', () => {
   const players = Array.from({ length: 10 }, (_, i) => ({ id: `p${i + 1}`, nickname: `P${i + 1}`, seat: i + 1 }));
-  const game = createGame('brawl-huangmei', players, { ...defaultSettings, playerCount: 10, brawlModeEnabled: true }, a => a);
+  const game = createGame('brawl-qingshi', players, { ...defaultSettings, playerCount: 10, brawlModeEnabled: true }, a => a);
 
-  // 设定 p1 为队长, p2 为目标, p3 为黄眉老怪
+  // 设定 p1 为队长, p2 为目标, p3 为青毛狮子怪
   const captainId = game.captainOrder[0];
   const targetId = game.captainOrder[1];
-  const huangmeiId = game.captainOrder[2];
+  const qingshiId = game.captainOrder[2];
 
-  game.brawl!.playerStates[huangmeiId] = {
-    userId: huangmeiId,
+  game.brawl!.playerStates[qingshiId] = {
+    userId: qingshiId,
     seat: 3,
-    roleId: 'huangmei_laoguai',
+    roleId: 'qingmao_shizi',
     camp: 'red',
     skillUsed: false,
   };
@@ -378,15 +378,15 @@ test('brawl: Huangmei Laoguai [renzhong_jindai] ejects drafted team member and b
   const otherId = game.captainOrder[3];
   game.draftTeam = { playerIds: [targetId, otherId], direction: 'clockwise' };
 
-  // 黄眉老怪发动绝技【人种金袋】对 targetId
-  const nextGame = transition(game, huangmeiId, {
+  // 青毛狮子怪发动绝技【大口吞天】对 targetId
+  const nextGame = transition(game, qingshiId, {
     type: 'brawlCommand',
     payload: {
       action: 'useSkill',
-      skillId: 'renzhong_jindai',
+      skillId: 'dakou_tuntian',
       targetPlayerId: targetId,
     },
-  }, [huangmeiId]);
+  }, [qingshiId]);
 
   // 1. 验证目标被立即从队伍草稿中吸走剔除
   assert.ok(!nextGame.draftTeam?.playerIds.includes(targetId), 'Target should be ejected from draftTeam');
@@ -409,13 +409,13 @@ test('brawl: Huangmei Laoguai [renzhong_jindai] ejects drafted team member and b
   );
 });
 
-test('brawl: Taishang Laojun [jingang_zhuo] intercepts Huangmei Laoguai [renzhong_jindai] skill', () => {
+test('brawl: Taishang Laojun [jingang_zhuo] intercepts Qingmao Shizi [dakou_tuntian] skill', () => {
   const players = Array.from({ length: 10 }, (_, i) => ({ id: `p${i + 1}`, nickname: `P${i + 1}`, seat: i + 1 }));
   const game = createGame('brawl-laojun-intercept', players, { ...defaultSettings, playerCount: 10, brawlModeEnabled: true }, a => a);
 
   const captainId = game.captainOrder[0];
   const targetId = game.captainOrder[1];
-  const huangmeiId = game.captainOrder[2];
+  const qingshiId = game.captainOrder[2];
   const laojunId = game.captainOrder[3];
 
   game.brawl!.playerStates[laojunId] = {
@@ -425,10 +425,10 @@ test('brawl: Taishang Laojun [jingang_zhuo] intercepts Huangmei Laoguai [renzhon
     camp: 'blue',
     skillUsed: false,
   };
-  game.brawl!.playerStates[huangmeiId] = {
-    userId: huangmeiId,
+  game.brawl!.playerStates[qingshiId] = {
+    userId: qingshiId,
     seat: 3,
-    roleId: 'huangmei_laoguai',
+    roleId: 'qingmao_shizi',
     camp: 'red',
     skillUsed: false,
   };
@@ -448,15 +448,15 @@ test('brawl: Taishang Laojun [jingang_zhuo] intercepts Huangmei Laoguai [renzhon
 
   assert.equal(state.brawl!.laojunZhuoActive, true, 'Laojun Jingang Zhuo is armed and active');
 
-  // 2. 妖魔黄眉老怪发动绝技【人种金袋】试图吸走 targetId
-  state = transition(state, huangmeiId, {
+  // 2. 妖魔青毛狮子怪发动绝技【大口吞天】试图吞走 targetId
+  state = transition(state, qingshiId, {
     type: 'brawlCommand',
     payload: {
       action: 'useSkill',
-      skillId: 'renzhong_jindai',
+      skillId: 'dakou_tuntian',
       targetPlayerId: targetId,
     },
-  }, [huangmeiId]);
+  }, [qingshiId]);
 
   // 3. 验证金刚琢当场拦截并解除充能
   assert.equal(state.brawl!.laojunZhuoActive, false, 'Jingang Zhuo consumed upon intercepting demon');
@@ -464,9 +464,9 @@ test('brawl: Taishang Laojun [jingang_zhuo] intercepts Huangmei Laoguai [renzhon
   // 4. 验证战报中记录了金刚琢显圣套走妖法的通报
   const lastEvent = state.brawl!.events.at(-1);
   assert.ok(lastEvent?.summary.includes('【太上老君】金刚琢凌空显圣'), 'Battle event reports intercept');
-  assert.ok(lastEvent?.summary.includes('黄眉老怪'), 'Battle event specifies intercepted demon');
+  assert.ok(lastEvent?.summary.includes('青毛狮子怪'), 'Battle event specifies intercepted demon');
 
-  // 5. 验证黄眉老怪法宝被收缴作废，targetId 未被剔除，依然在队伍中！
+  // 5. 验证青狮怪法宝被收缴作废，targetId 未被剔除，依然在队伍中！
   assert.ok(state.draftTeam?.playerIds.includes(targetId), 'Target should remain in team because skill was confiscated');
   assert.equal(state.treasuresState?.humanBag?.targetId, undefined, 'No human bag ban should be active');
 });
@@ -1033,4 +1033,93 @@ test('brawl: Guanyin Pusa [jingping_ganlu] inspects team member vote privately w
   // 其他玩家绝不能看到该私密结果
   const viewP2 = projectGame(next, 'p2');
   assert.equal(viewP2.selfBrawl?.guanyinGanluResult, undefined);
+});
+
+test('brawl: Huangmei Laoguai [jiashe_leiyin] delivers fake Bodhi enlightenment privately without public event leak', () => {
+  const players = Array.from({ length: 6 }, (_, i) => ({
+    id: `p${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+  const game = createGame('brawl-huangmei-fake', players, { ...defaultSettings, playerCount: 6, brawlModeEnabled: true }, a => a);
+  const huangmeiId = 'p6';
+  const targetId = 'p2'; // 黄眉选定栽赃的目标
+  const blueReceiverId = 'p3'; // 蓝方非悟空玩家
+
+  game.brawl!.playerStates[huangmeiId] = { userId: huangmeiId, seat: 6, roleId: 'huangmei_laoguai', camp: 'red', skillUsed: false };
+  game.brawl!.playerStates[blueReceiverId] = { userId: blueReceiverId, seat: 3, roleId: 'zhu_bajie', camp: 'blue', skillUsed: false };
+  game.brawl!.playerStates.p1 = { userId: 'p1', seat: 1, roleId: 'sun_wukong', camp: 'blue', skillUsed: false };
+
+  const eventCountBefore = game.brawl!.events.length;
+
+  // 黄眉老怪发动【假设雷音】，假传佛旨指认 p2 为妖魔
+  const next = transition(game, huangmeiId, {
+    type: 'brawlCommand',
+    payload: { action: 'useSkill', skillId: 'jiashe_leiyin', targetPlayerId: targetId },
+  }, [huangmeiId]);
+
+  // 1. 验证公屏绝不产生自爆战报（完全静默）
+  assert.equal(next.brawl!.events.length, eventCountBefore, 'Public battle events MUST be silent (no self-doxxing)');
+
+  // 2. 验证受害蓝方玩家私密收到了与菩提祖师格式完全相同的点化提示
+  const receiverId = next.brawl!.huangmeiDianhuaNotice!.targetBlueUserId;
+  const viewReceiver = projectGame(next, receiverId);
+  assert.ok(viewReceiver.selfBrawl?.putiDianhuaNotice, 'Targeted blue player receives divine notice');
+  assert.ok(viewReceiver.selfBrawl.putiDianhuaNotice.includes('菩提祖师道法点化真传'), 'Notice pretends to be Bodhi');
+  assert.ok(viewReceiver.selfBrawl.putiDianhuaNotice.includes('玩家2'), 'Notice frames player 2');
+
+  // 3. 验证黄眉本人收到回执确认
+  const viewHuangmei = projectGame(next, huangmeiId);
+  assert.ok(viewHuangmei.selfBrawl?.huangmeiNotice, 'Huangmei receives confirmation');
+
+  // 4. 验证孙悟空和其他人绝不提前收到泄密
+  const viewWukong = projectGame(next, 'p1');
+  assert.equal(viewWukong.selfBrawl?.putiDianhuaNotice, undefined);
+});
+
+test('brawl: Bai Gujing [huapi_lijian] silently increments failure cards without public event leak', () => {
+  const players = Array.from({ length: 6 }, (_, i) => ({
+    id: `p${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+  const game = createGame('brawl-baigu-lijian', players, { ...defaultSettings, playerCount: 6, brawlModeEnabled: true }, a => a);
+  const baiguId = 'p5';
+  game.brawl!.playerStates[baiguId] = { userId: baiguId, seat: 5, roleId: 'bai_gujing', camp: 'red', skillUsed: false };
+
+  // 白骨精发动绝技【画皮离间】
+  let next = transition(game, baiguId, {
+    type: 'brawlCommand',
+    payload: { action: 'useSkill', skillId: 'huapi_lijian' },
+  }, [baiguId]);
+
+  // 1. 发动时公屏完全静默（绝无自爆战报）
+  assert.equal(next.brawl!.events.length, 0, 'No public battle event on activation');
+  assert.equal(next.brawl?.baiguLijianArmed, true);
+
+  // 2. 模拟出征：3 人队伍（1 红 2 蓝），实际只有 1 张失败票
+  next.phase = 'mission';
+  next.rounds.push({ number: 1, mission: 1, captainId: 'p1', team: ['p1', 'p2', 'p3'], direction: 'clockwise' });
+  next.roles.p1 = 'assassin';
+  next.roles.p2 = 'merlin';
+  next.roles.p3 = 'loyal';
+  next.brawl!.playerStates.p1.camp = 'red';
+  next.brawl!.playerStates.p2.camp = 'blue';
+  next.brawl!.playerStates.p3.camp = 'blue';
+
+  next = transition(next, 'p1', { type: 'missionVote', payload: { success: false } }, ['p1']); // 1 失败
+  next = transition(next, 'p2', { type: 'missionVote', payload: { success: true } }, ['p2']);
+  next = transition(next, 'p3', { type: 'missionVote', payload: { success: true } }, ['p3']);
+
+  // 3. 验证战报结果被静默篡改：实际 1 败，虚增为 2 败！
+  assert.equal(next.rounds.at(-1)?.result?.failures, 2, 'Failures should be silently augmented from 1 to 2');
+  assert.equal(next.rounds.at(-1)?.result?.passed, false);
+
+  // 4. 验证公屏战报中绝无白骨精或离间字样的广播（不打自招），好人只能看到出征 2 败并陷入自相残杀
+  const hasBaiguEvent = next.brawl?.events.some(e => e.roleId === 'bai_gujing' || e.skillName === '画皮离间');
+  assert.equal(hasBaiguEvent, false, 'Public events MUST NOT mention Bai Gujing skill');
+
+  // 5. 验证白骨精本人私密面板收到离间得逞提示
+  const viewBaigu = projectGame(next, baiguId);
+  assert.ok(viewBaigu.selfBrawl?.baiguLijianStatus?.includes('离间魔功已得逞'));
 });

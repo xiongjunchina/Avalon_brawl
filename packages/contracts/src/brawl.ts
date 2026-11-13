@@ -130,6 +130,9 @@ export interface BrawlGameState {
   jinjiaoHuluTargetId?: string;     // 金角大王紫金葫芦锁定的队员
   yutuMihunTargetId?: string;       // 玉兔精捣药迷魂锁定的队员
   qingshiTuntianTargetId?: string;  // 青毛狮子怪大口吞天锁定的队员
+  baiguLijianArmed?: boolean;       // 白骨精画皮离间待命中
+  baiguLijianResult?: boolean;      // 白骨精画皮离间是否已生效虚增
+  huangmeiDianhuaNotice?: { targetBlueUserId: string; targetSeat: number; targetNickname: string }; // 黄眉老怪假设雷音假传佛旨
 }
 
 export interface SelfBrawlView {
@@ -146,16 +149,18 @@ export interface SelfBrawlView {
   peekedRoles?: { roleId: string; roleName: string; camp: BrawlCamp }[];
   zhaoyaoResult?: boolean; // 李天王专属：当前车队是否有妖魔
   dapengExcludedPlayerId?: string; // 终局刺杀阶段排除的非孙悟空席位
-  putiDianhuaNotice?: string; // 菩提祖师专属私密点化天机
+  putiDianhuaNotice?: string; // 菩提祖师专属私密点化天机（或黄眉老怪假托之天机）
   guanyinGanluResult?: { targetSeat: number; targetNickname: string; success: boolean }; // 观音菩萨专属私密出征探查
   tieshanSecret?: string; // 铁扇公主专属芭蕉神风窥破仙阶天机
+  huangmeiNotice?: string; // 黄眉老怪专属假传佛旨状态回执
+  baiguLijianStatus?: string; // 白骨精专属画皮离间状态回执
 }
 
 export const brawlCommandPayloadSchema = z.object({
   action: z.literal('useSkill'),
   skillId: z.string(),
-  targetPlayerId: z.string().uuid().optional(),
-  targetPlayerId2: z.string().uuid().optional(),
+  targetPlayerId: z.string().optional(),
+  targetPlayerId2: z.string().optional(),
 });
 
 export type BrawlCommandPayload = z.infer<typeof brawlCommandPayloadSchema>;

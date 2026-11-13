@@ -45,6 +45,9 @@ export function createBrawlGameState(
     jinjiaoHuluTargetId: undefined,
     yutuMihunTargetId: undefined,
     qingshiTuntianTargetId: undefined,
+    baiguLijianArmed: false,
+    baiguLijianResult: false,
+    huangmeiDianhuaNotice: undefined,
   };
 }
 
@@ -118,6 +121,7 @@ export function resetRoundBrawlEffects(state: BrawlGameState): void {
   state.jinjiaoHuluTargetId = undefined;
   state.yutuMihunTargetId = undefined;
   state.qingshiTuntianTargetId = undefined;
+  state.baiguLijianArmed = false;
 }
 
 /**
@@ -155,6 +159,22 @@ export function projectSelfBrawlView(
   let dianhuaNoticeText: string | undefined;
   if (state.putiDianhuaNotice?.targetBlueUserId === userId) {
     dianhuaNoticeText = `🔮 菩提祖师道法点化真传：天机暗授，场上潜伏群妖之一的真名为【${state.putiDianhuaNotice.redRoleName}】！`;
+  } else if (state.huangmeiDianhuaNotice?.targetBlueUserId === userId) {
+    dianhuaNoticeText = `🔮 菩提祖师道法点化真传：天机暗授，暗查【${state.huangmeiDianhuaNotice.targetSeat}号 · ${state.huangmeiDianhuaNotice.targetNickname}】身上妖氛缠绕！`;
+  }
+
+  let huangmeiNotice: string | undefined;
+  if (playerState.roleId === 'huangmei_laoguai' && state.huangmeiDianhuaNotice) {
+    huangmeiNotice = `🪷 假设雷音佛音已发：已假借菩提祖师真传之名，将【${state.huangmeiDianhuaNotice.targetSeat}号 · ${state.huangmeiDianhuaNotice.targetNickname}】是妖魔的假天机私密投递给了 1 名蓝方仙友！`;
+  }
+
+  let baiguLijianStatus: string | undefined;
+  if (playerState.roleId === 'bai_gujing') {
+    if (state.baiguLijianResult) {
+      baiguLijianStatus = '💀 离间魔功已得逞：本轮出征战报已静默虚增 1 张失败牌，好人同乘已自相猜忌！';
+    } else if (state.baiguLijianArmed) {
+      baiguLijianStatus = '💀 离间魔骨已就绪：本轮任务出征若出现失败牌，将静默虚增 1 败制造冤案！';
+    }
   }
 
   return {
@@ -174,5 +194,7 @@ export function projectSelfBrawlView(
     ...(guanyinNotice ? { guanyinGanluResult: guanyinNotice } : {}),
     ...(dianhuaNoticeText ? { putiDianhuaNotice: dianhuaNoticeText } : {}),
     ...(playerState.roleId === 'tieshan_gongzhu' && state.tieshanSecret ? { tieshanSecret: state.tieshanSecret } : {}),
+    ...(huangmeiNotice ? { huangmeiNotice } : {}),
+    ...(baiguLijianStatus ? { baiguLijianStatus } : {}),
   };
 }

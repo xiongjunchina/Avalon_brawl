@@ -268,6 +268,16 @@ export function IdentityDetails({
                   {selfBrawl.tieshanSecret}
                 </div>
               )}
+              {selfBrawl.huangmeiNotice && (
+                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#fbbf24', marginTop: '4px' }}>
+                  {selfBrawl.huangmeiNotice}
+                </div>
+              )}
+              {selfBrawl.baiguLijianStatus && (
+                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#f43f5e', marginTop: '4px' }}>
+                  {selfBrawl.baiguLijianStatus}
+                </div>
+              )}
               <div style={{ marginTop: '4px' }}>
                 <button
                   type="button"

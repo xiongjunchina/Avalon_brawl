@@ -597,6 +597,15 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           g.brawl.yutuMihunTargetId = undefined;
         }
 
+        // 白骨精【画皮离间】：本轮任务出征若失败，静默虚增 1 张失败牌引车内好人自相残杀！
+        if (g.brawl?.baiguLijianArmed && failures > 0) {
+          g.brawl.baiguLijianArmed = false;
+          failures += 1;
+          successes = Math.max(0, successes - 1);
+          g.brawl.baiguLijianResult = true;
+          // 静默生效，绝不生成公屏战报，彻底避免自爆！
+        }
+
         // 王母娘娘【九转仙桃】：出征前赐仙桃护体，本轮任务若出现失败牌，50% 概率当场化解赦免 1 张失败牌！
         if (g.brawl?.taoshouActive && failures > 0) {
           g.brawl.taoshouActive = false;
@@ -824,8 +833,8 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         if (role.skill.skillId === 'jingang_zhuo') {
           // 太上老君【金刚琢】
           g.brawl.laojunZhuoActive = true;
-        } else if (role.skill.skillId === 'renzhong_jindai') {
-          // 黄眉老怪【人种金袋】
+        } else if (role.skill.skillId === 'dakou_tuntian') {
+          // 青毛狮子怪【大口吞天】
           if (targetPlayer) {
             requireRule(targetPlayer.id !== captain(g), 'CANNOT_BAN_CAPTAIN');
             requireRule(targetPlayer.id !== userId, 'CANNOT_BAN_SELF');
@@ -849,6 +858,29 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
               g.phase = 'proposing';
             }
           }
+        } else if (role.skill.skillId === 'jiashe_leiyin') {
+          // 黄眉老怪【假设雷音】（假传佛旨：私密点化 1 名随机蓝方）
+          if (targetPlayer) {
+            const candidateBlues = g.players.filter(p => {
+              const ps = g.brawl?.playerStates[p.id];
+              return ps?.camp === 'blue' && ps?.roleId !== 'sun_wukong';
+            });
+            if (candidateBlues.length > 0) {
+              const randomBlue = candidateBlues[Math.floor(Math.random() * candidateBlues.length)];
+              g.brawl.huangmeiDianhuaNotice = {
+                targetBlueUserId: randomBlue.id,
+                targetSeat: targetPlayer.seat,
+                targetNickname: targetPlayer.nickname,
+              };
+            }
+          }
+          // 静默生效，绝不生成公屏战报，彻底避免自爆！
+          break;
+        } else if (role.skill.skillId === 'huapi_lijian') {
+          // 白骨精【画皮离间】（静默在出征队伍中埋下离间魔骨）
+          g.brawl.baiguLijianArmed = true;
+          // 静默生效，绝不生成公屏战报，彻底避免自爆！
+          break;
         } else if (role.skill.skillId === 'wuxingshan_zhang') {
           // 如来佛祖【五行山掌】
           if (targetPlayer) {
@@ -994,19 +1026,6 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           // 玉兔精【捣药迷魂】
           if (targetPlayer) {
             g.brawl.yutuMihunTargetId = targetPlayer.id;
-          }
-        } else if (role.skill.skillId === 'dakou_tuntian') {
-          // 青毛狮子怪【大口吞天】
-          if (targetPlayer) {
-            g.brawl.qingshiTuntianTargetId = targetPlayer.id;
-            if (g.draftTeam?.playerIds.includes(targetPlayer.id)) {
-              g.draftTeam.playerIds = g.draftTeam.playerIds.filter(id => id !== targetPlayer.id);
-            }
-            const currentRound = g.rounds.at(-1);
-            if (currentRound && currentRound.team.includes(targetPlayer.id)) {
-              currentRound.team = currentRound.team.filter(id => id !== targetPlayer.id);
-              g.phase = 'proposing';
-            }
           }
         }
 

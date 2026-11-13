@@ -118,6 +118,20 @@ export function BrawlPanel({
                   {selfBrawl.tieshanSecret}
                 </div>
               )}
+
+              {/* 黄眉老怪专属：假设雷音假传佛旨状态 */}
+              {selfBrawl.huangmeiNotice && (
+                <div style={{ marginTop: '6px', fontSize: '12px', fontWeight: 'bold', color: '#fbbf24' }}>
+                  {selfBrawl.huangmeiNotice}
+                </div>
+              )}
+
+              {/* 白骨精专属：画皮离间虚增败数状态 */}
+              {selfBrawl.baiguLijianStatus && (
+                <div style={{ marginTop: '6px', fontSize: '12px', fontWeight: 'bold', color: '#f43f5e' }}>
+                  {selfBrawl.baiguLijianStatus}
+                </div>
+              )}
             </div>
 
             {/* 技能发动交互 */}

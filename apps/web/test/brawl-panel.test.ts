@@ -4,7 +4,8 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { BrawlPanel } from '../src/BrawlPanel.js';
 import { BrawlReplayTimeline } from '../src/BrawlReplayTimeline.js';
-import type { SelfBrawlView, BrawlBattleEvent, BrawlReplayAction } from '@avalon/contracts';
+import { BattleHistory } from '../src/BattleRound.js';
+import type { SelfBrawlView, BrawlBattleEvent, BrawlReplayAction, RoundView, Player } from '@avalon/contracts';
 
 test('BrawlPanel: renders active skill trigger button when skill available', () => {
   const selfBrawl: SelfBrawlView = {
@@ -360,4 +361,104 @@ test('BrawlReplayTimeline: renders grouped post-game actions with actor, skill, 
   assert.match(html, /小红/);
   assert.match(html, /红孩儿/);
   assert.match(html, /一举命中齐天大圣孙悟空/);
+});
+
+test('BattleHistory: renders brawl chronicle with opening, round, assassination, and empty state', () => {
+  const dummyPlayers: Player[] = [
+    { id: 'p1', seat: 1, nickname: '玩家1' },
+    { id: 'p2', seat: 2, nickname: '玩家2' },
+    { id: 'p3', seat: 3, nickname: '玩家3' },
+  ];
+  const dummyRounds: RoundView[] = [
+    {
+      number: 1,
+      mission: 1,
+      captainId: 'p1',
+      team: ['p1', 'p2'],
+      direction: 'clockwise',
+      vote: { approvals: 2, rejections: 1, passed: true },
+      result: { successes: 2, failures: 0, passed: true },
+    },
+  ];
+
+  // 1. When brawlActions is [] (empty)
+  const emptyHtml = renderToStaticMarkup(
+    createElement(BattleHistory, {
+      rounds: dummyRounds,
+      players: dummyPlayers,
+      anonymous: false,
+      userId: 'p1',
+      brawlActions: [],
+    })
+  );
+  assert.match(emptyHtml, /本局全场玩家均未施展主动法宝或触发暗算/);
+
+  // 2. When brawlActions has opening (0), round 1, and assassination
+  const actions: BrawlReplayAction[] = [
+    {
+      id: 'rep-0',
+      roundNumber: 0,
+      mission: 0,
+      phase: 'game_start',
+      actorId: 'p1',
+      actorSeat: 1,
+      actorNickname: '老张',
+      roleId: 'zhenyuan_daxian',
+      roleName: '镇元大仙',
+      skillName: '袖里乾坤',
+      outcome: 'info',
+      detail: '开局天机侦察：探得盲盒角色【百眼魔君】。',
+      timestamp: new Date().toISOString(),
+    },
+    {
+      id: 'rep-1',
+      roundNumber: 1,
+      mission: 1,
+      phase: 'mission_resolved',
+      actorId: 'p2',
+      actorSeat: 2,
+      actorNickname: '老李',
+      roleId: 'baiyan_mojun',
+      roleName: '百眼魔君',
+      skillName: '黄花毒茶',
+      targetId: 'p1',
+      targetSeat: 1,
+      targetNickname: '老张',
+      outcome: 'success',
+      detail: '黄花毒茶毒发成功：将老张的成功牌毒化为失败牌！',
+      timestamp: new Date().toISOString(),
+    },
+    {
+      id: 'rep-kill',
+      roundNumber: 1,
+      mission: 1,
+      phase: 'assassination',
+      actorId: 'p3',
+      actorSeat: 3,
+      actorNickname: '小红',
+      roleId: 'hong_haier',
+      roleName: '红孩儿',
+      skillName: '三昧真火刺杀',
+      outcome: 'success',
+      detail: '喷吐三昧真火一击命中孙悟空！',
+      timestamp: new Date().toISOString(),
+    },
+  ];
+
+  const fullHtml = renderToStaticMarkup(
+    createElement(BattleHistory, {
+      rounds: dummyRounds,
+      players: dummyPlayers,
+      anonymous: false,
+      userId: 'p1',
+      brawlActions: actions,
+    })
+  );
+
+  assert.match(fullHtml, /初始天机 · 开局窥探实录/);
+  assert.match(fullHtml, /镇元大仙/);
+  assert.match(fullHtml, /仙妖斗法实录/);
+  assert.match(fullHtml, /百眼魔君/);
+  assert.match(fullHtml, /终局决战 · 刺杀大圣实录/);
+  assert.match(fullHtml, /红孩儿/);
 });

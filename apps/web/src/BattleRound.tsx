@@ -62,11 +62,99 @@ export function BattleHistory({ rounds, brawlActions, ...props }: Omit<Parameter
   const [active,setActive]=useState<number|null>(null);
   const jump=(number:number)=>{setActive(number);cards.current.get(number)?.scrollIntoView({block:'start'});};
   if (!rounds.length) return <p className="chronicle-empty">尚无提案记录。</p>;
+
+  const initialBrawlActions = brawlActions?.filter(a => a.roundNumber === 0) ?? [];
+  const assassinationBrawlActions = brawlActions?.filter(a => a.phase === 'assassination') ?? [];
+  const roundNumbers = new Set(rounds.map(r => r.number));
+  const otherBrawlActions = brawlActions?.filter(a =>
+    a.roundNumber !== 0 &&
+    a.phase !== 'assassination' &&
+    !roundNumbers.has(a.roundNumber)
+  ) ?? [];
+
   return <div className="battle-history">
+    {/* If game ended and brawl mode was enabled, but no skills were used at all */}
+    {brawlActions !== undefined && brawlActions.length === 0 && (
+      <div className="battle-section battle-brawl-chronicle" style={{ marginBottom: 10, background: '#fdf8ee', borderStyle: 'dotted' }}>
+        <p style={{ margin: 0, fontSize: 13, color: '#8c6d48', textAlign: 'center' }}>
+          📜 仙妖斗法：本局全场玩家均未施展主动法宝或触发暗算
+        </p>
+      </div>
+    )}
+
+    {/* Opening intelligence if available */}
+    {initialBrawlActions.length > 0 && (
+      <section className="battle-section battle-brawl-chronicle" style={{ marginBottom: 10 }}>
+        <h4>🔮 初始天机 · 开局窥探实录</h4>
+        <div className="brawl-chronicle-list">
+          {initialBrawlActions.map(action => (
+            <div key={action.id} className={`brawl-chronicle-item outcome-${action.outcome}`}>
+              <div className="brawl-chronicle-head">
+                <span className="brawl-chronicle-actor">
+                  {action.actorSeat > 0 ? `${action.actorSeat}号 · ` : ''}{action.actorNickname} <strong>({action.roleName})</strong>
+                </span>
+                <span className="brawl-chronicle-skill">【{action.skillName}】</span>
+                <span className={`brawl-chronicle-badge is-${action.outcome}`}>
+                  {action.outcome === 'success' ? '✓ 生效' : action.outcome === 'blocked' ? '🛡️ 被化解' : action.outcome === 'info' ? '👁️ 天机' : '× 未触发'}
+                </span>
+              </div>
+              <p className="brawl-chronicle-detail">{action.detail}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
+
     <nav className="round-jump-nav" aria-label="提案快速定位">
       <button type="button" className="secondary" onClick={()=>jump(rounds.at(-1)!.number)}>最近一轮</button>
       {rounds.map(r=><button key={r.number} type="button" className="secondary" aria-pressed={active===r.number} onClick={()=>jump(r.number)}>第{r.number}次 · 第{r.mission}难</button>)}
     </nav>
-    {rounds.map(round => <div className="battle-round-anchor" key={round.number} ref={el=>{if(el)cards.current.set(round.number,el);else cards.current.delete(round.number);}}><BattleRound {...props} round={round} brawlActions={brawlActions?.filter(a => a.roundNumber === round.number)} /></div>)}
+    {rounds.map(round => <div className="battle-round-anchor" key={round.number} ref={el=>{if(el)cards.current.set(round.number,el);else cards.current.delete(round.number);}}><BattleRound {...props} round={round} brawlActions={brawlActions?.filter(a => a.roundNumber === round.number && a.phase !== 'assassination')} /></div>)}
+
+    {/* Any other brawl actions not attached to specific numbered rounds */}
+    {otherBrawlActions.length > 0 && (
+      <section className="battle-section battle-brawl-chronicle" style={{ marginTop: 12 }}>
+        <h4>⚡ 仙妖斗法奇谋实录</h4>
+        <div className="brawl-chronicle-list">
+          {otherBrawlActions.map(action => (
+            <div key={action.id} className={`brawl-chronicle-item outcome-${action.outcome}`}>
+              <div className="brawl-chronicle-head">
+                <span className="brawl-chronicle-actor">
+                  {action.actorSeat > 0 ? `${action.actorSeat}号 · ` : ''}{action.actorNickname} <strong>({action.roleName})</strong>
+                </span>
+                <span className="brawl-chronicle-skill">【{action.skillName}】</span>
+                <span className={`brawl-chronicle-badge is-${action.outcome}`}>
+                  {action.outcome === 'success' ? '✓ 生效' : action.outcome === 'blocked' ? '🛡️ 被化解' : action.outcome === 'info' ? '👁️ 天机' : '× 未触发'}
+                </span>
+              </div>
+              <p className="brawl-chronicle-detail">{action.detail}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
+
+    {/* Assassination brawl action if available */}
+    {assassinationBrawlActions.length > 0 && (
+      <section className="battle-section battle-brawl-chronicle" style={{ marginTop: 12 }}>
+        <h4>🗡️ 终局决战 · 刺杀大圣实录</h4>
+        <div className="brawl-chronicle-list">
+          {assassinationBrawlActions.map(action => (
+            <div key={action.id} className={`brawl-chronicle-item outcome-${action.outcome}`}>
+              <div className="brawl-chronicle-head">
+                <span className="brawl-chronicle-actor">
+                  {action.actorSeat > 0 ? `${action.actorSeat}号 · ` : ''}{action.actorNickname} <strong>({action.roleName})</strong>
+                </span>
+                <span className="brawl-chronicle-skill">【{action.skillName}】</span>
+                <span className={`brawl-chronicle-badge is-${action.outcome}`}>
+                  {action.outcome === 'success' ? '✓ 绝杀' : '× 落空'}
+                </span>
+              </div>
+              <p className="brawl-chronicle-detail">{action.detail}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
   </div>;
 }

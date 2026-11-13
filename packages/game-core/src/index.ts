@@ -1051,6 +1051,10 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         const role = BRAWL_ROLE_REGISTRY[playerState.roleId];
         requireRule(role, 'ROLE_NOT_FOUND');
 
+        const currentRoundNumber = g.phase === 'proposing'
+          ? g.rounds.length + 1
+          : (g.rounds.at(-1)?.number ?? (g.rounds.length || 1));
+
         // 太上老君金刚琢拦截红方主动法宝
         if (playerState.camp === 'red' && g.brawl.laojunZhuoActive) {
           g.brawl.laojunZhuoActive = false;
@@ -1060,7 +1064,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           const actorP = g.players.find(p => p.id === userId);
           const laojunP = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'taishang_laojun');
           recordBrawlReplayAction(g.brawl, {
-            roundNumber: g.rounds.length || 1,
+            roundNumber: currentRoundNumber,
             mission: g.mission,
             phase: 'team_building',
             actorId: userId,
@@ -1073,7 +1077,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
             detail: `祭出绝技【${role.skill.skillName}】，被太上老君金刚琢当场套走收缴，妖法作废失效！`,
           });
           recordBrawlReplayAction(g.brawl, {
-            roundNumber: g.rounds.length || 1,
+            roundNumber: currentRoundNumber,
             mission: g.mission,
             phase: 'team_building',
             actorId: laojunP?.id ?? '',
@@ -1152,7 +1156,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           }
           const actorP = g.players.find(p => p.id === userId);
           recordBrawlReplayAction(g.brawl, {
-            roundNumber: g.rounds.length || 1,
+            roundNumber: currentRoundNumber,
             mission: g.mission,
             phase: 'team_building',
             actorId: userId,
@@ -1174,7 +1178,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           g.brawl.baiguLijianArmed = true;
           const actorP = g.players.find(p => p.id === userId);
           recordBrawlReplayAction(g.brawl, {
-            roundNumber: g.rounds.length || 1,
+            roundNumber: currentRoundNumber,
             mission: g.mission,
             phase: 'team_building',
             actorId: userId,
@@ -1195,7 +1199,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           }
           const actorP = g.players.find(p => p.id === userId);
           recordBrawlReplayAction(g.brawl, {
-            roundNumber: g.rounds.length || 1,
+            roundNumber: currentRoundNumber,
             mission: g.mission,
             phase: 'team_building',
             actorId: userId,
@@ -1381,7 +1385,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           replayDetail = `举起照妖宝镜密照车队：探查结果显示车内【${g.brawl.zhaoyaoResult.hasDemon ? '妖氛弥漫（有妖魔）' : '清光纯正（无妖魔）'}】。`;
         }
         recordBrawlReplayAction(g.brawl, {
-          roundNumber: g.rounds.length || 1,
+          roundNumber: currentRoundNumber,
           mission: g.mission,
           phase: actionPhase,
           actorId: userId,

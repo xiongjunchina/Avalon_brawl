@@ -48,6 +48,8 @@ export function createBrawlGameState(
     baiguLijianArmed: false,
     baiguLijianResult: false,
     huangmeiDianhuaNotice: undefined,
+    baiyanDuchaTargetId: undefined,
+    baiyanDuchaResult: undefined,
   };
 }
 
@@ -122,6 +124,7 @@ export function resetRoundBrawlEffects(state: BrawlGameState): void {
   state.yutuMihunTargetId = undefined;
   state.qingshiTuntianTargetId = undefined;
   state.baiguLijianArmed = false;
+  state.baiyanDuchaTargetId = undefined;
 }
 
 /**
@@ -177,6 +180,17 @@ export function projectSelfBrawlView(
     }
   }
 
+  let baiyanDuchaStatus: string | undefined;
+  if (playerState.roleId === 'baiyan_mojun') {
+    if (state.baiyanDuchaResult === true) {
+      baiyanDuchaStatus = '🍵 黄花毒茶毒发：车上仙友的成功牌已静默被剧毒反转为失败牌！';
+    } else if (state.baiyanDuchaResult === false) {
+      baiyanDuchaStatus = '🍵 黄花毒茶未奏效：车上仙友浩然正气护体，毒性未能侵蚀。';
+    } else if (state.baiyanDuchaTargetId) {
+      baiyanDuchaStatus = '🍵 黄花毒茶已暗中下入出征车队杯中，待出征结算生效...';
+    }
+  }
+
   return {
     roleId: playerState.roleId,
     roleName: roleDef.name,
@@ -196,5 +210,6 @@ export function projectSelfBrawlView(
     ...(playerState.roleId === 'tieshan_gongzhu' && state.tieshanSecret ? { tieshanSecret: state.tieshanSecret } : {}),
     ...(huangmeiNotice ? { huangmeiNotice } : {}),
     ...(baiguLijianStatus ? { baiguLijianStatus } : {}),
+    ...(baiyanDuchaStatus ? { baiyanDuchaStatus } : {}),
   };
 }

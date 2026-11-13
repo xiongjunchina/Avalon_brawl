@@ -517,12 +517,12 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
     artPrefix: 'brawl-baiyan',
     motto: '肋下千眼放金光，黄雾升腾惑真仙',
     skill: {
-      skillId: 'qianyan_kuiji',
-      skillName: '千眼窥机',
-      triggerPhase: 'game_start',
-      actionType: 'passive',
+      skillId: 'huanghua_ducha',
+      skillName: '黄花毒茶',
+      triggerPhase: 'team_building',
+      actionType: 'target_player',
       maxUses: 1,
-      description: '千眼放光，开局私密得知本局蓝方盲盒抽中的 1 位仙佛底牌名号。',
+      description: '出征前暗下毒茶：若目标投成功，大车50%/小车33%概率毒化为失败！',
     },
   },
   qingmao_shizi: {

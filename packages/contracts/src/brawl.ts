@@ -133,6 +133,8 @@ export interface BrawlGameState {
   baiguLijianArmed?: boolean;       // 白骨精画皮离间待命中
   baiguLijianResult?: boolean;      // 白骨精画皮离间是否已生效虚增
   huangmeiDianhuaNotice?: { targetBlueUserId: string; targetSeat: number; targetNickname: string }; // 黄眉老怪假设雷音假传佛旨
+  baiyanDuchaTargetId?: string;     // 百眼魔君黄花毒茶锁定的队员
+  baiyanDuchaResult?: boolean;      // 百眼魔君黄花毒茶是否成功毒化出失败
 }
 
 export interface SelfBrawlView {
@@ -154,6 +156,7 @@ export interface SelfBrawlView {
   tieshanSecret?: string; // 铁扇公主专属芭蕉神风窥破仙阶天机
   huangmeiNotice?: string; // 黄眉老怪专属假传佛旨状态回执
   baiguLijianStatus?: string; // 白骨精专属画皮离间状态回执
+  baiyanDuchaStatus?: string; // 百眼魔君专属黄花毒茶状态回执
 }
 
 export const brawlCommandPayloadSchema = z.object({

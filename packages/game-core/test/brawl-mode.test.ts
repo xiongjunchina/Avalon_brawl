@@ -1123,3 +1123,58 @@ test('brawl: Bai Gujing [huapi_lijian] silently increments failure cards without
   const viewBaigu = projectGame(next, baiguId);
   assert.ok(viewBaigu.selfBrawl?.baiguLijianStatus?.includes('离间魔功已得逞'));
 });
+
+test('brawl: Baiyan Mojun [huanghua_ducha] poisons success vote silently with tier probability without public event leak', () => {
+  const players = Array.from({ length: 6 }, (_, i) => ({
+    id: `p${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+  const game = createGame('brawl-baiyan-ducha', players, { ...defaultSettings, playerCount: 6, brawlModeEnabled: true }, a => a);
+  const baiyanId = 'p6';
+  game.brawl!.playerStates[baiyanId] = { userId: baiyanId, seat: 6, roleId: 'baiyan_mojun', camp: 'red', skillUsed: false };
+
+  // 百眼魔君对 p2 下毒茶
+  let next = transition(game, baiyanId, {
+    type: 'brawlCommand',
+    payload: { action: 'useSkill', skillId: 'huanghua_ducha', targetPlayerId: 'p2' },
+  }, [baiyanId]);
+
+  // 1. 发动时公屏完全静默（绝无自爆战报）
+  assert.equal(next.brawl!.events.length, 0, 'No public battle event on activation');
+  assert.equal(next.brawl?.baiyanDuchaTargetId, 'p2');
+
+  // 2. 模拟 3 人车队出征（小车 <= 3人，1/3 概率生效）
+  next.phase = 'mission';
+  next.rounds.push({ number: 1, mission: 1, captainId: 'p1', team: ['p1', 'p2', 'p3'], direction: 'clockwise' });
+  next.roles.p1 = 'loyal';
+  next.roles.p2 = 'merlin';
+  next.roles.p3 = 'loyal';
+  next.brawl!.playerStates.p1.camp = 'blue';
+  next.brawl!.playerStates.p2.camp = 'blue';
+  next.brawl!.playerStates.p3.camp = 'blue';
+
+  const originalRandom = Math.random;
+  try {
+    Math.random = () => 0.1; // 0.1 < 0.333，毒发触发
+
+    // 全纯好人车，3 个人全部投了成功牌
+    next = transition(next, 'p1', { type: 'missionVote', payload: { success: true } }, ['p1']);
+    next = transition(next, 'p2', { type: 'missionVote', payload: { success: true } }, ['p2']);
+    next = transition(next, 'p3', { type: 'missionVote', payload: { success: true } }, ['p3']);
+
+    // 3. 验证原本 3 成功的纯好人车，因 p2 中毒茶，成功牌被强行静默毒化为 1 失败牌！
+    assert.equal(next.rounds.at(-1)?.result?.failures, 1, 'Pure good team fails due to poisoned tea');
+    assert.equal(next.rounds.at(-1)?.result?.passed, false);
+
+    // 4. 验证公屏绝无百眼魔君或毒茶广播（绝不自爆）
+    const hasBaiyanEvent = next.brawl?.events.some(e => e.roleId === 'baiyan_mojun' || e.skillName === '黄花毒茶');
+    assert.equal(hasBaiyanEvent, false, 'Public events MUST NOT mention Baiyan Mojun or poison tea');
+
+    // 5. 验证百眼魔君本人私密面板收到毒发回执
+    const viewBaiyan = projectGame(next, baiyanId);
+    assert.ok(viewBaiyan.selfBrawl?.baiyanDuchaStatus?.includes('黄花毒茶毒发'));
+  } finally {
+    Math.random = originalRandom;
+  }
+});

@@ -597,6 +597,22 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           g.brawl.yutuMihunTargetId = undefined;
         }
 
+        // 百眼魔君【黄花毒茶】：若选定队员投了成功，大车(>=4人)50%/小车(<=3人)33%概率被毒化反转为失败牌！
+        if (g.brawl?.baiyanDuchaTargetId && round.team.includes(g.brawl.baiyanDuchaTargetId)) {
+          const targetVotedSuccess = g.missionVotes[g.brawl.baiyanDuchaTargetId];
+          if (targetVotedSuccess) {
+            const chance = round.team.length >= 4 ? 0.5 : 1 / 3;
+            if (Math.random() < chance) {
+              failures += 1;
+              successes = Math.max(0, successes - 1);
+              g.brawl.baiyanDuchaResult = true;
+            } else {
+              g.brawl.baiyanDuchaResult = false;
+            }
+          }
+          g.brawl.baiyanDuchaTargetId = undefined;
+        }
+
         // 白骨精【画皮离间】：本轮任务出征若失败，静默虚增 1 张失败牌引车内好人自相残杀！
         if (g.brawl?.baiguLijianArmed && failures > 0) {
           g.brawl.baiguLijianArmed = false;
@@ -879,6 +895,13 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         } else if (role.skill.skillId === 'huapi_lijian') {
           // 白骨精【画皮离间】（静默在出征队伍中埋下离间魔骨）
           g.brawl.baiguLijianArmed = true;
+          // 静默生效，绝不生成公屏战报，彻底避免自爆！
+          break;
+        } else if (role.skill.skillId === 'huanghua_ducha') {
+          // 百眼魔君【黄花毒茶】（静默在出征队伍杯中下毒）
+          if (targetPlayer) {
+            g.brawl.baiyanDuchaTargetId = targetPlayer.id;
+          }
           // 静默生效，绝不生成公屏战报，彻底避免自爆！
           break;
         } else if (role.skill.skillId === 'wuxingshan_zhang') {

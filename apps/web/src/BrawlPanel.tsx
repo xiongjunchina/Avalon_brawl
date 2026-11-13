@@ -132,6 +132,13 @@ export function BrawlPanel({
                   {selfBrawl.baiguLijianStatus}
                 </div>
               )}
+
+              {/* 百眼魔君专属：黄花毒茶状态 */}
+              {selfBrawl.baiyanDuchaStatus && (
+                <div style={{ marginTop: '6px', fontSize: '12px', fontWeight: 'bold', color: '#f59e0b' }}>
+                  {selfBrawl.baiyanDuchaStatus}
+                </div>
+              )}
             </div>
 
             {/* 技能发动交互 */}

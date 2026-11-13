@@ -278,6 +278,11 @@ export function IdentityDetails({
                   {selfBrawl.baiguLijianStatus}
                 </div>
               )}
+              {selfBrawl.baiyanDuchaStatus && (
+                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#f59e0b', marginTop: '4px' }}>
+                  {selfBrawl.baiyanDuchaStatus}
+                </div>
+              )}
               <div style={{ marginTop: '4px' }}>
                 <button
                   type="button"

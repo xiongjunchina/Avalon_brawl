@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { BrawlPanel } from '../src/BrawlPanel.js';
-import type { SelfBrawlView, BrawlBattleEvent } from '@avalon/contracts';
+import { BrawlReplayTimeline } from '../src/BrawlReplayTimeline.js';
+import type { SelfBrawlView, BrawlBattleEvent, BrawlReplayAction } from '@avalon/contracts';
 
 test('BrawlPanel: renders active skill trigger button when skill available', () => {
   const selfBrawl: SelfBrawlView = {
@@ -283,4 +284,80 @@ test('BrawlPanel: battle events explain exact meaning and tactical effect instea
   assert.match(html, /威能效用：/);
   assert.match(html, /第 2 轮任务后，50% 概率让除孙悟空外的 1 名随机蓝方私密得知 1 位红方真名/);
   assert.match(html, /镇压目标仙友一轮/);
+});
+
+test('BrawlReplayTimeline: renders grouped post-game actions with actor, skill, target and tactical outcome', () => {
+  const actions: BrawlReplayAction[] = [
+    {
+      id: 'rep-init',
+      roundNumber: 0,
+      mission: 0,
+      phase: 'game_start',
+      actorId: 'p1',
+      actorSeat: 1,
+      actorNickname: '老张',
+      roleId: 'erlang_shen',
+      roleName: '二郎神',
+      skillName: '天眼照虚',
+      outcome: 'info',
+      detail: '开局天机侦察：探得盲盒角色【百眼魔君】。',
+      timestamp: new Date().toISOString(),
+    },
+    {
+      id: 'rep-m1',
+      roundNumber: 1,
+      mission: 1,
+      phase: 'mission_resolved',
+      actorId: 'p4',
+      actorSeat: 4,
+      actorNickname: '老孙',
+      roleId: 'baiyan_mojun',
+      roleName: '百眼魔君',
+      skillName: '黄花毒茶',
+      targetId: 'p2',
+      targetSeat: 2,
+      targetNickname: '老李',
+      outcome: 'success',
+      detail: '黄花毒茶毒发成功（小车 33% 概率命中）：暗中将【2号 · 老李】投出的【成功牌】静默毒化为【失败牌】！',
+      timestamp: new Date().toISOString(),
+    },
+    {
+      id: 'rep-kill',
+      roundNumber: 3,
+      mission: 3,
+      phase: 'assassination',
+      actorId: 'p5',
+      actorSeat: 5,
+      actorNickname: '小红',
+      roleId: 'hong_haier',
+      roleName: '红孩儿',
+      skillName: '三昧真火刺杀',
+      targetId: 'p3',
+      targetSeat: 3,
+      targetNickname: '老王',
+      outcome: 'success',
+      detail: '喷吐三昧真火绝杀一击，直刺【3号 · 老王】，一举命中齐天大圣孙悟空！红方妖魔绝杀逆转获胜！',
+      timestamp: new Date().toISOString(),
+    },
+  ];
+
+  const html = renderToStaticMarkup(createElement(BrawlReplayTimeline, { actions }));
+
+  assert.match(html, /仙魔对局全景复盘/);
+  assert.match(html, /共 3 处法宝斗法/);
+  assert.match(html, /初始天机 · 开局窥探/);
+  assert.match(html, /第 1 难 · 取经斗法/);
+  assert.match(html, /终局决战 · 刺杀大圣/);
+  assert.match(html, /老张/);
+  assert.match(html, /二郎神/);
+  assert.match(html, /【天眼照虚】/);
+  assert.match(html, /老孙/);
+  assert.match(html, /百眼魔君/);
+  assert.match(html, /【黄花毒茶】/);
+  assert.match(html, /锁定目标：/);
+  assert.match(html, /2号 · 老李/);
+  assert.match(html, /黄花毒茶毒发成功/);
+  assert.match(html, /小红/);
+  assert.match(html, /红孩儿/);
+  assert.match(html, /一举命中齐天大圣孙悟空/);
 });

@@ -10,6 +10,7 @@ import { WUYUE_MISSIONS, formatRoleName, roleNames } from './roles';
 import { DealCountdown } from './DealCountdown';
 import { QuestMedallion } from './QuestMedallion';
 import { BattleHistory } from './BattleRound';
+import { BrawlReplayTimeline } from './BrawlReplayTimeline';
 import { TeamVoteDialog } from './TeamVoteDialog';
 import { GuanyinWindowDialog } from './GuanyinWindowDialog';
 import { GuanyinResultDialog } from './GuanyinResultDialog';
@@ -473,6 +474,9 @@ export function GamePanel({
                 </p>
               </div>
 
+              {g.brawl?.replayTimeline && g.brawl.replayTimeline.length > 0 && (
+                <BrawlReplayTimeline actions={g.brawl.replayTimeline} />
+              )}
             </section>
           );
         })()
@@ -1551,7 +1555,7 @@ export function GamePanel({
                 {WUYUE_MISSIONS[inspectMission - 1]?.title ?? `任务 ${inspectMission}`} 尚未产生组队提案记录。
               </p>
             ) : (
-              <BattleHistory rounds={missionRounds} players={publicPlayers} anonymous={room.settings.anonymousTeamVote} userId={userId} />
+              <BattleHistory rounds={missionRounds} players={publicPlayers} anonymous={room.settings.anonymousTeamVote} userId={userId} brawlActions={ended ? g.brawl?.replayTimeline : undefined} />
             )}</div>
           </div>
         </Modal>
@@ -1570,7 +1574,7 @@ export function GamePanel({
             <div className="chronicle-scroll-body">{g.rounds.length === 0 ? (
               <p className="muted">尚无已完成的组队提案。</p>
             ) : (
-              <BattleHistory rounds={g.rounds} players={publicPlayers} anonymous={room.settings.anonymousTeamVote} userId={userId} />
+              <BattleHistory rounds={g.rounds} players={publicPlayers} anonymous={room.settings.anonymousTeamVote} userId={userId} brawlActions={ended ? g.brawl?.replayTimeline : undefined} />
             )}
             <ExtensionHistory game={g} name={name} />
             </div>

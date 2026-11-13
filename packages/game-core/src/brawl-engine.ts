@@ -2,6 +2,7 @@ import type {
   BrawlGameState,
   BrawlPlayerState,
   BrawlBattleEvent,
+  BrawlReplayAction,
   BrawlRoleDef,
   SelfBrawlView,
 } from '@avalon/contracts';
@@ -23,6 +24,7 @@ export function createBrawlGameState(
     },
     playerStates,
     events: [],
+    replayTimeline: [],
     imprisonedTargetId: undefined,
     taoshouActive: false,
     extraSeatLimit: 0,
@@ -76,6 +78,60 @@ export function appendBattleEvent(
   };
   state.events.push(event);
   return event;
+}
+
+/**
+ * 记录全景对局复盘动作（服务端权威留存，终局胜负已定时全盘揭晓）
+ */
+export function recordBrawlReplayAction(
+  state: BrawlGameState,
+  action: Omit<BrawlReplayAction, 'id' | 'timestamp'>,
+): BrawlReplayAction {
+  if (!state.replayTimeline) {
+    state.replayTimeline = [];
+  }
+  const entry: BrawlReplayAction = {
+    ...action,
+    id: `replay-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    timestamp: new Date().toISOString(),
+  };
+  state.replayTimeline.push(entry);
+  return entry;
+}
+
+/**
+ * 投影大乱斗状态：
+ * 对局中物理级剔除所有对局复盘记录和暗中技能目标，彻底杜绝抓包看底牌；
+ * 终局揭晓（isEnded 为 true）时完整解密下发 replayTimeline。
+ */
+export function projectBrawlGameState(
+  brawl: BrawlGameState,
+  isEnded: boolean,
+): BrawlGameState {
+  if (isEnded) {
+    return structuredClone(brawl);
+  }
+  const sanitized = structuredClone(brawl);
+  // 对局中严格删除复盘时间线
+  delete sanitized.replayTimeline;
+
+  // 对局中清理私密目标，防止通过客户端全局状态窥探暗中施法
+  delete sanitized.baiyanDuchaTargetId;
+  delete sanitized.baiyanDuchaResult;
+  delete sanitized.huangmeiDianhuaNotice;
+  delete sanitized.guanyinGanluTargetId;
+  delete sanitized.guanyinGanluResult;
+  delete sanitized.putiDianhuaNotice;
+  delete sanitized.jinjiaoHuluTargetId;
+  delete sanitized.yutuMihunTargetId;
+  delete sanitized.baiguLijianArmed;
+  delete sanitized.baiguLijianResult;
+  delete sanitized.tieshanSecret;
+  delete sanitized.dapengArmed;
+  delete sanitized.dapengExcludedPlayerId;
+  delete sanitized.zhaoyaoResult;
+
+  return sanitized;
 }
 
 /**

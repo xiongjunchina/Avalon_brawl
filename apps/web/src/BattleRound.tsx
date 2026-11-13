@@ -1,11 +1,11 @@
-import type { Player, RoundView } from '@avalon/contracts';
+import type { Player, RoundView, BrawlReplayAction } from '@avalon/contracts';
 import { PlayerToken } from './PlayerToken';
 import { WUYUE_MISSIONS } from './roles';
 import { useRef, useState } from 'react';
 
 /** Shared by live mission details, all rounds and historical replays. */
-export function BattleRound({ round: r, players, anonymous, userId }: {
-  round: RoundView; players: Player[]; anonymous: boolean; userId?: string;
+export function BattleRound({ round: r, players, anonymous, userId, brawlActions }: {
+  round: RoundView; players: Player[]; anonymous: boolean; userId?: string; brawlActions?: BrawlReplayAction[];
 }) {
   const captain = players.find(p => p.id === r.captainId);
   const playerById = (id: string): Player => players.find(p => p.id === id) ?? { id, seat: 0, nickname: '未知成员' };
@@ -32,11 +32,32 @@ export function BattleRound({ round: r, players, anonymous, userId }: {
       <div className="battle-card-counts"><span className="approve">成功牌 × {r.result.successes}</span><span className="reject">失败牌 × {r.result.failures}</span></div>
       <p className="hint">任务牌始终匿名，不对应个人。</p>
     </section>}
+    {brawlActions && brawlActions.length > 0 && (
+      <section className="battle-section battle-brawl-chronicle" aria-label="仙妖斗法实录">
+        <h4>仙妖斗法实录 · {brawlActions.length} 处</h4>
+        <div className="brawl-chronicle-list">
+          {brawlActions.map(action => (
+            <div key={action.id} className={`brawl-chronicle-item outcome-${action.outcome}`}>
+              <div className="brawl-chronicle-head">
+                <span className="brawl-chronicle-actor">
+                  {action.actorSeat > 0 ? `${action.actorSeat}号 · ` : ''}{action.actorNickname} <strong>({action.roleName})</strong>
+                </span>
+                <span className="brawl-chronicle-skill">【{action.skillName}】</span>
+                <span className={`brawl-chronicle-badge is-${action.outcome}`}>
+                  {action.outcome === 'success' ? '✓ 生效' : action.outcome === 'blocked' ? '🛡️ 被化解' : action.outcome === 'info' ? '👁️ 天机' : '× 未触发'}
+                </span>
+              </div>
+              <p className="brawl-chronicle-detail">{action.detail}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
   </article>;
 }
 
 /** Keep every proposal in chronological order; each individual card stays compact. */
-export function BattleHistory({ rounds, ...props }: Omit<Parameters<typeof BattleRound>[0], 'round'> & { rounds: RoundView[] }) {
+export function BattleHistory({ rounds, brawlActions, ...props }: Omit<Parameters<typeof BattleRound>[0], 'round'> & { rounds: RoundView[]; brawlActions?: BrawlReplayAction[] }) {
   const cards=useRef(new Map<number, HTMLDivElement>());
   const [active,setActive]=useState<number|null>(null);
   const jump=(number:number)=>{setActive(number);cards.current.get(number)?.scrollIntoView({block:'start'});};
@@ -46,6 +67,6 @@ export function BattleHistory({ rounds, ...props }: Omit<Parameters<typeof Battl
       <button type="button" className="secondary" onClick={()=>jump(rounds.at(-1)!.number)}>最近一轮</button>
       {rounds.map(r=><button key={r.number} type="button" className="secondary" aria-pressed={active===r.number} onClick={()=>jump(r.number)}>第{r.number}次 · 第{r.mission}难</button>)}
     </nav>
-    {rounds.map(round => <div className="battle-round-anchor" key={round.number} ref={el=>{if(el)cards.current.set(round.number,el);else cards.current.delete(round.number);}}><BattleRound {...props} round={round} /></div>)}
+    {rounds.map(round => <div className="battle-round-anchor" key={round.number} ref={el=>{if(el)cards.current.set(round.number,el);else cards.current.delete(round.number);}}><BattleRound {...props} round={round} brawlActions={brawlActions?.filter(a => a.roundNumber === round.number)} /></div>)}
   </div>;
 }

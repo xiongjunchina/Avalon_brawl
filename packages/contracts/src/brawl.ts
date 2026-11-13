@@ -89,6 +89,25 @@ export interface BrawlBattleEvent {
   timestamp: string;
 }
 
+export interface BrawlReplayAction {
+  id: string;
+  roundNumber: number; // 0: 开局天机, 1..N: 轮次提案
+  mission: number;     // 0: 开局, 1..5: 取经关卡/难次
+  phase: BrawlTriggerPhase;
+  actorId: string;
+  actorSeat: number;
+  actorNickname: string;
+  roleId: string;
+  roleName: string;
+  skillName: string;
+  targetId?: string;
+  targetSeat?: number;
+  targetNickname?: string;
+  outcome: 'success' | 'blocked' | 'miss' | 'info';
+  detail: string;
+  timestamp: string;
+}
+
 export interface BrawlBlindBox {
   bluePoolRoles: string[];
   redPoolRoles: string[];
@@ -108,6 +127,7 @@ export interface BrawlGameState {
   blindBox: BrawlBlindBox;
   playerStates: Record<string, BrawlPlayerState>;
   events: BrawlBattleEvent[];
+  replayTimeline?: BrawlReplayAction[]; // 对局全景复盘记录（局中对客户端物理保密，终局胜负已定时解密下发）
   imprisonedTargetId?: string; // 如来佛祖五指山禁锢的玩家（本轮禁止出征与表决）
   taoshouActive?: boolean;     // 王母娘娘九转仙桃庇佑（本轮需至少2张失败才算失败）
   extraSeatLimit?: number;     // 白龙马负重增加的人数上限

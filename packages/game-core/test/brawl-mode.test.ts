@@ -1178,3 +1178,75 @@ test('brawl: Baiyan Mojun [huanghua_ducha] poisons success vote silently with ti
     Math.random = originalRandom;
   }
 });
+
+test('brawl: post-game replay timeline is strictly hidden during active game and fully decrypted upon game end', () => {
+  const players = Array.from({ length: 8 }, (_, i) => ({ id: `p${i + 1}`, nickname: `P${i + 1}`, seat: i + 1 }));
+  let game = createGame('brawl-replay-test', players, { ...defaultSettings, playerCount: 8, brawlModeEnabled: true }, a => a);
+
+  // 1. 对局进行中（未分胜负）：projectGame 绝不泄露 replayTimeline 与暗中施法目标
+  const inGameView = projectGame(game, 'p1');
+  assert.equal(inGameView.brawl?.replayTimeline, undefined, 'Replay timeline MUST be undefined during active game');
+  assert.equal(inGameView.brawl?.baiyanDuchaTargetId, undefined, 'Secret target MUST be scrubbed');
+  assert.equal(inGameView.brawl?.huangmeiDianhuaNotice, undefined, 'Fake notice MUST be scrubbed');
+
+  // 2. 模拟百眼魔君暗中下毒
+  const baiyanId = game.players.find(p => game.brawl?.playerStates[p.id]?.camp === 'red')!.id;
+  game.brawl!.playerStates[baiyanId] = {
+    userId: baiyanId,
+    seat: 8,
+    roleId: 'baiyan_mojun',
+    camp: 'red',
+    skillUsed: false,
+  };
+  game = transition(game, baiyanId, {
+    type: 'brawlCommand',
+    payload: { action: 'useSkill', skillId: 'huanghua_ducha', targetPlayerId: 'p2' },
+  }, [baiyanId]);
+
+  // 对局中再次校验：依然严格保密
+  const midGameView = projectGame(game, 'p2');
+  assert.equal(midGameView.brawl?.replayTimeline, undefined, 'Still hidden during mid-game');
+
+  // 3. 模拟一轮任务出征并毒化翻车
+  game.phase = 'mission';
+  game.rounds.push({ number: 1, mission: 1, captainId: 'p1', team: ['p1', 'p2', 'p3'], direction: 'clockwise' });
+  const originalRandom = Math.random;
+  try {
+    Math.random = () => 0.1; // 触发 1/3 毒发
+    game = transition(game, 'p1', { type: 'missionVote', payload: { success: true } }, ['p1']);
+    game = transition(game, 'p2', { type: 'missionVote', payload: { success: true } }, ['p2']);
+    game = transition(game, 'p3', { type: 'missionVote', payload: { success: true } }, ['p3']);
+  } finally {
+    Math.random = originalRandom;
+  }
+
+  // 4. 模拟终局刺杀
+  game.phase = 'assassination';
+  game.roles.p1 = 'assassin';
+  game.roles.p2 = 'merlin';
+  game = transition(game, 'p1', {
+    type: 'assassinate',
+    payload: { targetId: 'p2' },
+  }, ['p1']);
+
+  // 验证对局已结束
+  assert.ok(game.result, 'Game is finished');
+
+  // 5. 终局后：projectGame 完整解密下发 replayTimeline
+  const endedView = projectGame(game, 'p2');
+  assert.ok(endedView.brawl?.replayTimeline, 'Replay timeline MUST be exposed when game ends');
+  assert.ok(endedView.brawl.replayTimeline.length >= 3, 'Contains initial, skill use, mission poison, and assassination actions');
+
+  // 验证包含百眼魔君下毒与毒发记录
+  const poisonAction = endedView.brawl.replayTimeline.find(a => a.roleId === 'baiyan_mojun' && a.phase === 'mission_resolved');
+  assert.ok(poisonAction, 'Contains poisoned tea replay entry');
+  assert.equal(poisonAction.outcome, 'success');
+  assert.ok(poisonAction.detail.includes('黄花毒茶毒发成功'));
+  assert.ok(poisonAction.targetNickname?.includes('P2'));
+
+  // 验证包含刺杀记录
+  const assassinateAction = endedView.brawl.replayTimeline.find(a => a.phase === 'assassination' && a.roleId === 'hong_haier');
+  assert.ok(assassinateAction, 'Contains assassination replay entry');
+  assert.equal(assassinateAction.outcome, 'success');
+  assert.ok(assassinateAction.detail.includes('一举命中齐天大圣'));
+});

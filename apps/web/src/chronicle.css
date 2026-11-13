@@ -115,3 +115,301 @@
   .chronicle-round .token-portrait { display: none; }
   .chronicle-round .battle-party-grid { gap: 6px; }
 }
+
+/* ==================== Brawl Post-Game Replay & Action Chronicle ==================== */
+.brawl-replay-panel {
+  margin: 14px 0 6px;
+  padding: 12px;
+  background: linear-gradient(180deg, #241411 0%, #1a0e0c 100%);
+  border: 1px solid #d4af3788;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+  color: #f7e7ce;
+}
+
+.brawl-replay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  gap: 8px;
+}
+
+.brawl-replay-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  color: #ffd875;
+}
+
+.brawl-replay-title strong small {
+  color: #d5c4a6;
+  font-weight: 400;
+  font-size: 12px;
+}
+
+.brawl-replay-toggle-btn {
+  background: #3d231e !important;
+  color: #ffd875 !important;
+  border: 1px solid #856443 !important;
+  cursor: pointer;
+}
+
+.brawl-replay-body {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.brawl-replay-group {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid #5a3d28;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.brawl-replay-group-title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #f3be6a;
+  border-bottom: 1px solid #5a3d28;
+  padding-bottom: 4px;
+}
+
+.brawl-replay-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.brawl-replay-card {
+  background: #2e1c18;
+  border: 1px solid #6b4c33;
+  border-left: 3px solid #d4af37;
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.brawl-replay-card.outcome-success {
+  border-left-color: #2ecc71;
+}
+
+.brawl-replay-card.outcome-blocked {
+  border-left-color: #9b59b6;
+}
+
+.brawl-replay-card.outcome-info {
+  border-left-color: #3498db;
+}
+
+.brawl-replay-card.outcome-miss {
+  border-left-color: #7f8c8d;
+  opacity: 0.85;
+}
+
+.brawl-replay-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
+.brawl-replay-actor {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.brawl-replay-seat-tag {
+  background: #4a2f22;
+  color: #f7e7ce;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.brawl-replay-name {
+  color: #fff3db;
+}
+
+.brawl-replay-role-pill {
+  color: #ffd875;
+  font-size: 12px;
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.brawl-replay-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.brawl-replay-skill-tag {
+  font-weight: 700;
+  color: #f6c872;
+  font-size: 12px;
+}
+
+.brawl-replay-status-badge {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.brawl-replay-status-badge.is-success {
+  background: rgba(46, 204, 113, 0.2);
+  color: #2ecc71;
+  border: 1px solid rgba(46, 204, 113, 0.4);
+}
+
+.brawl-replay-status-badge.is-blocked {
+  background: rgba(155, 89, 182, 0.2);
+  color: #be90d4;
+  border: 1px solid rgba(155, 89, 182, 0.4);
+}
+
+.brawl-replay-status-badge.is-info {
+  background: rgba(52, 152, 219, 0.2);
+  color: #5dade2;
+  border: 1px solid rgba(52, 152, 219, 0.4);
+}
+
+.brawl-replay-status-badge.is-miss {
+  background: rgba(127, 140, 141, 0.2);
+  color: #bdc3c7;
+  border: 1px solid rgba(127, 140, 141, 0.4);
+}
+
+.brawl-replay-target {
+  font-size: 12px;
+  color: #e2cda8;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.brawl-replay-target .target-label {
+  color: #c5a66b;
+}
+
+.brawl-replay-target .target-val {
+  color: #ffd875;
+}
+
+.brawl-replay-detail {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #f4ead6;
+  opacity: 0.95;
+}
+
+/* In-round chronicle list (inside BattleRound) */
+.battle-brawl-chronicle {
+  background: #fbf5e8;
+  border: 1px dashed #c5a66b;
+  border-radius: 8px;
+  padding: 8px 10px !important;
+  margin-top: 8px !important;
+}
+
+.battle-brawl-chronicle h4 {
+  color: #78480e !important;
+  font-weight: 700 !important;
+  margin-bottom: 6px !important;
+}
+
+.brawl-chronicle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.brawl-chronicle-item {
+  background: #fffaf0;
+  border: 1px solid #e1d5bf;
+  border-left: 3px solid #d4af37;
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.brawl-chronicle-item.outcome-success {
+  border-left-color: #177448;
+}
+
+.brawl-chronicle-item.outcome-blocked {
+  border-left-color: #8e44ad;
+}
+
+.brawl-chronicle-item.outcome-info {
+  border-left-color: #2980b9;
+}
+
+.brawl-chronicle-item.outcome-miss {
+  border-left-color: #95a5a6;
+}
+
+.brawl-chronicle-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.brawl-chronicle-actor {
+  color: #35271f;
+}
+
+.brawl-chronicle-skill {
+  color: #78480e;
+  font-weight: 600;
+}
+
+.brawl-chronicle-badge {
+  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.brawl-chronicle-badge.is-success {
+  background: #e6f0df;
+  color: #177448;
+}
+
+.brawl-chronicle-badge.is-blocked {
+  background: #f4ecf7;
+  color: #8e44ad;
+}
+
+.brawl-chronicle-badge.is-info {
+  background: #ebf5fb;
+  color: #2980b9;
+}
+
+.brawl-chronicle-badge.is-miss {
+  background: #f2f4f4;
+  color: #7f8c8d;
+}
+
+.brawl-chronicle-detail {
+  margin: 3px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #553b25;
+}

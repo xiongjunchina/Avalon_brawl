@@ -2,13 +2,15 @@ import { assignWeightedRoles, type RoleProtectionOptions } from './role-assignme
 export { roleWeight, ROLE_ASSIGNMENT_VERSION, ROLE_WEIGHT_VERSION } from './role-assignment.js';
 export type { RoleProtectionOptions } from './role-assignment.js';
 export { randomBigIntBelow } from './random.js';
-import type { Command, GameResult, GameView, LoyalGuardian, FemaleDemon, Player, Role, RoundView, Settings, Team, PrivateInspection, EarlyWindow, TeamBallot, GuardianClue, SelfTreasures, HeartBellAdvice, RoleAssignmentAudit, BrawlGameState, BrawlPlayerState, BrawlCommandPayload, BrawlCamp } from '@avalon/contracts';
+import type { Command, GameResult, GameView, LoyalGuardian, FemaleDemon, Player, Role, RoundView, Settings, Team, PrivateInspection, EarlyWindow, TeamBallot, GuardianClue, SelfTreasures, HeartBellAdvice, RoleAssignmentAudit, BrawlGameState, BrawlPlayerState, BrawlCommandPayload, BrawlCamp, BrawlTriggerPhase } from '@avalon/contracts';
 export { drawBrawlRoles, BRAWL_ROLE_REGISTRY } from './brawl-registry.js';
 export type { BrawlRoleDef } from '@avalon/contracts';
 import { drawBrawlRoles, BRAWL_ROLE_REGISTRY } from './brawl-registry.js';
 import {
   createBrawlGameState,
   appendBattleEvent,
+  recordBrawlReplayAction,
+  projectBrawlGameState,
   validateBrawlMissionVote,
   projectSelfBrawlView,
   resetRoundBrawlEffects,
@@ -219,6 +221,30 @@ export function createGame(
       assignment.blindBox.redPoolRoles,
     );
     brawlPeekedMap = assignment.peekedMap;
+
+    if (brawlPeekedMap) {
+      for (const [pId, peekedList] of Object.entries(brawlPeekedMap)) {
+        const p = sorted.find(x => x.id === pId);
+        const ps = playerStates[pId];
+        if (p && ps && peekedList.length > 0) {
+          const roleDef = BRAWL_ROLE_REGISTRY[ps.roleId];
+          const peekedNames = peekedList.map(x => `【${x.roleName}】`).join('、');
+          recordBrawlReplayAction(brawlState, {
+            roundNumber: 0,
+            mission: 0,
+            phase: 'game_start',
+            actorId: p.id,
+            actorSeat: p.seat,
+            actorNickname: p.nickname,
+            roleId: ps.roleId,
+            roleName: roleDef ? roleDef.name : ps.roleId,
+            skillName: roleDef ? roleDef.skill.skillName : '独门法宝',
+            outcome: 'info',
+            detail: `开局天机侦察：通过独门绝技洞悉盲盒抽取情报，探得入局角色：${peekedNames}。`,
+          });
+        }
+      }
+    }
   }
 
   let guinevereCandidates: string[] | undefined;
@@ -350,6 +376,23 @@ function triggerDapengExclude(g: GameState) {
   if (candidateBluePlayers.length > 0) {
     const excluded = candidateBluePlayers[Math.floor(Math.random() * candidateBluePlayers.length)];
     g.brawl.dapengExcludedPlayerId = excluded.id;
+    const dapengPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'jinchi_dapeng');
+    recordBrawlReplayAction(g.brawl, {
+      roundNumber: g.rounds.length,
+      mission: g.mission,
+      phase: 'assassination',
+      actorId: dapengPlayer?.id ?? '',
+      actorSeat: dapengPlayer?.seat ?? 0,
+      actorNickname: dapengPlayer?.nickname ?? '金翅大鹏雕',
+      roleId: 'jinchi_dapeng',
+      roleName: '金翅大鹏雕',
+      skillName: '云程万里',
+      targetId: excluded.id,
+      targetSeat: excluded.seat,
+      targetNickname: excluded.nickname,
+      outcome: 'success',
+      detail: `大鹏展翅云程万里俯瞰全场，终局刺杀阶段为红孩儿直接排除 1 个绝对不是孙悟空的席位：【${excluded.seat}号 · ${excluded.nickname}】！`,
+    });
   }
 }
 function openEarlyWindowOrPropose(g: GameState) {
@@ -470,7 +513,9 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         // 沙悟净【降妖宝杖】：任意一轮组队表决未通过流局时，沙僧祭起降妖宝杖定风波，50% 概率将流局强行镇压反转为发车通过！
         if (!passed && g.brawl?.shawujingBaozhangArmed) {
           g.brawl.shawujingBaozhangArmed = false;
-          if (Math.random() < 0.5) {
+          const shaPassed = Math.random() < 0.5;
+          const shaPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'sha_wujing');
+          if (shaPassed) {
             passed = true;
             appendBattleEvent(
               g.brawl,
@@ -486,6 +531,21 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
               '任意一轮组队表决未通过流局时，沙僧祭起降妖宝杖定风波，50% 概率将流局强行镇压反转为发车通过！',
             );
           }
+          recordBrawlReplayAction(g.brawl, {
+            roundNumber: g.rounds.at(-1)?.number ?? g.rounds.length,
+            mission: g.mission,
+            phase: 'team_voting',
+            actorId: shaPlayer?.id ?? '',
+            actorSeat: shaPlayer?.seat ?? 0,
+            actorNickname: shaPlayer?.nickname ?? '沙悟净',
+            roleId: 'sha_wujing',
+            roleName: '沙悟净',
+            skillName: '降妖宝杖',
+            outcome: shaPassed ? 'success' : 'miss',
+            detail: shaPassed
+              ? '表决流局时祭起降妖宝杖定海神威（50% 概率命中）：强行镇压反转为发车通过！'
+              : '表决流局时祭起降妖宝杖定海（50% 概率未命中）：未能逆转流局。',
+          });
         }
 
         // 猪八戒【倒打一耙】：组队表决未通过时倒打一耙，强制将全场最后 1 张反对票反转为赞成票！
@@ -493,6 +553,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           g.brawl.zhubajieDaodaArmed = false;
           rejections -= 1;
           approvals += 1;
+          const zhuPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'zhu_bajie');
           if (approvals > rejections) {
             passed = true;
             appendBattleEvent(
@@ -509,6 +570,19 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
               '组队表决未通过时倒打一耙，强制将全场最后 1 张反对票反转为赞成票！',
             );
           }
+          recordBrawlReplayAction(g.brawl, {
+            roundNumber: g.rounds.at(-1)?.number ?? g.rounds.length,
+            mission: g.mission,
+            phase: 'team_voting',
+            actorId: zhuPlayer?.id ?? '',
+            actorSeat: zhuPlayer?.seat ?? 0,
+            actorNickname: zhuPlayer?.nickname ?? '猪八戒',
+            roleId: 'zhu_bajie',
+            roleName: '猪八戒',
+            skillName: '倒打一耙',
+            outcome: 'success',
+            detail: `组队表决未通过时倒打一耙，强制将 1 张反对票反转为赞成票（反转后赞成 ${approvals} / 反对 ${rejections}）！最终结果：${passed ? '逆风翻盘组队通过！' : '赞成仍未过半，维持流局。'}`,
+          });
         }
 
         g.rounds.at(-1)!.vote = { approvals, rejections, abstentions, passed,
@@ -568,7 +642,10 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         // 金角大王【紫金葫芦】：若选定队员投了成功，50% 概率被宝葫芦化解吸收为失败
         if (g.brawl?.jinjiaoHuluTargetId && round.team.includes(g.brawl.jinjiaoHuluTargetId)) {
           const targetVotedSuccess = g.missionVotes[g.brawl.jinjiaoHuluTargetId];
-          if (targetVotedSuccess && Math.random() < 0.5) {
+          const absorbed = targetVotedSuccess && Math.random() < 0.5;
+          const jinjiaoPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'jinjiao_dawang');
+          const targetP = g.players.find(p => p.id === g.brawl?.jinjiaoHuluTargetId);
+          if (absorbed) {
             failures += 1;
             successes = Math.max(0, successes - 1);
             appendBattleEvent(
@@ -578,13 +655,34 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
               '手机私密选定出征队员 1 人，若其投成功，50% 概率被葫芦化解吸收。',
             );
           }
+          recordBrawlReplayAction(g.brawl, {
+            roundNumber: round.number,
+            mission: g.mission,
+            phase: 'mission_resolved',
+            actorId: jinjiaoPlayer?.id ?? '',
+            actorSeat: jinjiaoPlayer?.seat ?? 0,
+            actorNickname: jinjiaoPlayer?.nickname ?? '金角大王',
+            roleId: 'jinjiao_dawang',
+            roleName: '金角大王',
+            skillName: '紫金葫芦',
+            targetId: targetP?.id,
+            targetSeat: targetP?.seat,
+            targetNickname: targetP?.nickname,
+            outcome: absorbed ? 'success' : 'miss',
+            detail: absorbed
+              ? `紫金红葫芦神威显圣（50% 概率命中）：暗中化解吸收了【${targetP?.seat}号 · ${targetP?.nickname}】投出的 1 张成功牌！`
+              : `紫金红葫芦判定未命中（50% 概率未生效或目标未投成功）：未能化解成功牌。`,
+          });
           g.brawl.jinjiaoHuluTargetId = undefined;
         }
 
         // 玉兔精【捣药迷魂】：若选定队员投了成功，33% 概率成功牌被封印弃权
         if (g.brawl?.yutuMihunTargetId && round.team.includes(g.brawl.yutuMihunTargetId)) {
           const targetVotedSuccess = g.missionVotes[g.brawl.yutuMihunTargetId];
-          if (targetVotedSuccess && Math.random() < 0.33) {
+          const discarded = targetVotedSuccess && Math.random() < 0.33;
+          const yutuPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'yutu_jing');
+          const targetP = g.players.find(p => p.id === g.brawl?.yutuMihunTargetId);
+          if (discarded) {
             failures += 1;
             successes = Math.max(0, successes - 1);
             appendBattleEvent(
@@ -594,22 +692,60 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
               '队伍敲定后暗中迷魂车上 1 名好人，其出征时 33% 概率成功牌被封印弃权。',
             );
           }
+          recordBrawlReplayAction(g.brawl, {
+            roundNumber: round.number,
+            mission: g.mission,
+            phase: 'mission_resolved',
+            actorId: yutuPlayer?.id ?? '',
+            actorSeat: yutuPlayer?.seat ?? 0,
+            actorNickname: yutuPlayer?.nickname ?? '玉兔精',
+            roleId: 'yutu_jing',
+            roleName: '玉兔精',
+            skillName: '捣药迷魂',
+            targetId: targetP?.id,
+            targetSeat: targetP?.seat,
+            targetNickname: targetP?.nickname,
+            outcome: discarded ? 'success' : 'miss',
+            detail: discarded
+              ? `捣药迷魂生效（33% 概率命中）：迷魂封印了【${targetP?.seat}号 · ${targetP?.nickname}】投出的成功牌（强制弃权作废）！`
+              : `捣药迷魂判定未命中（33% 概率未生效或目标未投成功）：未能迷魂封印。`,
+          });
           g.brawl.yutuMihunTargetId = undefined;
         }
 
         // 百眼魔君【黄花毒茶】：若选定队员投了成功，大车(>=4人)50%/小车(<=3人)33%概率被毒化反转为失败牌！
         if (g.brawl?.baiyanDuchaTargetId && round.team.includes(g.brawl.baiyanDuchaTargetId)) {
           const targetVotedSuccess = g.missionVotes[g.brawl.baiyanDuchaTargetId];
-          if (targetVotedSuccess) {
-            const chance = round.team.length >= 4 ? 0.5 : 1 / 3;
-            if (Math.random() < chance) {
-              failures += 1;
-              successes = Math.max(0, successes - 1);
-              g.brawl.baiyanDuchaResult = true;
-            } else {
-              g.brawl.baiyanDuchaResult = false;
-            }
+          const isBig = round.team.length >= 4;
+          const chance = isBig ? 0.5 : 1 / 3;
+          const poisoned = targetVotedSuccess && Math.random() < chance;
+          const baiyanPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'baiyan_mojun');
+          const targetP = g.players.find(p => p.id === g.brawl?.baiyanDuchaTargetId);
+          if (poisoned) {
+            failures += 1;
+            successes = Math.max(0, successes - 1);
+            g.brawl.baiyanDuchaResult = true;
+          } else {
+            g.brawl.baiyanDuchaResult = false;
           }
+          recordBrawlReplayAction(g.brawl, {
+            roundNumber: round.number,
+            mission: g.mission,
+            phase: 'mission_resolved',
+            actorId: baiyanPlayer?.id ?? '',
+            actorSeat: baiyanPlayer?.seat ?? 0,
+            actorNickname: baiyanPlayer?.nickname ?? '百眼魔君',
+            roleId: 'baiyan_mojun',
+            roleName: '百眼魔君',
+            skillName: '黄花毒茶',
+            targetId: targetP?.id,
+            targetSeat: targetP?.seat,
+            targetNickname: targetP?.nickname,
+            outcome: poisoned ? 'success' : 'miss',
+            detail: poisoned
+              ? `黄花毒茶毒发成功（${isBig ? '大车 50%' : '小车 33%'} 概率命中）：暗中将【${targetP?.seat}号 · ${targetP?.nickname}】投出的【成功牌】静默毒化为【失败牌】！导致本轮出征翻车！`
+              : `黄花毒茶未能毒发（${isBig ? '大车 50%' : '小车 33%'} 概率未命中或目标未投成功）：【${targetP?.seat}号 · ${targetP?.nickname}】未受毒化影响。`,
+          });
           g.brawl.baiyanDuchaTargetId = undefined;
         }
 
@@ -619,13 +755,29 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           failures += 1;
           successes = Math.max(0, successes - 1);
           g.brawl.baiguLijianResult = true;
+          const baiguPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'bai_gujing');
+          recordBrawlReplayAction(g.brawl, {
+            roundNumber: round.number,
+            mission: g.mission,
+            phase: 'mission_resolved',
+            actorId: baiguPlayer?.id ?? '',
+            actorSeat: baiguPlayer?.seat ?? 0,
+            actorNickname: baiguPlayer?.nickname ?? '白骨精',
+            roleId: 'bai_gujing',
+            roleName: '白骨精',
+            skillName: '画皮离间',
+            outcome: 'success',
+            detail: `画皮离间魔功得逞：出征战报静默虚增 1 张失败牌（实际失败牌数 ${failures - 1}，虚增后展示为 ${failures} 张），成功引车内好人同室操戈！`,
+          });
           // 静默生效，绝不生成公屏战报，彻底避免自爆！
         }
 
         // 王母娘娘【九转仙桃】：出征前赐仙桃护体，本轮任务若出现失败牌，50% 概率当场化解赦免 1 张失败牌！
         if (g.brawl?.taoshouActive && failures > 0) {
           g.brawl.taoshouActive = false;
-          if (Math.random() < 0.5) {
+          const taoSuccess = Math.random() < 0.5;
+          const wangmuPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'wangmu_niangniang');
+          if (taoSuccess) {
             failures = Math.max(0, failures - 1);
             successes = round.team.length - failures;
             appendBattleEvent(
@@ -642,6 +794,21 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
               '出征前赐九转仙桃护体：本轮任务若出现失败牌，仙桃有 50% 概率当场化解赦免 1 张失败牌！',
             );
           }
+          recordBrawlReplayAction(g.brawl, {
+            roundNumber: round.number,
+            mission: g.mission,
+            phase: 'mission_resolved',
+            actorId: wangmuPlayer?.id ?? '',
+            actorSeat: wangmuPlayer?.seat ?? 0,
+            actorNickname: wangmuPlayer?.nickname ?? '王母娘娘',
+            roleId: 'wangmu_niangniang',
+            roleName: '王母娘娘',
+            skillName: '九转仙桃',
+            outcome: taoSuccess ? 'success' : 'miss',
+            detail: taoSuccess
+              ? '九转仙桃仙气护体（50% 概率命中）：出征战报当场化解赦免了队伍中的 1 张失败牌！'
+              : '九转仙桃护体判定未命中（50% 概率）：劫数深重未能抵消失败牌。',
+          });
         }
 
         let passed = failures < failuresRequired(g);
@@ -650,7 +817,9 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         if (!passed && failures > 0 && g.brawl?.yuhuangYuzhiArmed) {
           g.brawl.yuhuangYuzhiArmed = false;
           const pardonChance = failures === 1 ? 0.6 : (failures === 2 ? 0.3 : 0);
-          if (pardonChance > 0 && Math.random() < pardonChance) {
+          const yuhuangSuccess = pardonChance > 0 && Math.random() < pardonChance;
+          const yuhuangPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'yuhuang_dadi');
+          if (yuhuangSuccess) {
             passed = true;
             failures = 0;
             successes = round.team.length;
@@ -668,6 +837,21 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
               '任一轮任务失败时降旨赦免（若为 1 败则 60% 概率逆转为胜，若为 2 败则 30% 概率逆转为胜）！',
             );
           }
+          recordBrawlReplayAction(g.brawl, {
+            roundNumber: round.number,
+            mission: g.mission,
+            phase: 'mission_resolved',
+            actorId: yuhuangPlayer?.id ?? '',
+            actorSeat: yuhuangPlayer?.seat ?? 0,
+            actorNickname: yuhuangPlayer?.nickname ?? '玉皇大帝',
+            roleId: 'yuhuang_dadi',
+            roleName: '玉皇大帝',
+            skillName: '天尊玉旨',
+            outcome: yuhuangSuccess ? 'success' : 'miss',
+            detail: yuhuangSuccess
+              ? '天尊降旨赦免此难劫数（判定成功）：三界至尊金口御言，将本次出征溃败绝境逆转为【大获全胜】！'
+              : '天尊降旨（判定未命中）：群妖势大劫数难消，未能化解此次失败。',
+          });
         }
 
         // 观音菩萨【净瓶甘露】：若洒甘露者出征且任务失败，100% 私密获知该人是否投了成功
@@ -678,6 +862,24 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
               targetId: g.brawl.guanyinGanluTargetId,
               targetSuccess: Boolean(targetVote),
             };
+            const guanyinPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'guanyin_pusa');
+            const targetP = g.players.find(p => p.id === g.brawl?.guanyinGanluTargetId);
+            recordBrawlReplayAction(g.brawl, {
+              roundNumber: round.number,
+              mission: g.mission,
+              phase: 'mission_resolved',
+              actorId: guanyinPlayer?.id ?? '',
+              actorSeat: guanyinPlayer?.seat ?? 0,
+              actorNickname: guanyinPlayer?.nickname ?? '观音菩萨',
+              roleId: 'guanyin_pusa',
+              roleName: '观音菩萨',
+              skillName: '净瓶甘露',
+              targetId: targetP?.id,
+              targetSeat: targetP?.seat,
+              targetNickname: targetP?.nickname,
+              outcome: 'info',
+              detail: `净瓶甘露显圣验人：私密探查【${targetP?.seat}号 · ${targetP?.nickname}】的出征票，得悉其真实投票为【${targetVote ? '成功牌' : '失败牌'}】！`,
+            });
           }
         }
 
@@ -726,6 +928,31 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
       const reason = g.assassinationMode === 'early'
         ? hit ? 'early_merlin_found' : 'early_merlin_survived'
         : hit ? 'merlin_found' : 'merlin_survived';
+      if (g.brawl) {
+        const assassinPlayer = g.players.find(p => p.id === userId);
+        const targetPlayer = g.players.find(p => p.id === targetId);
+        const targetBrawlRole = g.brawlRoles?.[targetId]
+          ? BRAWL_ROLE_REGISTRY[g.brawlRoles[targetId]]?.name
+          : undefined;
+        recordBrawlReplayAction(g.brawl, {
+          roundNumber: g.rounds.length,
+          mission: g.mission,
+          phase: 'assassination',
+          actorId: userId,
+          actorSeat: assassinPlayer?.seat ?? 0,
+          actorNickname: assassinPlayer?.nickname ?? '红孩儿',
+          roleId: 'hong_haier',
+          roleName: '红孩儿',
+          skillName: '三昧真火刺杀',
+          targetId,
+          targetSeat: targetPlayer?.seat,
+          targetNickname: targetPlayer?.nickname,
+          outcome: hit ? 'success' : 'miss',
+          detail: hit
+            ? `喷吐三昧真火绝杀一击，直刺【${targetPlayer?.seat}号 · ${targetPlayer?.nickname}】，一举命中齐天大圣孙悟空！红方妖魔绝杀逆转获胜！`
+            : `喷吐三昧真火绝杀一击，直刺【${targetPlayer?.seat}号 · ${targetPlayer?.nickname}】（真实身份为${targetBrawlRole || '非大圣'}），刺杀落空！齐天大圣真身保全，蓝方取经阵营获胜！`,
+        });
+      }
       finish(g, { winner: hit ? 'red' : 'blue', reason, targetId });
       break;
     }
@@ -830,6 +1057,37 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           playerState.skillUsed = true;
           const interceptSummary = `【太上老君】金刚琢凌空显圣，半空中一道金光当场将【${role.name}】祭出的【${role.skill.skillName}】套走收缴，妖法作废失效！`;
           appendBattleEvent(g.brawl, 'taishang_laojun', interceptSummary, '金刚琢套走妖魔绝技，收缴其法宝效果使其失效。');
+          const actorP = g.players.find(p => p.id === userId);
+          const laojunP = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'taishang_laojun');
+          recordBrawlReplayAction(g.brawl, {
+            roundNumber: g.rounds.length || 1,
+            mission: g.mission,
+            phase: 'team_building',
+            actorId: userId,
+            actorSeat: actorP?.seat ?? 0,
+            actorNickname: actorP?.nickname ?? role.name,
+            roleId: role.id,
+            roleName: role.name,
+            skillName: role.skill.skillName,
+            outcome: 'blocked',
+            detail: `祭出绝技【${role.skill.skillName}】，被太上老君金刚琢当场套走收缴，妖法作废失效！`,
+          });
+          recordBrawlReplayAction(g.brawl, {
+            roundNumber: g.rounds.length || 1,
+            mission: g.mission,
+            phase: 'team_building',
+            actorId: laojunP?.id ?? '',
+            actorSeat: laojunP?.seat ?? 0,
+            actorNickname: laojunP?.nickname ?? '太上老君',
+            roleId: 'taishang_laojun',
+            roleName: '太上老君',
+            skillName: '金刚琢',
+            targetId: userId,
+            targetSeat: actorP?.seat,
+            targetNickname: actorP?.nickname,
+            outcome: 'success',
+            detail: `金刚琢凌空显圣，成功收缴套走【${actorP?.seat}号 · ${actorP?.nickname}】（${role.name}）的【${role.skill.skillName}】！`,
+          });
           break;
         }
 
@@ -876,6 +1134,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           }
         } else if (role.skill.skillId === 'jiashe_leiyin') {
           // 黄眉老怪【假设雷音】（假传佛旨：私密点化 1 名随机蓝方）
+          let detail = '施展假设雷音佛音暗传';
           if (targetPlayer) {
             const candidateBlues = g.players.filter(p => {
               const ps = g.brawl?.playerStates[p.id];
@@ -888,13 +1147,45 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
                 targetSeat: targetPlayer.seat,
                 targetNickname: targetPlayer.nickname,
               };
+              detail = `假托菩提祖师名义向蓝方【${randomBlue.seat}号 · ${randomBlue.nickname}】私发密信，栽赃诬陷【${targetPlayer.seat}号 · ${targetPlayer.nickname}】身上妖氛缠绕！`;
             }
           }
+          const actorP = g.players.find(p => p.id === userId);
+          recordBrawlReplayAction(g.brawl, {
+            roundNumber: g.rounds.length || 1,
+            mission: g.mission,
+            phase: 'team_building',
+            actorId: userId,
+            actorSeat: actorP?.seat ?? 0,
+            actorNickname: actorP?.nickname ?? role.name,
+            roleId: role.id,
+            roleName: role.name,
+            skillName: role.skill.skillName,
+            targetId: targetPlayer?.id,
+            targetSeat: targetPlayer?.seat,
+            targetNickname: targetPlayer?.nickname,
+            outcome: 'success',
+            detail,
+          });
           // 静默生效，绝不生成公屏战报，彻底避免自爆！
           break;
         } else if (role.skill.skillId === 'huapi_lijian') {
           // 白骨精【画皮离间】（静默在出征队伍中埋下离间魔骨）
           g.brawl.baiguLijianArmed = true;
+          const actorP = g.players.find(p => p.id === userId);
+          recordBrawlReplayAction(g.brawl, {
+            roundNumber: g.rounds.length || 1,
+            mission: g.mission,
+            phase: 'team_building',
+            actorId: userId,
+            actorSeat: actorP?.seat ?? 0,
+            actorNickname: actorP?.nickname ?? role.name,
+            roleId: role.id,
+            roleName: role.name,
+            skillName: role.skill.skillName,
+            outcome: 'info',
+            detail: '暗中埋下离间魔骨：待命若本轮出征任务失败，将静默虚增 1 张失败牌引车内好人自相残杀！',
+          });
           // 静默生效，绝不生成公屏战报，彻底避免自爆！
           break;
         } else if (role.skill.skillId === 'huanghua_ducha') {
@@ -902,6 +1193,23 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           if (targetPlayer) {
             g.brawl.baiyanDuchaTargetId = targetPlayer.id;
           }
+          const actorP = g.players.find(p => p.id === userId);
+          recordBrawlReplayAction(g.brawl, {
+            roundNumber: g.rounds.length || 1,
+            mission: g.mission,
+            phase: 'team_building',
+            actorId: userId,
+            actorSeat: actorP?.seat ?? 0,
+            actorNickname: actorP?.nickname ?? role.name,
+            roleId: role.id,
+            roleName: role.name,
+            skillName: role.skill.skillName,
+            targetId: targetPlayer?.id,
+            targetSeat: targetPlayer?.seat,
+            targetNickname: targetPlayer?.nickname,
+            outcome: 'info',
+            detail: `暗中向出征队员【${targetPlayer?.seat}号 · ${targetPlayer?.nickname}】的茶杯中下黄花毒茶，待命出征结算！`,
+          });
           // 静默生效，绝不生成公屏战报，彻底避免自爆！
           break;
         } else if (role.skill.skillId === 'wuxingshan_zhang') {
@@ -1054,6 +1362,40 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
 
         const summaryText = customSummary || `【${role.name}】祭出绝技【${role.skill.skillName}】${targetText}！效用：${role.skill.description}`;
         appendBattleEvent(g.brawl, role.id, summaryText, role.skill.description);
+
+        const actorP = g.players.find(p => p.id === userId);
+        let actionPhase: BrawlTriggerPhase = 'team_building';
+        if (['santou_liubi', 'pingtian_handi', 'yishan_yading', 'xiuli_qiankun'].includes(role.skill.skillId) || g.phase === 'team_vote') {
+          actionPhase = 'team_voting';
+        } else if (['jingping_ganlu', 'zijin_hulu', 'daoyao_mihun'].includes(role.skill.skillId)) {
+          actionPhase = 'mission_exec';
+        }
+        let replayDetail = summaryText;
+        if (role.skill.skillId === 'bajiao_shenfeng' && g.brawl.tieshanSecret) {
+          replayDetail = g.brawl.tieshanSecret;
+        } else if (role.skill.skillId === 'daofa_dianhua') {
+          replayDetail = g.brawl.putiDianhuaNotice
+            ? `施展道法点化真传，向蓝方仙友暗授天机：告知场上潜伏群妖之一的真名为【${g.brawl.putiDianhuaNotice.redRoleName}】！`
+            : '施展道法点化真传，天机未显。';
+        } else if (role.skill.skillId === 'zhaoyao_baojing' && g.brawl.zhaoyaoResult) {
+          replayDetail = `举起照妖宝镜密照车队：探查结果显示车内【${g.brawl.zhaoyaoResult.hasDemon ? '妖氛弥漫（有妖魔）' : '清光纯正（无妖魔）'}】。`;
+        }
+        recordBrawlReplayAction(g.brawl, {
+          roundNumber: g.rounds.length || 1,
+          mission: g.mission,
+          phase: actionPhase,
+          actorId: userId,
+          actorSeat: actorP?.seat ?? 0,
+          actorNickname: actorP?.nickname ?? role.name,
+          roleId: role.id,
+          roleName: role.name,
+          skillName: role.skill.skillName,
+          targetId: targetPlayer?.id,
+          targetSeat: targetPlayer?.seat,
+          targetNickname: targetPlayer?.nickname,
+          outcome: 'success',
+          detail: replayDetail,
+        });
       }
       break;
     }
@@ -1104,7 +1446,7 @@ export function projectGame(g: GameState, userId?: string): GameView {
       revealedRoles: { ...g.roles },
       ...(g.brawlRoles ? { revealedBrawlRoles: { ...g.brawlRoles } } : {}),
     } : {}),
-    ...(g.brawl ? { brawl: structuredClone(g.brawl) } : {}),
+    ...(g.brawl ? { brawl: projectBrawlGameState(g.brawl, Boolean(g.result)) } : {}),
     ...(g.brawl && userId ? { selfBrawl: projectSelfBrawlView(g.brawl, userId, g.mission, g.brawlPeekedMap, g.players) } : {}),
     ...(g.abortPoll ? { abortPoll: { requestedBy: g.abortPoll.requestedBy, approvals: g.abortPoll.approvals.length,
       required: g.abortPoll.electorate.length, voted: !!userId && g.abortPoll.approvals.includes(userId) } } : {}),

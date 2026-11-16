@@ -244,9 +244,11 @@ export function projectSelfBrawlView(
   let baiyanDuchaStatus: string | undefined;
   if (playerState.roleId === 'baiyan_mojun') {
     if (state.baiyanDuchaResult === true) {
-      baiyanDuchaStatus = '🍵 黄花毒茶毒发：车上仙友的成功牌已静默被剧毒反转为失败牌！';
+      baiyanDuchaStatus = '🍵 黄花毒茶毒发：目标仙友投出的成功牌已静默被剧毒反转为失败牌！';
+    } else if (state.baiyanDuchaNotOnTeam) {
+      baiyanDuchaStatus = '🍵 黄花毒茶未能生效：下毒目标未随队出征，毒茶未被饮用。';
     } else if (state.baiyanDuchaResult === false) {
-      baiyanDuchaStatus = '🍵 黄花毒茶未奏效：车上仙友浩然正气护体，毒性未能侵蚀。';
+      baiyanDuchaStatus = '🍵 黄花毒茶未奏效：目标仙友浩然正气护体（概率未命中或未投成功）。';
     } else if (state.baiyanDuchaTargetId) {
       baiyanDuchaStatus = '🍵 黄花毒茶已暗中下入出征车队杯中，待出征结算生效...';
     }
@@ -256,8 +258,10 @@ export function projectSelfBrawlView(
   if (playerState.roleId === 'jinjiao_dawang') {
     if (state.jinjiaoResult?.absorbed) {
       jinjiaoNotice = `🏺 紫金红葫芦神威显圣（60%概率命中）：已成功将出征队员【${state.jinjiaoResult.targetSeat}号 · ${state.jinjiaoResult.targetNickname}】投出的 1 张成功牌暗中化解吸收为失败！`;
+    } else if (state.jinjiaoResult?.notOnTeam) {
+      jinjiaoNotice = `🏺 紫金红葫芦未能生效：锁定的目标【${state.jinjiaoResult.targetSeat}号 · ${state.jinjiaoResult.targetNickname}】未在出征车队中，葫芦吸空。`;
     } else if (state.jinjiaoResult && !state.jinjiaoResult.absorbed) {
-      jinjiaoNotice = `🏺 紫金红葫芦未生效（60%概率未命中或目标未投成功）：未能化解【${state.jinjiaoResult.targetSeat}号 · ${state.jinjiaoResult.targetNickname}】的成功牌。`;
+      jinjiaoNotice = `🏺 紫金红葫芦未生效：未能化解【${state.jinjiaoResult.targetSeat}号 · ${state.jinjiaoResult.targetNickname}】（概率未命中或目标未投成功）。`;
     } else if (state.jinjiaoHuluTargetId) {
       jinjiaoNotice = '🏺 紫金红葫芦已对准出征队员暗中备用，待出征结算生效...';
     }
@@ -267,8 +271,10 @@ export function projectSelfBrawlView(
   if (playerState.roleId === 'yutu_jing') {
     if (state.yutuResult?.discarded) {
       yutuNotice = `🐇 广寒仙药捣药迷魂（50%概率命中）：已成功迷魂封印【${state.yutuResult.targetSeat}号 · ${state.yutuResult.targetNickname}】投出的成功牌（强制弃权作废）！`;
+    } else if (state.yutuResult?.notOnTeam) {
+      yutuNotice = `🐇 捣药迷魂未能生效：锁定的目标【${state.yutuResult.targetSeat}号 · ${state.yutuResult.targetNickname}】未在出征车队中，药杵击空。`;
     } else if (state.yutuResult && !state.yutuResult.discarded) {
-      yutuNotice = `🐇 捣药迷魂未生效（50%概率未命中或目标未投成功）：未能迷魂封印【${state.yutuResult.targetSeat}号 · ${state.yutuResult.targetNickname}】。`;
+      yutuNotice = `🐇 捣药迷魂未生效：未能迷魂封印【${state.yutuResult.targetSeat}号 · ${state.yutuResult.targetNickname}】（概率未命中或目标未投成功）。`;
     } else if (state.yutuMihunTargetId) {
       yutuNotice = '🐇 捣药迷香已暗中向出征队员施放，待出征结算生效...';
     }

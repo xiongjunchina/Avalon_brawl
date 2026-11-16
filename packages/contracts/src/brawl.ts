@@ -148,15 +148,16 @@ export interface BrawlGameState {
   guanyinGanluResult?: { targetId: string; targetSuccess: boolean }; // 观音菩萨净瓶甘露探查结果
   putiDianhuaNotice?: { targetBlueUserId: string; redRoleName: string }; // 菩提祖师点化揭露的红方真名
   jinjiaoHuluTargetId?: string;     // 金角大王紫金葫芦锁定的队员
-  jinjiaoResult?: { targetSeat: number; targetNickname: string; absorbed: boolean }; // 金角大王紫金葫芦结算结果
+  jinjiaoResult?: { targetSeat: number; targetNickname: string; absorbed: boolean; notOnTeam?: boolean }; // 金角大王紫金葫芦结算结果
   yutuMihunTargetId?: string;       // 玉兔精捣药迷魂锁定的队员
-  yutuResult?: { targetSeat: number; targetNickname: string; discarded: boolean }; // 玉兔精捣药迷魂结算结果
+  yutuResult?: { targetSeat: number; targetNickname: string; discarded: boolean; notOnTeam?: boolean }; // 玉兔精捣药迷魂结算结果
   qingshiTuntianTargetId?: string;  // 青毛狮子怪大口吞天锁定的队员
   baiguLijianArmed?: boolean;       // 白骨精画皮离间待命中
   baiguLijianResult?: boolean;      // 白骨精画皮离间是否已生效虚增
   huangmeiDianhuaNotice?: { targetBlueUserId: string; targetSeat: number; targetNickname: string }; // 黄眉老怪假设雷音假传佛旨
   baiyanDuchaTargetId?: string;     // 百眼魔君黄花毒茶锁定的队员
   baiyanDuchaResult?: boolean;      // 百眼魔君黄花毒茶是否成功毒化出失败
+  baiyanDuchaNotOnTeam?: boolean;   // 百眼魔君黄花毒茶目标是否未在出征车队中
 }
 
 export interface SelfBrawlView {

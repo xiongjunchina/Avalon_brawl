@@ -1389,27 +1389,27 @@ test('brawl: Brawl mode completely disables Guanyin 5-second window, and Rulai c
   assert.equal(game.guanyinEndsAt, undefined, 'Guanyin countdown must be undefined');
 });
 
-test('brawl: Red probability skills auto-fallback to outgoing blue car members when target is replaced, providing private feedback', () => {
+test('brawl: Red skills strictly check if target is on mission team without transferring, reporting misses cleanly', () => {
   const players = Array.from({ length: 10 }, (_, i) => ({
     id: `p${i + 1}`,
     nickname: `玩家${i + 1}`,
     seat: i + 1,
   }));
 
-  let game = createGame('brawl-red-fallback', players, { ...defaultSettings, playerCount: 10, brawlModeEnabled: true }, a => a);
+  let game = createGame('brawl-red-target-check', players, { ...defaultSettings, playerCount: 10, brawlModeEnabled: true }, a => a);
 
   const jinjiaoPlayer = players.find(p => game.brawl!.playerStates[p.id].camp === 'red')!;
   game.brawlRoles![jinjiaoPlayer.id] = 'jinjiao_dawang';
   game.brawl!.playerStates[jinjiaoPlayer.id].roleId = 'jinjiao_dawang';
   game.brawl!.playerStates[jinjiaoPlayer.id].skillUsed = false;
 
-  // 金角锁定 p10（不在车上）
+  // 1. 金角锁定 p10（不在发车队伍中）
   game = transition(game, jinjiaoPlayer.id, {
     type: 'brawlCommand',
     payload: { action: 'useSkill', skillId: 'zijin_hulu', targetPlayerId: 'p10' },
   }, [jinjiaoPlayer.id]);
 
-  // 车上成员为 p1, p2, p3 (均为蓝方)
+  // 车上成员为 p1, p2, p3 (均为蓝方，p10 不在车上)
   const blueBoarders = ['p1', 'p2', 'p3'];
   for (const bId of blueBoarders) {
     game.brawl!.playerStates[bId].camp = 'blue';
@@ -1424,18 +1424,59 @@ test('brawl: Red probability skills auto-fallback to outgoing blue car members w
     direction: 'clockwise',
   });
 
+  // 全员投成功
+  game = transition(game, 'p1', { type: 'missionVote', payload: { success: true } }, ['p1']);
+  game = transition(game, 'p2', { type: 'missionVote', payload: { success: true } }, ['p2']);
+  game = transition(game, 'p3', { type: 'missionVote', payload: { success: true } }, ['p3']);
+
+  // 验证：绝不发生转嫁！任务必须全票成功，红方不能偷梁换柱
+  const resolvedRound = game.rounds[0];
+  assert.equal(resolvedRound.result?.passed, true, 'Mission succeeds because target p10 was not on board');
+  assert.equal(resolvedRound.result?.failures, 0, 'No failures absorbed because target was not on car');
+
+  // 验证金角大王收到专属私密回执：明确说明所选目标未出征，葫芦吸空
+  const jinjiaoView = projectGame(game, jinjiaoPlayer.id);
+  assert.ok(jinjiaoView.selfBrawl?.jinjiaoNotice, 'Jinjiao receives private notice');
+  assert.ok(jinjiaoView.selfBrawl!.jinjiaoNotice!.includes('未在出征车队中，葫芦吸空'), 'Notice confirms missed because target was off-team');
+
+  // 2. 验证当目标确实在车上时，概率正常生效
+  let game2 = createGame('brawl-red-target-hit', players, { ...defaultSettings, playerCount: 10, brawlModeEnabled: true }, a => a);
+  const jinjiaoP2 = players.find(p => game2.brawl!.playerStates[p.id].camp === 'red')!;
+  game2.brawlRoles![jinjiaoP2.id] = 'jinjiao_dawang';
+  game2.brawl!.playerStates[jinjiaoP2.id].roleId = 'jinjiao_dawang';
+  game2.brawl!.playerStates[jinjiaoP2.id].skillUsed = false;
+
+  // 金角锁定 p2（在发车车队中）
+  game2 = transition(game2, jinjiaoP2.id, {
+    type: 'brawlCommand',
+    payload: { action: 'useSkill', skillId: 'zijin_hulu', targetPlayerId: 'p2' },
+  }, [jinjiaoP2.id]);
+
+  for (const bId of blueBoarders) {
+    game2.brawl!.playerStates[bId].camp = 'blue';
+  }
+  game2.phase = 'mission';
+  game2.rounds.push({
+    number: 1,
+    mission: 1,
+    captainId: 'p1',
+    team: blueBoarders,
+    direction: 'clockwise',
+  });
+
   const originalRandom = Math.random;
   try {
     Math.random = () => 0.1; // 触发 60% 吸收成功
-    game = transition(game, 'p1', { type: 'missionVote', payload: { success: true } }, ['p1']);
-    game = transition(game, 'p2', { type: 'missionVote', payload: { success: true } }, ['p2']);
-    game = transition(game, 'p3', { type: 'missionVote', payload: { success: true } }, ['p3']);
+    game2 = transition(game2, 'p1', { type: 'missionVote', payload: { success: true } }, ['p1']);
+    game2 = transition(game2, 'p2', { type: 'missionVote', payload: { success: true } }, ['p2']);
+    game2 = transition(game2, 'p3', { type: 'missionVote', payload: { success: true } }, ['p3']);
   } finally {
     Math.random = originalRandom;
   }
 
-  // 验证金角大王成功触发自动退守锁定车上的蓝方队员，并生成专属回执
-  const jinjiaoView = projectGame(game, jinjiaoPlayer.id);
-  assert.ok(jinjiaoView.selfBrawl?.jinjiaoNotice, 'Jinjiao receives private notice');
-  assert.ok(jinjiaoView.selfBrawl!.jinjiaoNotice!.includes('紫金红葫芦神威显圣'), 'Notice confirms absorption');
+  // 验证在车上的目标被精准吸收
+  const resolvedRound2 = game2.rounds[0];
+  assert.equal(resolvedRound2.result?.failures, 1, 'Target p2 was on car and absorbed into 1 failure');
+  const hitView = projectGame(game2, jinjiaoP2.id);
+  assert.ok(hitView.selfBrawl!.jinjiaoNotice!.includes('紫金红葫芦神威显圣'), 'Notice confirms hit on target p2');
 });

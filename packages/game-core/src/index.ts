@@ -716,18 +716,41 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         let failures = Object.values(g.missionVotes).filter(v => !v).length;
         let successes = round.team.length - failures;
 
-        // 金角大王【紫金葫芦】：若选定队员投了成功，60% 概率被宝葫芦化解吸收为失败
+        // 金角大王【紫金葫芦】：若选定队员在车上并投了成功，60% 概率被宝葫芦化解吸收为失败
         if (g.brawl?.jinjiaoHuluTargetId) {
-          let effectiveTargetId = g.brawl.jinjiaoHuluTargetId;
-          if (!round.team.includes(effectiveTargetId)) {
-            const blueBoarder = round.team.find(id => g.brawl?.playerStates[id]?.camp === 'blue');
-            if (blueBoarder) effectiveTargetId = blueBoarder;
-          }
-          if (round.team.includes(effectiveTargetId)) {
-            const targetVotedSuccess = g.missionVotes[effectiveTargetId];
+          const targetId = g.brawl.jinjiaoHuluTargetId;
+          const targetP = g.players.find(p => p.id === targetId);
+          const jinjiaoPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'jinjiao_dawang');
+
+          if (!round.team.includes(targetId)) {
+            // 目标不在车上：技能直接落空，绝不转嫁给其他好人
+            if (targetP) {
+              g.brawl.jinjiaoResult = {
+                targetSeat: targetP.seat,
+                targetNickname: targetP.nickname,
+                absorbed: false,
+                notOnTeam: true,
+              };
+            }
+            recordBrawlReplayAction(g.brawl, {
+              roundNumber: round.number,
+              mission: g.mission,
+              phase: 'mission_resolved',
+              actorId: jinjiaoPlayer?.id ?? '',
+              actorSeat: jinjiaoPlayer?.seat ?? 0,
+              actorNickname: jinjiaoPlayer?.nickname ?? '金角大王',
+              roleId: 'jinjiao_dawang',
+              roleName: '金角大王',
+              skillName: '紫金葫芦',
+              targetId: targetP?.id,
+              targetSeat: targetP?.seat,
+              targetNickname: targetP?.nickname,
+              outcome: 'miss',
+              detail: `所选目标【${targetP?.seat}号 · ${targetP?.nickname}】未随队出征，紫金红葫芦吸空未能生效。`,
+            });
+          } else {
+            const targetVotedSuccess = g.missionVotes[targetId];
             const absorbed = targetVotedSuccess && Math.random() < 0.6;
-            const jinjiaoPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'jinjiao_dawang');
-            const targetP = g.players.find(p => p.id === effectiveTargetId);
             if (absorbed) {
               failures += 1;
               successes = Math.max(0, successes - 1);
@@ -761,24 +784,49 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
               outcome: absorbed ? 'success' : 'miss',
               detail: absorbed
                 ? `紫金红葫芦神威显圣（60% 概率命中）：暗中化解吸收了【${targetP?.seat}号 · ${targetP?.nickname}】投出的 1 张成功牌！`
-                : `紫金红葫芦判定未命中（60% 概率未生效或目标未投成功）：未能化解成功牌。`,
+                : (targetVotedSuccess
+                  ? `紫金红葫芦判定未命中（60% 概率未生效）：未能化解【${targetP?.seat}号 · ${targetP?.nickname}】的成功牌。`
+                  : `所选目标【${targetP?.seat}号 · ${targetP?.nickname}】未投出成功牌，紫金红葫芦未能化解吸收。`),
             });
           }
           g.brawl.jinjiaoHuluTargetId = undefined;
         }
 
-        // 玉兔精【捣药迷魂】：若选定队员投了成功，50% 概率成功牌被封印弃权
+        // 玉兔精【捣药迷魂】：若选定队员在车上并投了成功，50% 概率成功牌被封印弃权
         if (g.brawl?.yutuMihunTargetId) {
-          let effectiveTargetId = g.brawl.yutuMihunTargetId;
-          if (!round.team.includes(effectiveTargetId)) {
-            const blueBoarder = round.team.find(id => g.brawl?.playerStates[id]?.camp === 'blue');
-            if (blueBoarder) effectiveTargetId = blueBoarder;
-          }
-          if (round.team.includes(effectiveTargetId)) {
-            const targetVotedSuccess = g.missionVotes[effectiveTargetId];
+          const targetId = g.brawl.yutuMihunTargetId;
+          const targetP = g.players.find(p => p.id === targetId);
+          const yutuPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'yutu_jing');
+
+          if (!round.team.includes(targetId)) {
+            // 目标不在车上：技能直接落空，绝不转嫁给其他好人
+            if (targetP) {
+              g.brawl.yutuResult = {
+                targetSeat: targetP.seat,
+                targetNickname: targetP.nickname,
+                discarded: false,
+                notOnTeam: true,
+              };
+            }
+            recordBrawlReplayAction(g.brawl, {
+              roundNumber: round.number,
+              mission: g.mission,
+              phase: 'mission_resolved',
+              actorId: yutuPlayer?.id ?? '',
+              actorSeat: yutuPlayer?.seat ?? 0,
+              actorNickname: yutuPlayer?.nickname ?? '玉兔精',
+              roleId: 'yutu_jing',
+              roleName: '玉兔精',
+              skillName: '捣药迷魂',
+              targetId: targetP?.id,
+              targetSeat: targetP?.seat,
+              targetNickname: targetP?.nickname,
+              outcome: 'miss',
+              detail: `所选目标【${targetP?.seat}号 · ${targetP?.nickname}】未随队出征，捣药迷魂未能生效。`,
+            });
+          } else {
+            const targetVotedSuccess = g.missionVotes[targetId];
             const discarded = targetVotedSuccess && Math.random() < 0.5;
-            const yutuPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'yutu_jing');
-            const targetP = g.players.find(p => p.id === effectiveTargetId);
             if (discarded) {
               failures += 1;
               successes = Math.max(0, successes - 1);
@@ -812,26 +860,45 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
               outcome: discarded ? 'success' : 'miss',
               detail: discarded
                 ? `捣药迷魂生效（50% 概率命中）：迷魂封印了【${targetP?.seat}号 · ${targetP?.nickname}】投出的成功牌（强制弃权作废）！`
-                : `捣药迷魂判定未命中（50% 概率未生效或目标未投成功）：未能迷魂封印。`,
+                : (targetVotedSuccess
+                  ? `捣药迷魂判定未命中（50% 概率未生效）：未能迷魂封印【${targetP?.seat}号 · ${targetP?.nickname}】。`
+                  : `所选目标【${targetP?.seat}号 · ${targetP?.nickname}】未投出成功牌，捣药迷魂未能封印。`),
             });
           }
           g.brawl.yutuMihunTargetId = undefined;
         }
 
-        // 百眼魔君【黄花毒茶】：若选定队员投了成功，大车(>=4人)60%/小车(<=3人)50%概率被毒化反转为失败牌！
+        // 百眼魔君【黄花毒茶】：若选定队员在车上并投了成功，大车(>=4人)60%/小车(<=3人)50%概率被毒化反转为失败牌！
         if (g.brawl?.baiyanDuchaTargetId) {
-          let effectiveTargetId = g.brawl.baiyanDuchaTargetId;
-          if (!round.team.includes(effectiveTargetId)) {
-            const blueBoarder = round.team.find(id => g.brawl?.playerStates[id]?.camp === 'blue');
-            if (blueBoarder) effectiveTargetId = blueBoarder;
-          }
-          if (round.team.includes(effectiveTargetId)) {
-            const targetVotedSuccess = g.missionVotes[effectiveTargetId];
+          const targetId = g.brawl.baiyanDuchaTargetId;
+          const targetP = g.players.find(p => p.id === targetId);
+          const baiyanPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'baiyan_mojun');
+
+          if (!round.team.includes(targetId)) {
+            // 目标不在车上：技能直接落空，绝不转嫁给其他好人
+            g.brawl.baiyanDuchaResult = false;
+            g.brawl.baiyanDuchaNotOnTeam = true;
+            recordBrawlReplayAction(g.brawl, {
+              roundNumber: round.number,
+              mission: g.mission,
+              phase: 'mission_resolved',
+              actorId: baiyanPlayer?.id ?? '',
+              actorSeat: baiyanPlayer?.seat ?? 0,
+              actorNickname: baiyanPlayer?.nickname ?? '百眼魔君',
+              roleId: 'baiyan_mojun',
+              roleName: '百眼魔君',
+              skillName: '黄花毒茶',
+              targetId: targetP?.id,
+              targetSeat: targetP?.seat,
+              targetNickname: targetP?.nickname,
+              outcome: 'miss',
+              detail: `下毒目标【${targetP?.seat}号 · ${targetP?.nickname}】未随队出征，黄花毒茶未能生效。`,
+            });
+          } else {
+            const targetVotedSuccess = g.missionVotes[targetId];
             const isBig = round.team.length >= 4;
             const chance = isBig ? 0.6 : 0.5;
             const poisoned = targetVotedSuccess && Math.random() < chance;
-            const baiyanPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'baiyan_mojun');
-            const targetP = g.players.find(p => p.id === effectiveTargetId);
             if (poisoned) {
               failures += 1;
               successes = Math.max(0, successes - 1);
@@ -855,7 +922,9 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
               outcome: poisoned ? 'success' : 'miss',
               detail: poisoned
                 ? `黄花毒茶毒发成功（${isBig ? '大车 60%' : '小车 50%'} 概率命中）：暗中将【${targetP?.seat}号 · ${targetP?.nickname}】投出的【成功牌】静默毒化为【失败牌】！导致本轮出征翻车！`
-                : `黄花毒茶未能毒发（${isBig ? '大车 60%' : '小车 50%'} 概率未命中或目标未投成功）：【${targetP?.seat}号 · ${targetP?.nickname}】未受毒化影响。`,
+                : (targetVotedSuccess
+                  ? `黄花毒茶未能毒发（${isBig ? '大车 60%' : '小车 50%'} 概率未命中）：【${targetP?.seat}号 · ${targetP?.nickname}】未受毒化影响。`
+                  : `下毒目标【${targetP?.seat}号 · ${targetP?.nickname}】未投出成功牌，黄花毒茶未生效。`),
             });
           }
           g.brawl.baiyanDuchaTargetId = undefined;

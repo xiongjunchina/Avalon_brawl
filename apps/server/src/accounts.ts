@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { teamOf, type GameState } from '@avalon/game-core';
+import { teamOf, type GameState, BRAWL_ROLE_REGISTRY } from '@avalon/game-core';
 import { type GameSummary, type HistoryPage, type Replay, type Statistics, type Score, type Role, type Team,
   type User, type SettingPreset, profileSchema, presetSchema } from '@avalon/contracts';
 import { DomainError, type PostgresStore } from './store.js';
@@ -16,8 +16,11 @@ export const historyQuery=z.object({cursor:z.string().min(1).max(512).optional()
 type GameRow={id:string;state:GameState;created_at:Date;ended_at:Date;cursor_at:string;favorite:boolean};
 const summary=(r:GameRow,userId:string):GameSummary=>{
   const g=r.state,p=g.players.find(p=>p.id===userId)!;
+  const brawlRoleId = g.brawlRoles?.[userId] || g.brawl?.playerStates[userId]?.roleId;
+  const brawlRoleName = brawlRoleId ? BRAWL_ROLE_REGISTRY[brawlRoleId]?.name : undefined;
   return {id:r.id,startedAt:r.created_at.toISOString(),endedAt:r.ended_at.toISOString(),rulesetVersion:g.rulesetVersion,
-    playerCount:g.players.length,self:{nickname:p.nickname,seat:p.seat,role:g.roles[userId],team:teamOf(g.roles[userId])},
+    playerCount:g.players.length,self:{nickname:p.nickname,seat:p.seat,role:g.roles[userId],team:teamOf(g.roles[userId]),
+      ...(brawlRoleId ? { brawlRoleId, brawlRoleName } : {})},
     result:{winner:g.result!.winner,reason:g.result!.reason,...(g.result!.targetId?{targetId:g.result!.targetId}:{})},favorite:r.favorite};
 };
 const gameSelect=`SELECT g.*,to_char(g.ended_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS cursor_at,
@@ -62,6 +65,7 @@ export class Accounts {
       return {...summary(r,userId),settings:{...g.settings},
         players:g.players.map(p=>({id:p.id,nickname:p.nickname,seat:p.seat})),
         roles:Object.fromEntries(g.players.map(p=>[p.id,g.roles[p.id]])),
+        ...(g.brawlRoles ? { brawlRoles: { ...g.brawlRoles } } : {}),
         rounds:g.rounds.map(r=>({number:r.number,mission:r.mission,captainId:r.captainId,team:[...r.team],direction:r.direction,
           ...(r.vote?{vote:{approvals:r.vote.approvals,rejections:r.vote.rejections,abstentions:r.vote.abstentions??0,passed:r.vote.passed,
             ...(!g.settings.anonymousTeamVote&&r.vote.ballots?{ballots:Object.fromEntries(g.players.filter(p=>(typeof r.vote!.ballots![p.id]==='boolean'||r.vote!.ballots![p.id]==='abstain')).map(p=>[p.id,r.vote!.ballots![p.id]]))}:{})}}:{}),

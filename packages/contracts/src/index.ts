@@ -498,7 +498,7 @@ export interface Score { completed:number; wins:number; losses:number; aborted:n
 export interface Statistics extends Score { byRole:Record<Role,Score>; byTeam:Record<Team,Score> }
 export interface GameSummary {
   id:string; startedAt:string; endedAt:string; rulesetVersion:string; playerCount:number;
-  self: {nickname:string;seat:number;role:Role;team:Team}; result:GameResult; favorite:boolean;
+  self: {nickname:string;seat:number;role:Role;team:Team;brawlRoleId?:string;brawlRoleName?:string}; result:GameResult; favorite:boolean;
 }
 export interface HistoryPage { games:GameSummary[]; nextCursor:string|null }
 /** Server-side deal evidence; exposed only in an administrator's completed-game replay. */
@@ -524,6 +524,7 @@ export interface RoleAssignmentAudit {
 export interface Replay extends GameSummary {
   settings:Settings; players:Player[]; roles:Record<string,Role>; rounds:RoundView[];
   inspections:Inspection[]; earlyWindows:EarlyWindow[];
+  brawlRoles?: Record<string, string>;
   roleAssignmentAudit?: RoleAssignmentAudit;
 }
 export interface SettingPreset { id:string; name:string; settings:Settings; updatedAt:string }

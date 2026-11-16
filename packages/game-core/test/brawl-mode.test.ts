@@ -18,6 +18,7 @@ import {
   missionSizesFor,
   MISSION_SIZES,
   BRAWL_MISSION_SIZES,
+  hasUnusedGuanyin,
 } from '../src/index.js';
 import { defaultSettings, type BrawlRoleDef, type BrawlPlayerState } from '@avalon/contracts';
 
@@ -219,12 +220,18 @@ test('brawl: createGame with brawlModeEnabled assigns full brawl roles, projectG
   assert.ok(viewP1.selfBrawl?.roleName, 'selfBrawl has roleName');
   assert.ok(viewP1.selfBrawl?.skill, 'selfBrawl has skill');
 
-  // Verify brawlCommand transition
-  const next = transition(game, 'p1', {
+  // Pick a non-silent player to verify brawlCommand event generation
+  const nonSilentPlayer = players.find(p => {
+    const roleId = game.brawlRoles![p.id];
+    return roleId !== 'baigu_jing' && roleId !== 'baiyan_mojun' && roleId !== 'huangmei_laoguai';
+  }) || players[0];
+  const viewActor = projectGame(game, nonSilentPlayer.id);
+  game.mission = 3;
+  const next = transition(game, nonSilentPlayer.id, {
     type: 'brawlCommand',
-    payload: { action: 'useSkill', skillId: viewP1.selfBrawl.skill.skillId },
+    payload: { action: 'useSkill', skillId: viewActor.selfBrawl!.skill.skillId },
   }, players.map(p => p.id));
-  assert.equal(next.brawl?.playerStates.p1.skillUsed, true, 'Skill marked as used');
+  assert.equal(next.brawl?.playerStates[nonSilentPlayer.id].skillUsed, true, 'Skill marked as used');
   assert.equal(next.brawl?.events.length, 1, 'Event appended');
 });
 
@@ -1251,4 +1258,184 @@ test('brawl: post-game replay timeline is strictly hidden during active game and
   assert.ok(assassinateAction, 'Contains assassination replay entry');
   assert.equal(assassinateAction.outcome, 'success');
   assert.ok(assassinateAction.detail.includes('一举命中齐天大圣'));
+});
+
+test('brawl: role preferences partition players strictly into blue/red teams respecting camp preference', () => {
+  const players = Array.from({ length: 10 }, (_, i) => ({
+    id: `u${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+
+  // u1 chooses 5 Red roles:
+  const u1Prefs = ['niu_mowang', 'dapeng_jinchibird', 'baigu_jing', 'huangfeng_guai', 'qingmao_shizi'];
+  // u2 chooses 5 Blue roles:
+  const u2Prefs = ['erlang_shen', 'nezha', 'zhenyuan_daxian', 'guanyin_pusa', 'rulai_fozu'];
+
+  const game = createGame(
+    'brawl-test-camp-prefs',
+    players,
+    { ...defaultSettings, playerCount: 10, brawlModeEnabled: true, rolePreferenceEnabled: true },
+    a => a,
+    { rolePreferences: { u1: u1Prefs, u2: u2Prefs } }
+  );
+
+  assert.equal(game.brawl!.playerStates['u1'].camp, 'red', 'Player with 5 red preferences must be assigned to Red camp');
+  assert.equal(game.brawl!.playerStates['u2'].camp, 'blue', 'Player with 5 blue preferences must be assigned to Blue camp');
+});
+
+test('brawl: 10-player brawl contains no Oberon or Guinevere base roles, all Red players see each other', () => {
+  const players = Array.from({ length: 10 }, (_, i) => ({
+    id: `u${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+
+  const game = createGame(
+    'brawl-10p-no-oberon',
+    players,
+    { ...defaultSettings, playerCount: 10, brawlModeEnabled: true },
+    a => a
+  );
+
+  // 基础身份池中绝不能出现 oberon 或 guinevere
+  const baseRoles = Object.values(game.roles);
+  assert.equal(baseRoles.includes('oberon' as any), false, 'Base roles must NOT contain oberon');
+  assert.equal(baseRoles.includes('guinevere' as any), false, 'Base roles must NOT contain guinevere');
+
+  // 所有红方玩家互相可见
+  const redPlayers = players.filter(p => game.brawl!.playerStates[p.id].camp === 'red');
+  assert.equal(redPlayers.length, 4, '10-player brawl has 4 red players');
+  for (const redP of redPlayers) {
+    const view = projectGame(game, redP.id);
+    const expectedOtherReds = redPlayers.filter(p => p.id !== redP.id).map(p => p.id);
+    for (const otherRed of expectedOtherReds) {
+      assert.ok(view.self!.evilIds.includes(otherRed), `Red player ${redP.id} must see teammate ${otherRed}`);
+    }
+  }
+});
+
+test('brawl: Huangmei Laoguai has mutual vision with Red teammates, but is masked from Merlin', () => {
+  const players = Array.from({ length: 10 }, (_, i) => ({
+    id: `u${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+
+  const game = createGame(
+    'brawl-huangmei-vision',
+    players,
+    { ...defaultSettings, playerCount: 10, brawlModeEnabled: true },
+    a => a
+  );
+
+  const redPlayers = players.filter(p => game.brawl!.playerStates[p.id].camp === 'red');
+  const huangmeiPlayer = redPlayers[0];
+  const otherRed = redPlayers[1];
+  const merlinPlayer = players.find(p => game.roles[p.id] === 'merlin')!;
+
+  // 强制将 huangmeiPlayer 的 brawl 角色设为黄眉老怪
+  game.brawlRoles![huangmeiPlayer.id] = 'huangmei_laoguai';
+  game.brawl!.playerStates[huangmeiPlayer.id].roleId = 'huangmei_laoguai';
+
+  // 1. 黄眉老怪看其他红方队友：可见
+  const huangmeiView = projectGame(game, huangmeiPlayer.id);
+  assert.ok(huangmeiView.self!.evilIds.includes(otherRed.id), 'Huangmei sees red teammate');
+
+  // 2. 其他红方队友看黄眉老怪：可见
+  const otherRedView = projectGame(game, otherRed.id);
+  assert.ok(otherRedView.self!.evilIds.includes(huangmeiPlayer.id), 'Red teammate sees Huangmei');
+
+  // 3. 孙悟空 (Merlin) 看黄眉老怪：严格不可见！
+  const merlinView = projectGame(game, merlinPlayer.id);
+  assert.ok(!merlinView.self!.merlinCandidates.includes(huangmeiPlayer.id), 'Merlin does NOT see Huangmei');
+});
+
+test('brawl: Brawl mode completely disables Guanyin 5-second window, and Rulai cannot trigger Guanyin mirror', () => {
+  const players = Array.from({ length: 10 }, (_, i) => ({
+    id: `u${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+
+  let game = createGame(
+    'brawl-no-guanyin-window',
+    players,
+    { ...defaultSettings, playerCount: 10, brawlModeEnabled: true, treasuresEnabled: true },
+    a => a
+  );
+
+  // 验证 hasUnusedGuanyin 返回 false
+  assert.equal(hasUnusedGuanyin(game), false, 'hasUnusedGuanyin must be false in brawl mode');
+
+  // 模拟组队表决全票通过
+  const captain = game.players[0].id;
+  game.phase = 'discussion';
+  game.rounds.push({
+    number: 1,
+    mission: 1,
+    captainId: captain,
+    team: [players[0].id, players[1].id, players[2].id],
+    direction: 'clockwise',
+  });
+  game = transition(game, captain, { type: 'startTeamVote', payload: {} }, [captain]);
+
+  for (const p of players) {
+    game = transition(game, p.id, { type: 'teamVote', payload: { approve: true } }, [p.id]);
+  }
+
+  // 表决通过后应直接进入 mission 阶段，绝不触发 guanyin_window
+  assert.equal(game.phase, 'mission', 'Must transition directly to mission phase');
+  assert.equal(game.guanyinEndsAt, undefined, 'Guanyin countdown must be undefined');
+});
+
+test('brawl: Red probability skills auto-fallback to outgoing blue car members when target is replaced, providing private feedback', () => {
+  const players = Array.from({ length: 10 }, (_, i) => ({
+    id: `p${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+
+  let game = createGame('brawl-red-fallback', players, { ...defaultSettings, playerCount: 10, brawlModeEnabled: true }, a => a);
+
+  const jinjiaoPlayer = players.find(p => game.brawl!.playerStates[p.id].camp === 'red')!;
+  game.brawlRoles![jinjiaoPlayer.id] = 'jinjiao_dawang';
+  game.brawl!.playerStates[jinjiaoPlayer.id].roleId = 'jinjiao_dawang';
+  game.brawl!.playerStates[jinjiaoPlayer.id].skillUsed = false;
+
+  // 金角锁定 p10（不在车上）
+  game = transition(game, jinjiaoPlayer.id, {
+    type: 'brawlCommand',
+    payload: { action: 'useSkill', skillId: 'zijin_hulu', targetPlayerId: 'p10' },
+  }, [jinjiaoPlayer.id]);
+
+  // 车上成员为 p1, p2, p3 (均为蓝方)
+  const blueBoarders = ['p1', 'p2', 'p3'];
+  for (const bId of blueBoarders) {
+    game.brawl!.playerStates[bId].camp = 'blue';
+  }
+
+  game.phase = 'mission';
+  game.rounds.push({
+    number: 1,
+    mission: 1,
+    captainId: 'p1',
+    team: blueBoarders,
+    direction: 'clockwise',
+  });
+
+  const originalRandom = Math.random;
+  try {
+    Math.random = () => 0.1; // 触发 60% 吸收成功
+    game = transition(game, 'p1', { type: 'missionVote', payload: { success: true } }, ['p1']);
+    game = transition(game, 'p2', { type: 'missionVote', payload: { success: true } }, ['p2']);
+    game = transition(game, 'p3', { type: 'missionVote', payload: { success: true } }, ['p3']);
+  } finally {
+    Math.random = originalRandom;
+  }
+
+  // 验证金角大王成功触发自动退守锁定车上的蓝方队员，并生成专属回执
+  const jinjiaoView = projectGame(game, jinjiaoPlayer.id);
+  assert.ok(jinjiaoView.selfBrawl?.jinjiaoNotice, 'Jinjiao receives private notice');
+  assert.ok(jinjiaoView.selfBrawl!.jinjiaoNotice!.includes('紫金红葫芦神威显圣'), 'Notice confirms absorption');
 });

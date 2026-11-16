@@ -45,7 +45,9 @@ export function createBrawlGameState(
     guanyinGanluResult: undefined,
     putiDianhuaNotice: undefined,
     jinjiaoHuluTargetId: undefined,
+    jinjiaoResult: undefined,
     yutuMihunTargetId: undefined,
+    yutuResult: undefined,
     qingshiTuntianTargetId: undefined,
     baiguLijianArmed: false,
     baiguLijianResult: false,
@@ -124,7 +126,9 @@ export function projectBrawlGameState(
   delete sanitized.guanyinGanluResult;
   delete sanitized.putiDianhuaNotice;
   delete sanitized.jinjiaoHuluTargetId;
+  delete sanitized.jinjiaoResult;
   delete sanitized.yutuMihunTargetId;
+  delete sanitized.yutuResult;
   delete sanitized.baiguLijianArmed;
   delete sanitized.baiguLijianResult;
   delete sanitized.tieshanSecret;
@@ -248,6 +252,28 @@ export function projectSelfBrawlView(
     }
   }
 
+  let jinjiaoNotice: string | undefined;
+  if (playerState.roleId === 'jinjiao_dawang') {
+    if (state.jinjiaoResult?.absorbed) {
+      jinjiaoNotice = `🏺 紫金红葫芦神威显圣（60%概率命中）：已成功将出征队员【${state.jinjiaoResult.targetSeat}号 · ${state.jinjiaoResult.targetNickname}】投出的 1 张成功牌暗中化解吸收为失败！`;
+    } else if (state.jinjiaoResult && !state.jinjiaoResult.absorbed) {
+      jinjiaoNotice = `🏺 紫金红葫芦未生效（60%概率未命中或目标未投成功）：未能化解【${state.jinjiaoResult.targetSeat}号 · ${state.jinjiaoResult.targetNickname}】的成功牌。`;
+    } else if (state.jinjiaoHuluTargetId) {
+      jinjiaoNotice = '🏺 紫金红葫芦已对准出征队员暗中备用，待出征结算生效...';
+    }
+  }
+
+  let yutuNotice: string | undefined;
+  if (playerState.roleId === 'yutu_jing') {
+    if (state.yutuResult?.discarded) {
+      yutuNotice = `🐇 广寒仙药捣药迷魂（50%概率命中）：已成功迷魂封印【${state.yutuResult.targetSeat}号 · ${state.yutuResult.targetNickname}】投出的成功牌（强制弃权作废）！`;
+    } else if (state.yutuResult && !state.yutuResult.discarded) {
+      yutuNotice = `🐇 捣药迷魂未生效（50%概率未命中或目标未投成功）：未能迷魂封印【${state.yutuResult.targetSeat}号 · ${state.yutuResult.targetNickname}】。`;
+    } else if (state.yutuMihunTargetId) {
+      yutuNotice = '🐇 捣药迷香已暗中向出征队员施放，待出征结算生效...';
+    }
+  }
+
   return {
     roleId: playerState.roleId,
     roleName: roleDef.name,
@@ -268,5 +294,7 @@ export function projectSelfBrawlView(
     ...(huangmeiNotice ? { huangmeiNotice } : {}),
     ...(baiguLijianStatus ? { baiguLijianStatus } : {}),
     ...(baiyanDuchaStatus ? { baiyanDuchaStatus } : {}),
+    ...(jinjiaoNotice ? { jinjiaoNotice } : {}),
+    ...(yutuNotice ? { yutuNotice } : {}),
   };
 }

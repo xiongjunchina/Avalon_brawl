@@ -148,7 +148,9 @@ export interface BrawlGameState {
   guanyinGanluResult?: { targetId: string; targetSuccess: boolean }; // 观音菩萨净瓶甘露探查结果
   putiDianhuaNotice?: { targetBlueUserId: string; redRoleName: string }; // 菩提祖师点化揭露的红方真名
   jinjiaoHuluTargetId?: string;     // 金角大王紫金葫芦锁定的队员
+  jinjiaoResult?: { targetSeat: number; targetNickname: string; absorbed: boolean }; // 金角大王紫金葫芦结算结果
   yutuMihunTargetId?: string;       // 玉兔精捣药迷魂锁定的队员
+  yutuResult?: { targetSeat: number; targetNickname: string; discarded: boolean }; // 玉兔精捣药迷魂结算结果
   qingshiTuntianTargetId?: string;  // 青毛狮子怪大口吞天锁定的队员
   baiguLijianArmed?: boolean;       // 白骨精画皮离间待命中
   baiguLijianResult?: boolean;      // 白骨精画皮离间是否已生效虚增
@@ -177,6 +179,8 @@ export interface SelfBrawlView {
   huangmeiNotice?: string; // 黄眉老怪专属假传佛旨状态回执
   baiguLijianStatus?: string; // 白骨精专属画皮离间状态回执
   baiyanDuchaStatus?: string; // 百眼魔君专属黄花毒茶状态回执
+  jinjiaoNotice?: string; // 金角大王专属紫金葫芦吸收回执
+  yutuNotice?: string; // 玉兔精专属捣药迷魂封印回执
 }
 
 export const brawlCommandPayloadSchema = z.object({

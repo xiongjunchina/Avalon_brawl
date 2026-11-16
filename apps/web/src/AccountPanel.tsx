@@ -3,7 +3,7 @@ import { BattleHistory } from './BattleRound';
 import { Modal } from './Modal';
 import { useEffect, useRef, useState } from 'react';
 import type { Avatar, User, Statistics, Score, HistoryPage, GameSummary, Replay, GameResult } from '@avalon/contracts';
-import { assignFemaleDemons, assignLoyalGuardians } from '@avalon/game-core';
+import { assignFemaleDemons, assignLoyalGuardians, BRAWL_ROLE_REGISTRY } from '@avalon/game-core';
 import { formatRoleName, getRoleGalleryItem, roleNames } from './roles';
 import { RolePortrait } from './RolePortrait';
 import { api, describe } from './api';
@@ -25,10 +25,20 @@ export function HistoryRoster({replay:g}:{replay:Replay}) {
   const demons=assignFemaleDemons(g.id,g.players,g.roles);
   return <ul className="history-roster" aria-label="本局全员角色">{[...g.players].sort((a,b)=>a.seat-b.seat).map(p=>{
     const role=g.roles[p.id],team=roleTeam(role),self=p.seat===g.self.seat;
+    const brawlRoleId = g.brawlRoles?.[p.id];
+    const brawlRoleDef = brawlRoleId ? BRAWL_ROLE_REGISTRY[brawlRoleId] : undefined;
+    const roleTitle = brawlRoleDef ? brawlRoleDef.name : formatRoleName(role,guardians[p.id],demons[p.id]);
+    const roleDisplayName = brawlRoleDef ? brawlRoleDef.name : getRoleGalleryItem(role,guardians[p.id],demons[p.id]).name;
+    const roleCamp = brawlRoleDef ? (brawlRoleDef.camp === 'blue' ? '蓝方' : '红方') : (team==='blue'?'蓝方':'红方');
+    const roleCampClass = brawlRoleDef ? (brawlRoleDef.camp === 'blue' ? 'team-blue' : 'team-red') : `team-${team}`;
     return <li key={p.id} className={self?'is-self':undefined}>
-      <RolePortrait role={role} loyalGuardian={guardians[p.id]} femaleDemon={demons[p.id]} size="mini"/>
+      {brawlRoleDef ? (
+        <img src={assetUrl(`/art/roles/${brawlRoleDef.artPrefix}-160.webp?v=brawl-art-v2`)} alt={brawlRoleDef.name} className="role-portrait portrait-mini" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+      ) : (
+        <RolePortrait role={role} loyalGuardian={guardians[p.id]} femaleDemon={demons[p.id]} size="mini"/>
+      )}
       <div><span className="roster-player"><b>{p.seat}</b><span title={p.nickname}>{p.nickname}</span>{self&&<small>我</small>}</span>
-        <strong className={`roster-role team-${team}`} title={formatRoleName(role,guardians[p.id],demons[p.id])}>{getRoleGalleryItem(role,guardians[p.id],demons[p.id]).name}<span> · {team==='blue'?'蓝方':'红方'}</span></strong></div>
+        <strong className={`roster-role ${roleCampClass}`} title={roleTitle}>{roleDisplayName}<span> · {roleCamp}</span></strong></div>
     </li>;
   })}</ul>;
 }
@@ -47,9 +57,10 @@ function HistoryPlayers({id,requested}:{id:string;requested:boolean}) {
 
 export function HistoryGameCard({game:g,onReplay}:{game:GameSummary;onReplay:(id:string)=>void}) {
   const [requested,setRequested]=useState(false);
+  const roleName = g.self.brawlRoleName || roleNames[g.self.role];
   return <article className={`history-card result-${outcomeKind(g)}`} aria-label={`${outcome(g)}，${g.playerCount} 人局`}>
     <div className="history-card-heading"><h3 className="history-outcome">{outcomeKind(g)==='victory'&&<Emblem kind="crown"/>}{outcome(g)}</h3><span className="history-table-size">{g.playerCount} 人局</span><time dateTime={g.endedAt}>{date(g.endedAt)}</time></div>
-    <p className="history-card-role"><strong>{roleNames[g.self.role]}</strong><span>{g.self.team==='blue'?'蓝方':'红方'}{g.favorite?' · 已收藏':''}</span></p>
+    <p className="history-card-role"><strong>{roleName}</strong><span>{g.self.team==='blue'?'蓝方':'红方'}{g.favorite?' · 已收藏':''}</span></p>
     <p className="history-card-reason">{reasons[g.result.reason]}</p>
     <div className="history-card-actions"><button type="button" className="secondary history-replay-button" aria-label={`查看${date(g.endedAt)}的对局复盘`} onClick={()=>onReplay(g.id)}>查看复盘 <span aria-hidden="true">→</span></button>
       <details className="history-game-details" onToggle={e=>{if(e.currentTarget.open)setRequested(true);}}><summary>全员角色 <span>{g.playerCount} 人</span></summary><HistoryPlayers id={g.id} requested={requested}/></details>
@@ -266,8 +277,10 @@ function HistoryPanel({favorites,onReplay}:{favorites:boolean;onReplay:(id:strin
 export function ReplayView({replay:g}:{replay:Replay}) {
   const name=(id:string)=>{const p=g.players.find(p=>p.id===id);return p?`${p.seat} 号 ${p.nickname}`:'未知成员';};
   const selfId=g.players.find(p=>p.seat===g.self.seat)?.id;
+  const selfBrawlRoleId = selfId ? g.brawlRoles?.[selfId] : undefined;
+  const selfRoleName = g.self.brawlRoleName || (selfBrawlRoleId && BRAWL_ROLE_REGISTRY[selfBrawlRoleId]?.name) || roleNames[g.self.role];
   return <>
-    <div className={`replay-result result-${outcomeKind(g)}`}><div className="replay-result-heading"><h2>{outcome(g)}</h2><span>{g.playerCount} 人局 · {g.result.winner===null?'本局中断':`${g.result.winner==='blue'?'蓝方':'红方'}获胜`}</span><time dateTime={g.endedAt}>{date(g.endedAt)}</time></div><p><strong>{roleNames[g.self.role]}</strong> · {g.self.team==='blue'?'蓝方':'红方'} · {g.self.seat} 号位</p><p className="replay-result-reason">{reasons[g.result.reason]}{g.result.targetId?` · 刺杀目标：${name(g.result.targetId)}`:''}</p></div>
+    <div className={`replay-result result-${outcomeKind(g)}`}><div className="replay-result-heading"><h2>{outcome(g)}</h2><span>{g.playerCount} 人局 · {g.result.winner===null?'本局中断':`${g.result.winner==='blue'?'蓝方':'红方'}获胜`}</span><time dateTime={g.endedAt}>{date(g.endedAt)}</time></div><p><strong>{selfRoleName}</strong> · {g.self.team==='blue'?'蓝方':'红方'} · {g.self.seat} 号位</p><p className="replay-result-reason">{reasons[g.result.reason]}{g.result.targetId?` · 刺杀目标：${name(g.result.targetId)}`:''}</p></div>
     <details className="replay-identities chronicle-details"><summary>全员最终身份 <span>{g.players.length} 人</span></summary><HistoryRoster replay={g}/></details>
     <details className="replay-metadata chronicle-details"><summary>时间、编号与规则配置</summary><p className="hint">开始 {date(g.startedAt)}<br/>结束 {date(g.endedAt)} · 你的结果：{outcome(g)}</p><p className="hint game-uid-line">对局编号 ID：<span>{g.id}</span></p>
     <p className="hint">{settingsText(g.settings,g.rulesetVersion)}<br/>规则版本：{g.rulesetVersion}</p>

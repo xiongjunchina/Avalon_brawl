@@ -80,25 +80,37 @@ export const ROLE_CONFIG: Record<number, Role[]> = {
 export const BRAWL_BASE_ROLE_CONFIG: Record<number, Role[]> = {
   5: ['merlin','percival','loyal','morgana','assassin'],
   6: ['merlin','percival','loyal','loyal','morgana','assassin'],
-  7: ['merlin','percival','loyal','loyal','morgana','assassin','oberon'],
-  8: ['merlin','percival','loyal','loyal','loyal','morgana','assassin','mordred'],
-  9: ['merlin','percival','guinevere','loyal','loyal','morgana','assassin','mordred','oberon'],
-  10: ['merlin','percival','guinevere','loyal','loyal','loyal','morgana','assassin','mordred','oberon'],
-  11: ['merlin','percival','guinevere','loyal','loyal','loyal','morgana','assassin','mordred','minion','oberon'],
-  12: ['merlin','percival','guinevere','loyal','loyal','loyal','loyal','morgana','assassin','mordred','minion','oberon'],
+  7: ['merlin','percival','loyal','loyal','morgana','assassin','minion'],
+  8: ['merlin','percival','loyal','loyal','loyal','morgana','assassin','minion'],
+  9: ['merlin','percival','loyal','loyal','loyal','morgana','assassin','minion','minion'],
+  10: ['merlin','percival','loyal','loyal','loyal','loyal','morgana','assassin','minion','minion'],
+  11: ['merlin','percival','loyal','loyal','loyal','loyal','morgana','assassin','minion','minion','minion'],
+  12: ['merlin','percival','loyal','loyal','loyal','loyal','loyal','morgana','assassin','minion','minion','minion'],
 };
 export const teamOf = (role: Role): Team => ['merlin','percival','guinevere','loyal'].includes(role) ? 'blue' : 'red';
 /** New deals separate guardian clues from blue treasures; saved v1–v5 games retain their original rules. */
 export function treasuresEnabledFor(
-  settings: Pick<Settings, 'treasuresEnabled' | 'guardianPerksEnabled'>,
+  settings: Pick<Settings, 'treasuresEnabled' | 'guardianPerksEnabled' | 'brawlModeEnabled'>,
   playerCount: number,
   role: Role,
   rulesetVersion = RULESET_VERSION
 ): boolean {
+  if (settings.brawlModeEnabled) return false;
   const balanceRule = Number(rulesetVersion.match(/-v(\d+)$/)?.[1]) >= 6;
   return Boolean(settings.treasuresEnabled && playerCount >= 8 &&
     !(balanceRule && settings.guardianPerksEnabled && teamOf(role) === 'blue'));
 }
+export function hasUnusedGuanyin(g: GameState): boolean {
+  return Boolean(
+    !g.brawl &&
+    !g.settings.brawlModeEnabled &&
+    treasuresEnabledFor(g.settings, g.players.length, 'guinevere', g.rulesetVersion) &&
+    g.players.length >= 9 &&
+    g.players.some(p => g.roles[p.id] === 'guinevere') &&
+    !g.treasuresState?.guanyinMirror?.used
+  );
+}
+
 export class RuleError extends Error {}
 function requireRule(condition: unknown, code: string): asserts condition { if (!condition) throw new RuleError(code); }
 export interface GameState {
@@ -150,10 +162,8 @@ export function createGame(
     ? { visionGuaranteedUserIds: protection }
     : protection;
 
-  const { roles, audit } = assignWeightedRoles(sorted, configRoles, shuffle([...configRoles]), {
-    ...protectionOpts,
-    rolePreferences: settings.rolePreferenceEnabled ? protectionOpts.rolePreferences : undefined,
-  });
+  let roles: Record<string, Role> = {};
+  let audit: RoleAssignmentAudit | undefined;
 
   let brawlState: BrawlGameState | undefined;
   let brawlRoles: Record<string, string> | undefined;
@@ -165,55 +175,121 @@ export function createGame(
     brawlRoles = {};
     const playerStates: Record<string, BrawlPlayerState> = {};
 
-    const bluePool = shuffle(assignment.roles.filter(r => r.camp === 'blue' && !r.isCore));
-    const redPool = shuffle(assignment.roles.filter(r => r.camp === 'red' && !r.isCore));
+    const redRoleCount = BRAWL_BASE_ROLE_CONFIG[players.length].filter(r => teamOf(r) === 'red').length;
 
-    // 辅助函数：根据玩家心仪偏好优先匹配出战角色
-    const popPreferred = (pool: typeof bluePool, prefs?: string[]) => {
-      if (prefs && prefs.length > 0) {
-        for (const prefId of prefs) {
-          const idx = pool.findIndex(r => r.id === prefId);
-          if (idx !== -1) {
-            return pool.splice(idx, 1)[0];
-          }
+    // 1. 计算每个玩家对红方与蓝方的阵营倾向得分
+    // 偏好排名：第1志愿 8分, 第2志愿 4分, 第3志愿 2分, 第4志愿 1分, 第5志愿 1分
+    const PREF_WEIGHTS = [8, 4, 2, 1, 1];
+    const playerScores = sorted.map(p => {
+      const prefs = settings.rolePreferenceEnabled ? (rawPreferences?.[p.id] ?? []) : [];
+      let redScore = 0;
+      let blueScore = 0;
+      prefs.slice(0, 5).forEach((roleId, idx) => {
+        const w = PREF_WEIGHTS[idx] ?? 1;
+        const camp = BRAWL_ROLE_REGISTRY[roleId]?.camp;
+        if (camp === 'red') redScore += w;
+        else if (camp === 'blue') blueScore += w;
+      });
+      return {
+        player: p,
+        prefs,
+        netRed: redScore - blueScore,
+        tieBreaker: Math.random(),
+      };
+    });
+
+    // 2. 根据净倾向得分将玩家分入红蓝两队（得分高者优先入红方，得分低者优先入蓝方）
+    const sortedByRedPreference = [...playerScores].sort((a, b) => {
+      if (b.netRed !== a.netRed) return b.netRed - a.netRed;
+      return b.tieBreaker - a.tieBreaker;
+    });
+
+    const redPlayers = sortedByRedPreference.slice(0, redRoleCount).map(x => x.player);
+    const bluePlayers = sortedByRedPreference.slice(redRoleCount).map(x => x.player);
+
+    // 3. 准备盲盒抽取出来的红蓝两方角色池
+    const blueNonCore = shuffle(assignment.roles.filter(r => r.camp === 'blue' && !r.isCore));
+    const redNonCore = shuffle(assignment.roles.filter(r => r.camp === 'red' && !r.isCore));
+
+    // 4. 为队伍分配角色
+    const assignTeamRoles = (
+      teamPlayers: Player[],
+      coreRoles: { id: string; role: Role }[],
+      nonCorePool: typeof blueNonCore,
+      defaultNonCoreRole: Role
+    ) => {
+      const remainingPlayers = [...teamPlayers];
+      // 优先满足对核心角色（孙悟空/唐僧/红孩儿/六耳猕猴）有志愿的玩家
+      for (const core of coreRoles) {
+        const candidateIdx = remainingPlayers.findIndex(p => {
+          const prefs = rawPreferences?.[p.id] ?? [];
+          return prefs.includes(core.id);
+        });
+        const assignedPlayer = candidateIdx !== -1
+          ? remainingPlayers.splice(candidateIdx, 1)[0]
+          : remainingPlayers.splice(Math.floor(Math.random() * remainingPlayers.length), 1)[0];
+
+        if (assignedPlayer) {
+          roles[assignedPlayer.id] = core.role;
+          brawlRoles![assignedPlayer.id] = core.id;
+          playerStates[assignedPlayer.id] = {
+            userId: assignedPlayer.id,
+            seat: assignedPlayer.seat,
+            roleId: core.id,
+            camp: core.role === 'assassin' || core.role === 'morgana' ? 'red' : 'blue',
+            skillUsed: false,
+          };
         }
       }
-      return pool.pop();
+
+      // 对剩余非核心队员，优先根据心仪志愿匹配盲盒池中抽出的角色
+      for (const p of remainingPlayers) {
+        const playerPrefs = rawPreferences?.[p.id] ?? [];
+        let matchedRole: typeof nonCorePool[number] | undefined;
+        for (const prefId of playerPrefs) {
+          const idx = nonCorePool.findIndex(r => r.id === prefId);
+          if (idx !== -1) {
+            matchedRole = nonCorePool.splice(idx, 1)[0];
+            break;
+          }
+        }
+        if (!matchedRole) {
+          matchedRole = nonCorePool.pop() || (defaultNonCoreRole === 'loyal' ? BRAWL_ROLE_REGISTRY.sun_wukong : BRAWL_ROLE_REGISTRY.hong_haier);
+        }
+
+        roles[p.id] = defaultNonCoreRole;
+        brawlRoles![p.id] = matchedRole.id;
+        playerStates[p.id] = {
+          userId: p.id,
+          seat: p.seat,
+          roleId: matchedRole.id,
+          camp: matchedRole.camp,
+          skillUsed: false,
+        };
+      }
     };
 
-    for (const p of sorted) {
-      const r = roles[p.id];
-      const playerPrefs = rawPreferences?.[p.id];
-      let br: typeof assignment.roles[number] | undefined;
-      if (r === 'merlin') {
-        br = assignment.roles.find(x => x.id === 'sun_wukong');
-      } else if (r === 'percival') {
-        br = assignment.roles.find(x => x.id === 'tang_seng');
-      } else if (r === 'morgana') {
-        br = assignment.roles.find(x => x.id === 'liuer_mihou');
-      } else if (r === 'assassin') {
-        br = assignment.roles.find(x => x.id === 'hong_haier');
-      } else if (teamOf(r) === 'blue') {
-        br = popPreferred(bluePool, playerPrefs);
-      } else {
-        br = popPreferred(redPool, playerPrefs);
-      }
+    // 执行红方分配
+    assignTeamRoles(
+      redPlayers,
+      [
+        { id: 'hong_haier', role: 'assassin' },
+        { id: 'liuer_mihou', role: 'morgana' },
+      ],
+      redNonCore,
+      'minion'
+    );
 
-      if (!br) {
-        br = teamOf(r) === 'blue'
-          ? (bluePool.pop() || BRAWL_ROLE_REGISTRY.sun_wukong)
-          : (redPool.pop() || BRAWL_ROLE_REGISTRY.hong_haier);
-      }
-
-      brawlRoles[p.id] = br.id;
-      playerStates[p.id] = {
-        userId: p.id,
-        seat: p.seat,
-        roleId: br.id,
-        camp: br.camp,
-        skillUsed: false,
-      };
-    }
+    // 执行蓝方分配
+    assignTeamRoles(
+      bluePlayers,
+      [
+        { id: 'sun_wukong', role: 'merlin' },
+        { id: 'tang_seng', role: 'percival' },
+      ],
+      blueNonCore,
+      'loyal'
+    );
 
     brawlState = createBrawlGameState(
       playerStates,
@@ -245,6 +321,13 @@ export function createGame(
         }
       }
     }
+  } else {
+    const res = assignWeightedRoles(sorted, configRoles, shuffle([...configRoles]), {
+      ...protectionOpts,
+      rolePreferences: settings.rolePreferenceEnabled ? protectionOpts.rolePreferences : undefined,
+    });
+    roles = res.roles;
+    audit = res.audit;
   }
 
   let guinevereCandidates: string[] | undefined;
@@ -601,13 +684,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
             openEarlyWindowOrPropose(g);
           } else {
             delete g.bananaFanNotice;
-            const hasUnusedGuanyin = Boolean(
-              treasuresEnabledFor(g.settings, g.players.length, 'guinevere', g.rulesetVersion) &&
-              g.players.length >= 9 &&
-              g.players.some(p => g.roles[p.id] === 'guinevere') &&
-              !g.treasuresState?.guanyinMirror?.used
-            );
-            if (hasUnusedGuanyin) {
+            if (hasUnusedGuanyin(g)) {
               g.phase = 'guanyin_window';
               g.guanyinEndsAt = new Date(context.now + GUANYIN_WINDOW_MS).toISOString();
             } else {
@@ -639,113 +716,148 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         let failures = Object.values(g.missionVotes).filter(v => !v).length;
         let successes = round.team.length - failures;
 
-        // 金角大王【紫金葫芦】：若选定队员投了成功，50% 概率被宝葫芦化解吸收为失败
-        if (g.brawl?.jinjiaoHuluTargetId && round.team.includes(g.brawl.jinjiaoHuluTargetId)) {
-          const targetVotedSuccess = g.missionVotes[g.brawl.jinjiaoHuluTargetId];
-          const absorbed = targetVotedSuccess && Math.random() < 0.5;
-          const jinjiaoPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'jinjiao_dawang');
-          const targetP = g.players.find(p => p.id === g.brawl?.jinjiaoHuluTargetId);
-          if (absorbed) {
-            failures += 1;
-            successes = Math.max(0, successes - 1);
-            appendBattleEvent(
-              g.brawl,
-              'jinjiao_dawang',
-              `【金角大王】紫金红葫芦灵光大盛！出征队伍中 1 名仙友的浩然正气被宝葫芦暗中化解吸收！`,
-              '手机私密选定出征队员 1 人，若其投成功，50% 概率被葫芦化解吸收。',
-            );
+        // 金角大王【紫金葫芦】：若选定队员投了成功，60% 概率被宝葫芦化解吸收为失败
+        if (g.brawl?.jinjiaoHuluTargetId) {
+          let effectiveTargetId = g.brawl.jinjiaoHuluTargetId;
+          if (!round.team.includes(effectiveTargetId)) {
+            const blueBoarder = round.team.find(id => g.brawl?.playerStates[id]?.camp === 'blue');
+            if (blueBoarder) effectiveTargetId = blueBoarder;
           }
-          recordBrawlReplayAction(g.brawl, {
-            roundNumber: round.number,
-            mission: g.mission,
-            phase: 'mission_resolved',
-            actorId: jinjiaoPlayer?.id ?? '',
-            actorSeat: jinjiaoPlayer?.seat ?? 0,
-            actorNickname: jinjiaoPlayer?.nickname ?? '金角大王',
-            roleId: 'jinjiao_dawang',
-            roleName: '金角大王',
-            skillName: '紫金葫芦',
-            targetId: targetP?.id,
-            targetSeat: targetP?.seat,
-            targetNickname: targetP?.nickname,
-            outcome: absorbed ? 'success' : 'miss',
-            detail: absorbed
-              ? `紫金红葫芦神威显圣（50% 概率命中）：暗中化解吸收了【${targetP?.seat}号 · ${targetP?.nickname}】投出的 1 张成功牌！`
-              : `紫金红葫芦判定未命中（50% 概率未生效或目标未投成功）：未能化解成功牌。`,
-          });
+          if (round.team.includes(effectiveTargetId)) {
+            const targetVotedSuccess = g.missionVotes[effectiveTargetId];
+            const absorbed = targetVotedSuccess && Math.random() < 0.6;
+            const jinjiaoPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'jinjiao_dawang');
+            const targetP = g.players.find(p => p.id === effectiveTargetId);
+            if (absorbed) {
+              failures += 1;
+              successes = Math.max(0, successes - 1);
+              appendBattleEvent(
+                g.brawl,
+                'jinjiao_dawang',
+                `【金角大王】紫金红葫芦灵光大盛！出征队伍中 1 名仙友的浩然正气被宝葫芦暗中化解吸收！`,
+                '手机私密选定出征队员 1 人，若其投成功，60% 概率被葫芦化解吸收。',
+              );
+            }
+            if (targetP) {
+              g.brawl.jinjiaoResult = {
+                targetSeat: targetP.seat,
+                targetNickname: targetP.nickname,
+                absorbed: Boolean(absorbed),
+              };
+            }
+            recordBrawlReplayAction(g.brawl, {
+              roundNumber: round.number,
+              mission: g.mission,
+              phase: 'mission_resolved',
+              actorId: jinjiaoPlayer?.id ?? '',
+              actorSeat: jinjiaoPlayer?.seat ?? 0,
+              actorNickname: jinjiaoPlayer?.nickname ?? '金角大王',
+              roleId: 'jinjiao_dawang',
+              roleName: '金角大王',
+              skillName: '紫金葫芦',
+              targetId: targetP?.id,
+              targetSeat: targetP?.seat,
+              targetNickname: targetP?.nickname,
+              outcome: absorbed ? 'success' : 'miss',
+              detail: absorbed
+                ? `紫金红葫芦神威显圣（60% 概率命中）：暗中化解吸收了【${targetP?.seat}号 · ${targetP?.nickname}】投出的 1 张成功牌！`
+                : `紫金红葫芦判定未命中（60% 概率未生效或目标未投成功）：未能化解成功牌。`,
+            });
+          }
           g.brawl.jinjiaoHuluTargetId = undefined;
         }
 
-        // 玉兔精【捣药迷魂】：若选定队员投了成功，33% 概率成功牌被封印弃权
-        if (g.brawl?.yutuMihunTargetId && round.team.includes(g.brawl.yutuMihunTargetId)) {
-          const targetVotedSuccess = g.missionVotes[g.brawl.yutuMihunTargetId];
-          const discarded = targetVotedSuccess && Math.random() < 0.33;
-          const yutuPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'yutu_jing');
-          const targetP = g.players.find(p => p.id === g.brawl?.yutuMihunTargetId);
-          if (discarded) {
-            failures += 1;
-            successes = Math.max(0, successes - 1);
-            appendBattleEvent(
-              g.brawl,
-              'yutu_jing',
-              `【玉兔精】广寒仙药捣药迷魂！出征队伍中受迷香干扰，1 名仙友的成功神力被封印化解！`,
-              '队伍敲定后暗中迷魂车上 1 名好人，其出征时 33% 概率成功牌被封印弃权。',
-            );
+        // 玉兔精【捣药迷魂】：若选定队员投了成功，50% 概率成功牌被封印弃权
+        if (g.brawl?.yutuMihunTargetId) {
+          let effectiveTargetId = g.brawl.yutuMihunTargetId;
+          if (!round.team.includes(effectiveTargetId)) {
+            const blueBoarder = round.team.find(id => g.brawl?.playerStates[id]?.camp === 'blue');
+            if (blueBoarder) effectiveTargetId = blueBoarder;
           }
-          recordBrawlReplayAction(g.brawl, {
-            roundNumber: round.number,
-            mission: g.mission,
-            phase: 'mission_resolved',
-            actorId: yutuPlayer?.id ?? '',
-            actorSeat: yutuPlayer?.seat ?? 0,
-            actorNickname: yutuPlayer?.nickname ?? '玉兔精',
-            roleId: 'yutu_jing',
-            roleName: '玉兔精',
-            skillName: '捣药迷魂',
-            targetId: targetP?.id,
-            targetSeat: targetP?.seat,
-            targetNickname: targetP?.nickname,
-            outcome: discarded ? 'success' : 'miss',
-            detail: discarded
-              ? `捣药迷魂生效（33% 概率命中）：迷魂封印了【${targetP?.seat}号 · ${targetP?.nickname}】投出的成功牌（强制弃权作废）！`
-              : `捣药迷魂判定未命中（33% 概率未生效或目标未投成功）：未能迷魂封印。`,
-          });
+          if (round.team.includes(effectiveTargetId)) {
+            const targetVotedSuccess = g.missionVotes[effectiveTargetId];
+            const discarded = targetVotedSuccess && Math.random() < 0.5;
+            const yutuPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'yutu_jing');
+            const targetP = g.players.find(p => p.id === effectiveTargetId);
+            if (discarded) {
+              failures += 1;
+              successes = Math.max(0, successes - 1);
+              appendBattleEvent(
+                g.brawl,
+                'yutu_jing',
+                `【玉兔精】广寒仙药捣药迷魂！出征队伍中受迷香干扰，1 名仙友的成功神力被封印化解！`,
+                '队伍敲定后暗中迷魂车上 1 名好人，其出征时 50% 概率成功牌被封印弃权。',
+              );
+            }
+            if (targetP) {
+              g.brawl.yutuResult = {
+                targetSeat: targetP.seat,
+                targetNickname: targetP.nickname,
+                discarded: Boolean(discarded),
+              };
+            }
+            recordBrawlReplayAction(g.brawl, {
+              roundNumber: round.number,
+              mission: g.mission,
+              phase: 'mission_resolved',
+              actorId: yutuPlayer?.id ?? '',
+              actorSeat: yutuPlayer?.seat ?? 0,
+              actorNickname: yutuPlayer?.nickname ?? '玉兔精',
+              roleId: 'yutu_jing',
+              roleName: '玉兔精',
+              skillName: '捣药迷魂',
+              targetId: targetP?.id,
+              targetSeat: targetP?.seat,
+              targetNickname: targetP?.nickname,
+              outcome: discarded ? 'success' : 'miss',
+              detail: discarded
+                ? `捣药迷魂生效（50% 概率命中）：迷魂封印了【${targetP?.seat}号 · ${targetP?.nickname}】投出的成功牌（强制弃权作废）！`
+                : `捣药迷魂判定未命中（50% 概率未生效或目标未投成功）：未能迷魂封印。`,
+            });
+          }
           g.brawl.yutuMihunTargetId = undefined;
         }
 
-        // 百眼魔君【黄花毒茶】：若选定队员投了成功，大车(>=4人)50%/小车(<=3人)33%概率被毒化反转为失败牌！
-        if (g.brawl?.baiyanDuchaTargetId && round.team.includes(g.brawl.baiyanDuchaTargetId)) {
-          const targetVotedSuccess = g.missionVotes[g.brawl.baiyanDuchaTargetId];
-          const isBig = round.team.length >= 4;
-          const chance = isBig ? 0.5 : 1 / 3;
-          const poisoned = targetVotedSuccess && Math.random() < chance;
-          const baiyanPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'baiyan_mojun');
-          const targetP = g.players.find(p => p.id === g.brawl?.baiyanDuchaTargetId);
-          if (poisoned) {
-            failures += 1;
-            successes = Math.max(0, successes - 1);
-            g.brawl.baiyanDuchaResult = true;
-          } else {
-            g.brawl.baiyanDuchaResult = false;
+        // 百眼魔君【黄花毒茶】：若选定队员投了成功，大车(>=4人)60%/小车(<=3人)50%概率被毒化反转为失败牌！
+        if (g.brawl?.baiyanDuchaTargetId) {
+          let effectiveTargetId = g.brawl.baiyanDuchaTargetId;
+          if (!round.team.includes(effectiveTargetId)) {
+            const blueBoarder = round.team.find(id => g.brawl?.playerStates[id]?.camp === 'blue');
+            if (blueBoarder) effectiveTargetId = blueBoarder;
           }
-          recordBrawlReplayAction(g.brawl, {
-            roundNumber: round.number,
-            mission: g.mission,
-            phase: 'mission_resolved',
-            actorId: baiyanPlayer?.id ?? '',
-            actorSeat: baiyanPlayer?.seat ?? 0,
-            actorNickname: baiyanPlayer?.nickname ?? '百眼魔君',
-            roleId: 'baiyan_mojun',
-            roleName: '百眼魔君',
-            skillName: '黄花毒茶',
-            targetId: targetP?.id,
-            targetSeat: targetP?.seat,
-            targetNickname: targetP?.nickname,
-            outcome: poisoned ? 'success' : 'miss',
-            detail: poisoned
-              ? `黄花毒茶毒发成功（${isBig ? '大车 50%' : '小车 33%'} 概率命中）：暗中将【${targetP?.seat}号 · ${targetP?.nickname}】投出的【成功牌】静默毒化为【失败牌】！导致本轮出征翻车！`
-              : `黄花毒茶未能毒发（${isBig ? '大车 50%' : '小车 33%'} 概率未命中或目标未投成功）：【${targetP?.seat}号 · ${targetP?.nickname}】未受毒化影响。`,
-          });
+          if (round.team.includes(effectiveTargetId)) {
+            const targetVotedSuccess = g.missionVotes[effectiveTargetId];
+            const isBig = round.team.length >= 4;
+            const chance = isBig ? 0.6 : 0.5;
+            const poisoned = targetVotedSuccess && Math.random() < chance;
+            const baiyanPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'baiyan_mojun');
+            const targetP = g.players.find(p => p.id === effectiveTargetId);
+            if (poisoned) {
+              failures += 1;
+              successes = Math.max(0, successes - 1);
+              g.brawl.baiyanDuchaResult = true;
+            } else {
+              g.brawl.baiyanDuchaResult = false;
+            }
+            recordBrawlReplayAction(g.brawl, {
+              roundNumber: round.number,
+              mission: g.mission,
+              phase: 'mission_resolved',
+              actorId: baiyanPlayer?.id ?? '',
+              actorSeat: baiyanPlayer?.seat ?? 0,
+              actorNickname: baiyanPlayer?.nickname ?? '百眼魔君',
+              roleId: 'baiyan_mojun',
+              roleName: '百眼魔君',
+              skillName: '黄花毒茶',
+              targetId: targetP?.id,
+              targetSeat: targetP?.seat,
+              targetNickname: targetP?.nickname,
+              outcome: poisoned ? 'success' : 'miss',
+              detail: poisoned
+                ? `黄花毒茶毒发成功（${isBig ? '大车 60%' : '小车 50%'} 概率命中）：暗中将【${targetP?.seat}号 · ${targetP?.nickname}】投出的【成功牌】静默毒化为【失败牌】！导致本轮出征翻车！`
+                : `黄花毒茶未能毒发（${isBig ? '大车 60%' : '小车 50%'} 概率未命中或目标未投成功）：【${targetP?.seat}号 · ${targetP?.nickname}】未受毒化影响。`,
+            });
+          }
           g.brawl.baiyanDuchaTargetId = undefined;
         }
 
@@ -1418,8 +1530,8 @@ export function projectGame(g: GameState, userId?: string): GameView {
         }
         return g.roles[p.id] !== 'mordred';
       }).map(p => p.id)
-    : role && teamOf(role) === 'red' && role !== 'oberon'
-      ? g.players.filter(p => p.id !== userId && teamOf(g.roles[p.id]) === 'red' && g.roles[p.id] !== 'oberon').map(p => p.id) : [];
+    : role && teamOf(role) === 'red' && (Boolean(g.brawl) || role !== 'oberon')
+      ? g.players.filter(p => p.id !== userId && teamOf(g.roles[p.id]) === 'red' && (Boolean(g.brawl) || g.roles[p.id] !== 'oberon')).map(p => p.id) : [];
   const treasureModeActive = Boolean(g.settings.treasuresEnabled && g.players.length >= 8);
   const treasuresEnabled = Boolean(role && treasuresEnabledFor(g.settings, g.players.length, role, g.rulesetVersion));
   const completedMissions = g.rounds.filter(r => r.result).length;

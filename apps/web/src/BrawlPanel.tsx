@@ -139,6 +139,20 @@ export function BrawlPanel({
                   {selfBrawl.baiyanDuchaStatus}
                 </div>
               )}
+
+              {/* 金角大王专属：紫金葫芦状态 */}
+              {selfBrawl.jinjiaoNotice && (
+                <div style={{ marginTop: '6px', fontSize: '12px', fontWeight: 'bold', color: '#eab308' }}>
+                  {selfBrawl.jinjiaoNotice}
+                </div>
+              )}
+
+              {/* 玉兔精专属：捣药迷魂状态 */}
+              {selfBrawl.yutuNotice && (
+                <div style={{ marginTop: '6px', fontSize: '12px', fontWeight: 'bold', color: '#ec4899' }}>
+                  {selfBrawl.yutuNotice}
+                </div>
+              )}
             </div>
 
             {/* 技能发动交互 */}

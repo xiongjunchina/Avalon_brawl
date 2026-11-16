@@ -22,6 +22,372 @@ interface AdminDashboardProps {
   onBackToGame: () => void;
 }
 
+function CustomBannerPanel({
+  customBanner,
+  setCustomBanner,
+  savingBanner,
+  onSave,
+}: {
+  customBanner: CustomBannerConfig;
+  setCustomBanner: React.Dispatch<React.SetStateAction<CustomBannerConfig>>;
+  savingBanner: boolean;
+  onSave: () => Promise<void>;
+}) {
+  return (
+    <div className="admin-panel">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <h3 className="admin-panel-title" style={{ margin: 0 }}>🎉 定制玩家专属横幅与周期提示</h3>
+        <button
+          type="button"
+          className="admin-primary-btn"
+          onClick={() => setCustomBanner(b => ({ ...b, enabled: !b.enabled }))}
+          style={{
+            background: customBanner.enabled ? '#10b981' : '#64748b',
+            color: '#ffffff',
+            fontSize: '13px',
+            padding: '6px 14px',
+          }}
+        >
+          {customBanner.enabled ? '● 已启用生效' : '○ 已停用（冷藏备用）'}
+        </button>
+      </div>
+
+      <p style={{ fontSize: '13px', color: '#94a3b8', margin: '0 0 16px', lineHeight: 1.5 }}>
+        在玩家进入房间或对局时弹出专属全屏悬浮横幅。支持按仙友码/昵称精准定向指定玩家（或全员广播），支持预置模板一键填充、周期重复频次、屏幕悬浮时长、局内聊天同步以及生效起止时间段控制。
+      </p>
+
+      {/* 1. Quick Preset Templates */}
+      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
+        <div style={{ fontSize: '13px', fontWeight: 600, color: '#fef08a', marginBottom: '8px' }}>
+          ⚡ 官方预置方案模板（点击一键载入配置）：
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {BANNER_PRESET_TEMPLATES.map(tpl => (
+            <button
+              key={tpl.id}
+              type="button"
+              className="admin-tool-btn"
+              style={{ fontSize: '12px', padding: '5px 10px', background: 'rgba(212, 163, 89, 0.15)', borderColor: 'rgba(212, 163, 89, 0.4)' }}
+              onClick={() => {
+                setCustomBanner(prev => ({
+                  ...prev,
+                  ...tpl.config,
+                  title: tpl.config.title ?? prev.title,
+                  icon: tpl.config.icon ?? prev.icon,
+                  text: tpl.config.text ?? prev.text,
+                  targetType: tpl.config.targetType ?? prev.targetType,
+                  targetCodes: tpl.config.targetCodes ?? prev.targetCodes,
+                  targetNicknames: tpl.config.targetNicknames ?? prev.targetNicknames,
+                  intervalMinutes: tpl.config.intervalMinutes ?? prev.intervalMinutes,
+                  durationSeconds: tpl.config.durationSeconds ?? prev.durationSeconds,
+                  sendToRoomChat: tpl.config.sendToRoomChat ?? prev.sendToRoomChat,
+                  theme: tpl.config.theme ?? prev.theme,
+                }));
+              }}
+            >
+              {tpl.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 2. Target Audience */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <strong style={{ fontSize: '14px', color: '#f8fafc' }}>🎯 目标触达人群</strong>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
+              <input
+                type="radio"
+                name="bannerTargetType"
+                checked={customBanner.targetType === 'specific'}
+                onChange={() => setCustomBanner(b => ({ ...b, targetType: 'specific' }))}
+              />
+              <span>指定特定仙友 (仙友码/昵称)</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
+              <input
+                type="radio"
+                name="bannerTargetType"
+                checked={customBanner.targetType === 'all'}
+                onChange={() => setCustomBanner(b => ({ ...b, targetType: 'all' }))}
+              />
+              <span>全员生效 (所有房间所有玩家)</span>
+            </label>
+          </div>
+        </div>
+
+        {customBanner.targetType === 'specific' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingTop: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '12px', color: '#94a3b8' }}>快捷添加常用仙友：</span>
+              <button
+                type="button"
+                className="admin-tool-btn"
+                style={{ fontSize: '11px', padding: '2px 8px' }}
+                onClick={() => {
+                  setCustomBanner(b => {
+                    const codes = new Set(b.targetCodes.split(/[,，\s]+/).filter(Boolean));
+                    codes.add('932866');
+                    const names = new Set(b.targetNicknames.split(/[,，\s]+/).filter(Boolean));
+                    names.add('Dennis');
+                    names.add('小一');
+                    names.add('邓一名');
+                    return {
+                      ...b,
+                      targetCodes: Array.from(codes).join(', '),
+                      targetNicknames: Array.from(names).join(', '),
+                    };
+                  });
+                }}
+              >
+                + 邓一名 (Dennis / 932866)
+              </button>
+              <button
+                type="button"
+                className="admin-tool-btn"
+                style={{ fontSize: '11px', padding: '2px 8px' }}
+                onClick={() => {
+                  setCustomBanner(b => {
+                    const codes = new Set(b.targetCodes.split(/[,，\s]+/).filter(Boolean));
+                    codes.add('805678');
+                    const names = new Set(b.targetNicknames.split(/[,，\s]+/).filter(Boolean));
+                    names.add('陈欣');
+                    names.add('小陈');
+                    return {
+                      ...b,
+                      targetCodes: Array.from(codes).join(', '),
+                      targetNicknames: Array.from(names).join(', '),
+                    };
+                  });
+                }}
+              >
+                + 陈欣 (小陈 / 805678)
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>
+                  目标仙友码（多个以逗号隔开）：
+                </label>
+                <input
+                  type="text"
+                  className="admin-input"
+                  value={customBanner.targetCodes}
+                  onChange={e => setCustomBanner(b => ({ ...b, targetCodes: e.target.value }))}
+                  placeholder="例如: 932866, 805678"
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>
+                  目标昵称关键字（多个以逗号隔开，模糊匹配）：
+                </label>
+                <input
+                  type="text"
+                  className="admin-input"
+                  value={customBanner.targetNicknames}
+                  onChange={e => setCustomBanner(b => ({ ...b, targetNicknames: e.target.value }))}
+                  placeholder="例如: Dennis, 陈欣, 小一, 小陈"
+                />
+              </div>
+            </div>
+            <small style={{ color: '#64748b', fontSize: '11.5px' }}>
+              💡 提示：当对局或房间成员中包含上述任一仙友时，即对本局所有在场玩家展示该定制横幅。
+            </small>
+          </div>
+        )}
+      </div>
+
+      {/* 3. Message Content and Theme */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+        <div>
+          <label style={{ display: 'block', fontSize: '13px', color: '#f8fafc', fontWeight: 600, marginBottom: '6px' }}>
+            ✍️ 横幅展示文案：
+          </label>
+          <textarea
+            value={customBanner.text}
+            onChange={e => setCustomBanner(b => ({ ...b, text: e.target.value }))}
+            rows={3}
+            className="admin-input"
+            placeholder="请输入要在屏幕上方弹出的祝福或横幅文案…"
+          />
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>
+              徽标图标 (Emoji)：
+            </label>
+            <input
+              type="text"
+              className="admin-input"
+              value={customBanner.icon || '🎂'}
+              onChange={e => setCustomBanner(b => ({ ...b, icon: e.target.value }))}
+              style={{ width: '100%' }}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>
+              发信人别名 (用于聊天频道)：
+            </label>
+            <input
+              type="text"
+              className="admin-input"
+              value={customBanner.title || '寿星贺表'}
+              onChange={e => setCustomBanner(b => ({ ...b, title: e.target.value }))}
+              style={{ width: '100%' }}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>
+              视觉主题风格：
+            </label>
+            <select
+              className="admin-input"
+              value={customBanner.theme || 'gold'}
+              onChange={e => setCustomBanner(b => ({ ...b, theme: e.target.value as any }))}
+              style={{ width: '100%' }}
+            >
+              <option value="gold">金色华贵 (Gold - 华诞/尊享)</option>
+              <option value="purple">极客紫电 (Purple - 技术/神机)</option>
+              <option value="red">热烈红火 (Red - 战神/狂欢)</option>
+              <option value="cyan">仙庭青蓝 (Cyan - 团建/清爽)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* 4. Frequency, Duration and Chat Sync */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '14px' }}>
+        <div>
+          <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>
+            循环播报频率 (分钟)：
+          </label>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <input
+              type="number"
+              min={0}
+              max={120}
+              className="admin-input"
+              value={customBanner.intervalMinutes}
+              onChange={e => setCustomBanner(b => ({ ...b, intervalMinutes: Math.max(0, parseInt(e.target.value, 10) || 0) }))}
+              style={{ width: '90px' }}
+            />
+            <span style={{ fontSize: '12px', color: '#94a3b8' }}>分钟 (填0表示仅进房弹出1次)</span>
+          </div>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>
+            横幅停留时长 (秒)：
+          </label>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <input
+              type="number"
+              min={3}
+              max={120}
+              className="admin-input"
+              value={customBanner.durationSeconds}
+              onChange={e => setCustomBanner(b => ({ ...b, durationSeconds: Math.max(3, parseInt(e.target.value, 10) || 16) }))}
+              style={{ width: '90px' }}
+            />
+            <span style={{ fontSize: '12px', color: '#94a3b8' }}>秒</span>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={customBanner.sendToRoomChat}
+              onChange={e => setCustomBanner(b => ({ ...b, sendToRoomChat: e.target.checked }))}
+            />
+            <span>同步发送至房间聊天抽屉</span>
+          </label>
+        </div>
+      </div>
+
+      {/* 5. Time Window Gating */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '18px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={customBanner.timeWindowEnabled}
+              onChange={e => setCustomBanner(b => ({ ...b, timeWindowEnabled: e.target.checked }))}
+            />
+            <span style={{ fontWeight: 600, color: '#f8fafc' }}>限制生效时间窗口（未勾选则开启时一直生效）</span>
+          </label>
+          {customBanner.timeWindowEnabled && (
+            <button
+              type="button"
+              className="admin-tool-btn"
+              style={{ fontSize: '11px', padding: '2px 8px' }}
+              onClick={() => {
+                const now = new Date();
+                const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
+                const pad = (n: number) => String(n).padStart(2, '0');
+                const startStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+                const endStr = `${midnight.getFullYear()}-${pad(midnight.getMonth() + 1)}-${pad(midnight.getDate())}T00:00`;
+                setCustomBanner(b => ({ ...b, startTime: startStr, endTime: endStr }));
+              }}
+            >
+              🕒 快速设为截止至今日24:00 (今夜生效)
+            </button>
+          )}
+        </div>
+
+        {customBanner.timeWindowEnabled && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', paddingTop: '4px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>
+                开始生效时间 (可选)：
+              </label>
+              <input
+                type="datetime-local"
+                className="admin-input"
+                value={customBanner.startTime || ''}
+                onChange={e => setCustomBanner(b => ({ ...b, startTime: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>
+                结束生效时间 (可选)：
+              </label>
+              <input
+                type="datetime-local"
+                className="admin-input"
+                value={customBanner.endTime || ''}
+                onChange={e => setCustomBanner(b => ({ ...b, endTime: e.target.value }))}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 6. Save Button */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px' }}>
+        <button
+          type="button"
+          className="admin-primary-btn"
+          disabled={savingBanner}
+          onClick={onSave}
+          style={{
+            background: '#f59e0b',
+            color: '#1c1917',
+            fontWeight: 'bold',
+            padding: '10px 24px',
+            fontSize: '14px',
+          }}
+        >
+          {savingBanner ? '正在保存并广播…' : '💾 保存并实时推送专属横幅配置'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function AdminDashboard({ onBackToGame }: AdminDashboardProps) {
   const [adminKey, setAdminKey] = useState<string>(() => sessionStorage.getItem('avalon_admin_key') || '');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => Boolean(sessionStorage.getItem('avalon_admin_key')));
@@ -29,8 +395,8 @@ export function AdminDashboard({ onBackToGame }: AdminDashboardProps) {
   const [loginError, setLoginError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  // Tabs: 'overview' | 'strategy' | 'users' | 'rooms' | 'codes'
-  const [activeTab, setActiveTab] = useState<'overview' | 'strategy' | 'users' | 'rooms' | 'codes' | 'special' | 'content'>('overview');
+  // Tabs: 'overview' | 'strategy' | 'banner' | 'users' | 'rooms' | 'codes' | 'special' | 'content'
+  const [activeTab, setActiveTab] = useState<'overview' | 'strategy' | 'banner' | 'users' | 'rooms' | 'codes' | 'special' | 'content'>('overview');
   const [specialRefresh,setSpecialRefresh]=useState(0);
   const [contentRefresh,setContentRefresh]=useState(0);
 
@@ -210,7 +576,7 @@ export function AdminDashboard({ onBackToGame }: AdminDashboardProps) {
     if (activeTab === 'overview') {
       void loadOverview();
       void loadSettings();
-    } else if (activeTab === 'strategy') {
+    } else if (activeTab === 'strategy' || activeTab === 'banner') {
       void loadSettings();
     } else if (activeTab === 'users') {
       void loadUsers(userSearchQuery);
@@ -471,6 +837,7 @@ export function AdminDashboard({ onBackToGame }: AdminDashboardProps) {
             className="admin-tool-btn"
             onClick={() => {
               if (activeTab === 'overview') { void loadOverview(); void loadSettings(); }
+              else if (activeTab === 'strategy' || activeTab === 'banner') { void loadSettings(); }
               else if (activeTab === 'users') { void loadUsers(userSearchQuery); }
               else if (activeTab === 'rooms') { void loadRooms(); }
               else if (activeTab === 'codes') { void loadCodes(); }
@@ -504,6 +871,28 @@ export function AdminDashboard({ onBackToGame }: AdminDashboardProps) {
           onClick={() => setActiveTab('strategy')}
         >
           ⚙️ 运营策略
+        </button>
+        <button
+          type="button"
+          className={`admin-nav-item ${activeTab === 'banner' ? 'is-active' : ''}`}
+          onClick={() => setActiveTab('banner')}
+          style={{ position: 'relative' }}
+        >
+          🎉 专属横幅与祝福
+          {customBanner.enabled && (
+            <span
+              style={{
+                display: 'inline-block',
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: '#10b981',
+                marginLeft: '6px',
+                boxShadow: '0 0 6px #10b981',
+              }}
+              title="当前已有横幅生效中"
+            />
+          )}
         </button>
         <button
           type="button"
@@ -609,9 +998,47 @@ export function AdminDashboard({ onBackToGame }: AdminDashboardProps) {
           </div>
         )}
 
+        {/* ================= Tab: Custom Banner ================= */}
+        {activeTab === 'banner' && (
+          <div>
+            <CustomBannerPanel
+              customBanner={customBanner}
+              setCustomBanner={setCustomBanner}
+              savingBanner={savingBanner}
+              onSave={handleSaveCustomBanner}
+            />
+          </div>
+        )}
+
         {/* ================= Tab 2: Strategy ================= */}
         {activeTab === 'strategy' && (
           <div>
+            {/* Custom Banner Quick Link Banner */}
+            <div className="admin-banner-card" style={{ marginBottom: '16px', background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(168, 85, 247, 0.15))', border: '1px solid rgba(234, 179, 8, 0.35)', borderRadius: '12px', padding: '16px' }}>
+              <div className="admin-banner-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '15px', color: '#fef08a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>🎉 定制玩家专属横幅与周期提示</span>
+                    <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '10px', background: customBanner.enabled ? 'rgba(16, 185, 129, 0.2)' : 'rgba(148, 163, 184, 0.2)', color: customBanner.enabled ? '#34d399' : '#94a3b8', border: `1px solid ${customBanner.enabled ? '#10b981' : '#64748b'}` }}>
+                      {customBanner.enabled ? '● 已启用生效中' : '○ 已停用（冷藏备用）'}
+                    </span>
+                  </h4>
+                  <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#cbd5e1' }}>
+                    在玩家进房或对局中全屏弹出定制横幅（支持生日祝福、大佬欢迎、全员公告，支持周期频次、特定玩家定向）。
+                    {customBanner.enabled ? `当前定向：${customBanner.targetType === 'all' ? '全员广播' : (customBanner.targetCodes || customBanner.targetNicknames || '特定玩家')}，频次：每 ${customBanner.intervalMinutes || 3} 分钟。` : ''}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="admin-primary-btn"
+                  onClick={() => setActiveTab('banner')}
+                  style={{ background: '#f59e0b', color: '#1c1917', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '8px 18px' }}
+                >
+                  前往专属横幅设置页 →
+                </button>
+              </div>
+            </div>
+
             <div className="admin-panel">
               <h3 className="admin-panel-title">⚙️ 商业化与功能放开策略</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
@@ -698,357 +1125,14 @@ export function AdminDashboard({ onBackToGame }: AdminDashboardProps) {
               </div>
             </div>
 
-            {/* Custom Banner & Celebration Settings */}
-            <div className="admin-panel" style={{ marginTop: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <h3 className="admin-panel-title" style={{ margin: 0 }}>🎉 定制玩家专属横幅与周期提示</h3>
-                <button
-                  type="button"
-                  className="admin-primary-btn"
-                  onClick={() => setCustomBanner(b => ({ ...b, enabled: !b.enabled }))}
-                  style={{
-                    background: customBanner.enabled ? '#10b981' : '#64748b',
-                    color: '#ffffff',
-                    fontSize: '13px',
-                    padding: '6px 14px',
-                  }}
-                >
-                  {customBanner.enabled ? '● 已启用生效' : '○ 已停用（冷藏备用）'}
-                </button>
-              </div>
-
-              <p style={{ fontSize: '13px', color: '#94a3b8', margin: '0 0 16px', lineHeight: 1.5 }}>
-                在玩家进入房间或对局时弹出专属全屏悬浮横幅。支持按仙友码/昵称精准定向指定玩家（或全员广播），支持预置模板一键填充、周期重复频次、屏幕悬浮时长、局内聊天同步以及生效起止时间段控制。
-              </p>
-
-              {/* 1. Quick Preset Templates */}
-              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: '#fef08a', marginBottom: '8px' }}>
-                  ⚡ 官方预置方案模板（点击一键载入配置）：
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {BANNER_PRESET_TEMPLATES.map(tpl => (
-                    <button
-                      key={tpl.id}
-                      type="button"
-                      className="admin-tool-btn"
-                      style={{ fontSize: '12px', padding: '5px 10px', background: 'rgba(212, 163, 89, 0.15)', borderColor: 'rgba(212, 163, 89, 0.4)' }}
-                      onClick={() => {
-                        setCustomBanner(prev => ({
-                          ...prev,
-                          ...tpl.config,
-                          title: tpl.config.title ?? prev.title,
-                          icon: tpl.config.icon ?? prev.icon,
-                          text: tpl.config.text ?? prev.text,
-                          targetType: tpl.config.targetType ?? prev.targetType,
-                          targetCodes: tpl.config.targetCodes ?? prev.targetCodes,
-                          targetNicknames: tpl.config.targetNicknames ?? prev.targetNicknames,
-                          intervalMinutes: tpl.config.intervalMinutes ?? prev.intervalMinutes,
-                          durationSeconds: tpl.config.durationSeconds ?? prev.durationSeconds,
-                          sendToRoomChat: tpl.config.sendToRoomChat ?? prev.sendToRoomChat,
-                          theme: tpl.config.theme ?? prev.theme,
-                        }));
-                      }}
-                    >
-                      {tpl.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* 2. Target Audience */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <strong style={{ fontSize: '14px', color: '#f8fafc' }}>🎯 目标触达人群</strong>
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
-                      <input
-                        type="radio"
-                        name="bannerTargetType"
-                        checked={customBanner.targetType === 'specific'}
-                        onChange={() => setCustomBanner(b => ({ ...b, targetType: 'specific' }))}
-                      />
-                      <span>指定特定仙友 (仙友码/昵称)</span>
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
-                      <input
-                        type="radio"
-                        name="bannerTargetType"
-                        checked={customBanner.targetType === 'all'}
-                        onChange={() => setCustomBanner(b => ({ ...b, targetType: 'all' }))}
-                      />
-                      <span>全员生效 (所有房间所有玩家)</span>
-                    </label>
-                  </div>
-                </div>
-
-                {customBanner.targetType === 'specific' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingTop: '4px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '12px', color: '#94a3b8' }}>快捷添加常用仙友：</span>
-                      <button
-                        type="button"
-                        className="admin-tool-btn"
-                        style={{ fontSize: '11px', padding: '2px 8px' }}
-                        onClick={() => {
-                          setCustomBanner(b => {
-                            const codes = new Set(b.targetCodes.split(/[,，\s]+/).filter(Boolean));
-                            codes.add('932866');
-                            const names = new Set(b.targetNicknames.split(/[,，\s]+/).filter(Boolean));
-                            names.add('Dennis');
-                            names.add('小一');
-                            names.add('邓一名');
-                            return {
-                              ...b,
-                              targetCodes: Array.from(codes).join(', '),
-                              targetNicknames: Array.from(names).join(', '),
-                            };
-                          });
-                        }}
-                      >
-                        + 邓一名 (Dennis / 932866)
-                      </button>
-                      <button
-                        type="button"
-                        className="admin-tool-btn"
-                        style={{ fontSize: '11px', padding: '2px 8px' }}
-                        onClick={() => {
-                          setCustomBanner(b => {
-                            const codes = new Set(b.targetCodes.split(/[,，\s]+/).filter(Boolean));
-                            codes.add('805678');
-                            const names = new Set(b.targetNicknames.split(/[,，\s]+/).filter(Boolean));
-                            names.add('陈欣');
-                            names.add('小陈');
-                            return {
-                              ...b,
-                              targetCodes: Array.from(codes).join(', '),
-                              targetNicknames: Array.from(names).join(', '),
-                            };
-                          });
-                        }}
-                      >
-                        + 陈欣 (小陈 / 805678)
-                      </button>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>
-                          目标仙友码（多个以逗号隔开）：
-                        </label>
-                        <input
-                          type="text"
-                          className="admin-input"
-                          value={customBanner.targetCodes}
-                          onChange={e => setCustomBanner(b => ({ ...b, targetCodes: e.target.value }))}
-                          placeholder="例如: 932866, 805678"
-                        />
-                      </div>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>
-                          目标昵称关键字（多个以逗号隔开，模糊匹配）：
-                        </label>
-                        <input
-                          type="text"
-                          className="admin-input"
-                          value={customBanner.targetNicknames}
-                          onChange={e => setCustomBanner(b => ({ ...b, targetNicknames: e.target.value }))}
-                          placeholder="例如: Dennis, 陈欣, 小一, 小陈"
-                        />
-                      </div>
-                    </div>
-                    <small style={{ color: '#64748b', fontSize: '11.5px' }}>
-                      💡 提示：当对局或房间成员中包含上述任一仙友时，即对本局所有在场玩家展示该定制横幅。
-                    </small>
-                  </div>
-                )}
-              </div>
-
-              {/* 3. Message Content and Theme */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', color: '#f8fafc', fontWeight: 600, marginBottom: '6px' }}>
-                    ✍️ 横幅展示文案：
-                  </label>
-                  <textarea
-                    value={customBanner.text}
-                    onChange={e => setCustomBanner(b => ({ ...b, text: e.target.value }))}
-                    rows={3}
-                    className="admin-input"
-                    placeholder="请输入要在屏幕上方弹出的祝福或横幅文案…"
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>
-                      徽标图标 (Emoji)：
-                    </label>
-                    <input
-                      type="text"
-                      className="admin-input"
-                      value={customBanner.icon || '🎂'}
-                      onChange={e => setCustomBanner(b => ({ ...b, icon: e.target.value }))}
-                      style={{ width: '100%' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>
-                      发信人别名 (用于聊天频道)：
-                    </label>
-                    <input
-                      type="text"
-                      className="admin-input"
-                      value={customBanner.title || '寿星贺表'}
-                      onChange={e => setCustomBanner(b => ({ ...b, title: e.target.value }))}
-                      style={{ width: '100%' }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>
-                      视觉主题风格：
-                    </label>
-                    <select
-                      className="admin-input"
-                      value={customBanner.theme || 'gold'}
-                      onChange={e => setCustomBanner(b => ({ ...b, theme: e.target.value as any }))}
-                      style={{ width: '100%' }}
-                    >
-                      <option value="gold">金色华贵 (Gold - 华诞/尊享)</option>
-                      <option value="purple">极客紫电 (Purple - 技术/神机)</option>
-                      <option value="red">热烈红火 (Red - 战神/狂欢)</option>
-                      <option value="cyan">仙庭青蓝 (Cyan - 团建/清爽)</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* 4. Frequency, Duration and Chat Sync */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '14px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>
-                    循环播报频率 (分钟)：
-                  </label>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <input
-                      type="number"
-                      min={0}
-                      max={120}
-                      className="admin-input"
-                      value={customBanner.intervalMinutes}
-                      onChange={e => setCustomBanner(b => ({ ...b, intervalMinutes: Math.max(0, parseInt(e.target.value, 10) || 0) }))}
-                      style={{ width: '90px' }}
-                    />
-                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>分钟 (填0表示仅进房弹出1次)</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>
-                    横幅停留时长 (秒)：
-                  </label>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <input
-                      type="number"
-                      min={5}
-                      max={120}
-                      className="admin-input"
-                      value={customBanner.durationSeconds}
-                      onChange={e => setCustomBanner(b => ({ ...b, durationSeconds: Math.max(3, parseInt(e.target.value, 10) || 16) }))}
-                      style={{ width: '90px' }}
-                    />
-                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>秒</span>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={customBanner.sendToRoomChat}
-                      onChange={e => setCustomBanner(b => ({ ...b, sendToRoomChat: e.target.checked }))}
-                    />
-                    <span>同步发送至房间聊天抽屉</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* 5. Time Window Gating */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '18px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={customBanner.timeWindowEnabled}
-                      onChange={e => setCustomBanner(b => ({ ...b, timeWindowEnabled: e.target.checked }))}
-                    />
-                    <span style={{ fontWeight: 600, color: '#f8fafc' }}>限制生效时间窗口（未勾选则开启时一直生效）</span>
-                  </label>
-                  {customBanner.timeWindowEnabled && (
-                    <button
-                      type="button"
-                      className="admin-tool-btn"
-                      style={{ fontSize: '11px', padding: '2px 8px' }}
-                      onClick={() => {
-                        const now = new Date();
-                        const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
-                        const pad = (n: number) => String(n).padStart(2, '0');
-                        const startStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
-                        const endStr = `${midnight.getFullYear()}-${pad(midnight.getMonth() + 1)}-${pad(midnight.getDate())}T00:00`;
-                        setCustomBanner(b => ({ ...b, startTime: startStr, endTime: endStr }));
-                      }}
-                    >
-                      🕒 快速设为截止至今日24:00 (今夜生效)
-                    </button>
-                  )}
-                </div>
-
-                {customBanner.timeWindowEnabled && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', paddingTop: '4px' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>
-                        开始生效时间 (可选)：
-                      </label>
-                      <input
-                        type="datetime-local"
-                        className="admin-input"
-                        value={customBanner.startTime || ''}
-                        onChange={e => setCustomBanner(b => ({ ...b, startTime: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>
-                        结束生效时间 (可选)：
-                      </label>
-                      <input
-                        type="datetime-local"
-                        className="admin-input"
-                        value={customBanner.endTime || ''}
-                        onChange={e => setCustomBanner(b => ({ ...b, endTime: e.target.value }))}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* 6. Save Button */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px' }}>
-                <button
-                  type="button"
-                  className="admin-primary-btn"
-                  disabled={savingBanner}
-                  onClick={handleSaveCustomBanner}
-                  style={{
-                    background: '#f59e0b',
-                    color: '#1c1917',
-                    fontWeight: 'bold',
-                    padding: '10px 24px',
-                    fontSize: '14px',
-                  }}
-                >
-                  {savingBanner ? '正在保存并广播…' : '💾 保存并实时推送专属横幅配置'}
-                </button>
-              </div>
+            {/* Custom Banner & Celebration Settings Panel */}
+            <div style={{ marginTop: '20px' }}>
+              <CustomBannerPanel
+                customBanner={customBanner}
+                setCustomBanner={setCustomBanner}
+                savingBanner={savingBanner}
+                onSave={handleSaveCustomBanner}
+              />
             </div>
           </div>
         )}

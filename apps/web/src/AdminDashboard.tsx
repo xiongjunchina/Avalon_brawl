@@ -1013,33 +1013,14 @@ export function AdminDashboard({ onBackToGame }: AdminDashboardProps) {
         {/* ================= Tab 2: Strategy ================= */}
         {activeTab === 'strategy' && (
           <div>
-            {/* Custom Banner Quick Link Banner */}
-            <div className="admin-banner-card" style={{ marginBottom: '16px', background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(168, 85, 247, 0.15))', border: '1px solid rgba(234, 179, 8, 0.35)', borderRadius: '12px', padding: '16px' }}>
-              <div className="admin-banner-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: '12px' }}>
-                <div>
-                  <h4 style={{ margin: 0, fontSize: '15px', color: '#fef08a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span>🎉 定制玩家专属横幅与周期提示</span>
-                    <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '10px', background: customBanner.enabled ? 'rgba(16, 185, 129, 0.2)' : 'rgba(148, 163, 184, 0.2)', color: customBanner.enabled ? '#34d399' : '#94a3b8', border: `1px solid ${customBanner.enabled ? '#10b981' : '#64748b'}` }}>
-                      {customBanner.enabled ? '● 已启用生效中' : '○ 已停用（冷藏备用）'}
-                    </span>
-                  </h4>
-                  <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#cbd5e1' }}>
-                    在玩家进房或对局中全屏弹出定制横幅（支持生日祝福、大佬欢迎、全员公告，支持周期频次、特定玩家定向）。
-                    {customBanner.enabled ? `当前定向：${customBanner.targetType === 'all' ? '全员广播' : (customBanner.targetCodes || customBanner.targetNicknames || '特定玩家')}，频次：每 ${customBanner.intervalMinutes || 3} 分钟。` : ''}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="admin-primary-btn"
-                  onClick={() => setActiveTab('banner')}
-                  style={{ background: '#f59e0b', color: '#1c1917', fontWeight: 'bold', whiteSpace: 'nowrap', padding: '8px 18px' }}
-                >
-                  前往专属横幅设置页 →
-                </button>
-              </div>
-            </div>
+            <CustomBannerPanel
+              customBanner={customBanner}
+              setCustomBanner={setCustomBanner}
+              savingBanner={savingBanner}
+              onSave={handleSaveCustomBanner}
+            />
 
-            <div className="admin-panel">
+            <div className="admin-panel" style={{ marginTop: '24px' }}>
               <h3 className="admin-panel-title">⚙️ 商业化与功能放开策略</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

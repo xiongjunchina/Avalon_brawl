@@ -119,53 +119,6 @@ function CustomBannerPanel({
 
         {customBanner.targetType === 'specific' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingTop: '4px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '12px', color: '#94a3b8' }}>快捷添加常用仙友：</span>
-              <button
-                type="button"
-                className="admin-tool-btn"
-                style={{ fontSize: '11px', padding: '2px 8px' }}
-                onClick={() => {
-                  setCustomBanner(b => {
-                    const codes = new Set(b.targetCodes.split(/[,，\s]+/).filter(Boolean));
-                    codes.add('932866');
-                    const names = new Set(b.targetNicknames.split(/[,，\s]+/).filter(Boolean));
-                    names.add('Dennis');
-                    names.add('小一');
-                    names.add('邓一名');
-                    return {
-                      ...b,
-                      targetCodes: Array.from(codes).join(', '),
-                      targetNicknames: Array.from(names).join(', '),
-                    };
-                  });
-                }}
-              >
-                + 邓一名 (Dennis / 932866)
-              </button>
-              <button
-                type="button"
-                className="admin-tool-btn"
-                style={{ fontSize: '11px', padding: '2px 8px' }}
-                onClick={() => {
-                  setCustomBanner(b => {
-                    const codes = new Set(b.targetCodes.split(/[,，\s]+/).filter(Boolean));
-                    codes.add('805678');
-                    const names = new Set(b.targetNicknames.split(/[,，\s]+/).filter(Boolean));
-                    names.add('陈欣');
-                    names.add('小陈');
-                    return {
-                      ...b,
-                      targetCodes: Array.from(codes).join(', '),
-                      targetNicknames: Array.from(names).join(', '),
-                    };
-                  });
-                }}
-              >
-                + 陈欣 (小陈 / 805678)
-              </button>
-            </div>
-
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>
@@ -176,7 +129,7 @@ function CustomBannerPanel({
                   className="admin-input"
                   value={customBanner.targetCodes}
                   onChange={e => setCustomBanner(b => ({ ...b, targetCodes: e.target.value }))}
-                  placeholder="例如: 932866, 805678"
+                  placeholder="例如: 100001, 100002"
                 />
               </div>
               <div>
@@ -188,7 +141,7 @@ function CustomBannerPanel({
                   className="admin-input"
                   value={customBanner.targetNicknames}
                   onChange={e => setCustomBanner(b => ({ ...b, targetNicknames: e.target.value }))}
-                  placeholder="例如: Dennis, 陈欣, 小一, 小陈"
+                  placeholder="例如: 寿星, 老王, 小李"
                 />
               </div>
             </div>
@@ -1104,16 +1057,6 @@ export function AdminDashboard({ onBackToGame }: AdminDashboardProps) {
                   </button>
                 </div>
               </div>
-            </div>
-
-            {/* Custom Banner & Celebration Settings Panel */}
-            <div style={{ marginTop: '20px' }}>
-              <CustomBannerPanel
-                customBanner={customBanner}
-                setCustomBanner={setCustomBanner}
-                savingBanner={savingBanner}
-                onSave={handleSaveCustomBanner}
-              />
             </div>
           </div>
         )}

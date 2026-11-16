@@ -7,40 +7,45 @@ import {
 } from '@avalon/contracts';
 import { isCustomBannerActive } from '../src/custom-banner-helper.js';
 
-test('birthday celebration: Dennis & Chen Xin blessing text removes 【内核直发】 and starts cleanly with Happy Birthday', () => {
+test('birthday celebration: generic geek blessing text removes personal names and starts cleanly with Happy Birthday', () => {
   const bdayText = DEFAULT_CUSTOM_BANNER_CONFIG.text;
 
   // Must start directly with Happy Birthday
-  assert.equal(bdayText.startsWith('Happy Birthday to Dennis & 陈欣！'), true, 'Should start cleanly with Happy Birthday');
+  assert.equal(bdayText.startsWith('Happy Birthday！'), true, 'Should start cleanly with Happy Birthday');
   assert.doesNotMatch(bdayText, /【内核直发/);
   assert.doesNotMatch(bdayText, /Birthday\.Init/);
   assert.match(bdayText, /代码无 Bug/);
   assert.match(bdayText, /算力永不限流/);
   assert.match(bdayText, /出征必胜/);
+  assert.doesNotMatch(bdayText, /Dennis/);
+  assert.doesNotMatch(bdayText, /陈欣/);
   assert.doesNotMatch(bdayText, /小一/);
   assert.doesNotMatch(bdayText, /小陈/);
 
   // Check preset template
-  const geekTpl = BANNER_PRESET_TEMPLATES.find(t => t.id === 'geek-birthday-dennis-chenxin');
+  const geekTpl = BANNER_PRESET_TEMPLATES.find(t => t.id === 'geek-birthday');
   assert.ok(geekTpl, 'Geek birthday preset template must exist');
-  assert.equal(geekTpl.config.text?.startsWith('Happy Birthday to Dennis & 陈欣！'), true);
+  assert.equal(geekTpl.config.text?.startsWith('Happy Birthday！'), true);
   assert.doesNotMatch(geekTpl.config.text || '', /内核直发/);
+  assert.doesNotMatch(geekTpl.config.text || '', /Dennis/);
 });
 
 test('birthday celebration: preset templates provide diverse one-click options', () => {
   assert.ok(BANNER_PRESET_TEMPLATES.length >= 5, 'Should provide at least 5 preset templates');
   const labels = BANNER_PRESET_TEMPLATES.map(t => t.label);
-  assert.ok(labels.some(l => l.includes('Dennis & 陈欣')));
+  assert.ok(labels.some(l => l.includes('极客生辰')));
   assert.ok(labels.some(l => l.includes('仙友华诞')));
   assert.ok(labels.some(l => l.includes('极客大牛')));
   assert.ok(labels.some(l => l.includes('战神出征')));
   assert.ok(labels.some(l => l.includes('团建狂欢')));
 });
 
-test('custom banner: isCustomBannerActive identifies targeted Dennis & Chen Xin', () => {
+test('custom banner: isCustomBannerActive identifies targeted players by code or nickname', () => {
   const config: CustomBannerConfig = {
     ...DEFAULT_CUSTOM_BANNER_CONFIG,
     enabled: true,
+    targetCodes: '932866, 805678',
+    targetNicknames: 'Dennis, 陈欣, 小一, 小陈, 邓一名',
   };
 
   // Dennis matching

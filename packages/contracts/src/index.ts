@@ -263,12 +263,12 @@ export interface CustomBannerConfig {
 
 export const DEFAULT_CUSTOM_BANNER_CONFIG: CustomBannerConfig = {
   enabled: false,
-  title: '寿星贺表',
+  title: '仙友贺表',
   icon: '🎂',
-  text: 'Happy Birthday to Dennis & 陈欣！🎂 祝两位极客大佬：代码无 Bug，人生无阻断，算力永不限流，灵感常驻缓存！今晚大乱斗全场起立为寿星让道，出征必胜！🎉🚀',
+  text: 'Happy Birthday！🎂 祝极客大佬：代码无 Bug，人生无阻断，算力永不限流，灵感常驻缓存！今晚大乱斗全场起立为寿星让道，出征必胜！🎉🚀',
   targetType: 'specific',
-  targetCodes: '932866, 805678',
-  targetNicknames: 'Dennis, 陈欣, 小一, 小陈, 邓一名',
+  targetCodes: '',
+  targetNicknames: '',
   timeWindowEnabled: false,
   startTime: '',
   endTime: '',
@@ -286,15 +286,15 @@ export interface BannerPresetTemplate {
 
 export const BANNER_PRESET_TEMPLATES: BannerPresetTemplate[] = [
   {
-    id: 'geek-birthday-dennis-chenxin',
-    label: '🎂 极客生辰 (Dennis & 陈欣)',
+    id: 'geek-birthday',
+    label: '🎂 极客生辰 (代码无Bug)',
     config: {
       title: '寿星贺表',
       icon: '🎂',
-      text: 'Happy Birthday to Dennis & 陈欣！🎂 祝两位极客大佬：代码无 Bug，人生无阻断，算力永不限流，灵感常驻缓存！今晚大乱斗全场起立为寿星让道，出征必胜！🎉🚀',
+      text: 'Happy Birthday！🎂 祝极客大佬：代码无 Bug，人生无阻断，算力永不限流，灵感常驻缓存！今晚大乱斗全场起立为寿星让道，出征必胜！🎉🚀',
       targetType: 'specific',
-      targetCodes: '932866, 805678',
-      targetNicknames: 'Dennis, 陈欣, 小一, 小陈, 邓一名',
+      targetCodes: '',
+      targetNicknames: '',
       intervalMinutes: 3,
       durationSeconds: 16,
       sendToRoomChat: true,

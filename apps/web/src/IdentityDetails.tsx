@@ -283,6 +283,21 @@ export function IdentityDetails({
                   {selfBrawl.baiyanDuchaStatus}
                 </div>
               )}
+              {selfBrawl.jinjiaoNotice && (
+                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#eab308', marginTop: '4px' }}>
+                  {selfBrawl.jinjiaoNotice}
+                </div>
+              )}
+              {selfBrawl.yutuNotice && (
+                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#ec4899', marginTop: '4px' }}>
+                  {selfBrawl.yutuNotice}
+                </div>
+              )}
+              {selfBrawl.generalFeedback && (
+                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#38bdf8', marginTop: '4px' }}>
+                  {selfBrawl.generalFeedback}
+                </div>
+              )}
               <div style={{ marginTop: '4px' }}>
                 <button
                   type="button"

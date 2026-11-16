@@ -182,6 +182,7 @@ export interface SelfBrawlView {
   baiyanDuchaStatus?: string; // 百眼魔君专属黄花毒茶状态回执
   jinjiaoNotice?: string; // 金角大王专属紫金葫芦吸收回执
   yutuNotice?: string; // 玉兔精专属捣药迷魂封印回执
+  generalFeedback?: string; // 通用法宝施法/生效私密回执（保证所有角色均有明确私密结果告知）
 }
 
 export const brawlCommandPayloadSchema = z.object({

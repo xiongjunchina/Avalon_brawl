@@ -1232,7 +1232,20 @@ export function GamePanel({
               className={`secondary tool-pill dock-utility-btn identity-trigger-btn ${
                 Boolean(
                   g.selfBrawl && (
-                    g.selfBrawl.skillAvailable && !g.selfBrawl.skillUsed && g.selfBrawl.skill.actionType !== 'passive'
+                    (g.selfBrawl.skillAvailable && !g.selfBrawl.skillUsed && g.selfBrawl.skill.actionType !== 'passive') ||
+                    (g.selfBrawl.skillUsed && (
+                      g.selfBrawl.jinjiaoNotice ||
+                      g.selfBrawl.yutuNotice ||
+                      g.selfBrawl.baiyanDuchaStatus ||
+                      g.selfBrawl.guanyinGanluResult ||
+                      g.selfBrawl.baiguLijianStatus ||
+                      g.selfBrawl.tieshanSecret ||
+                      g.selfBrawl.huangmeiNotice ||
+                      g.selfBrawl.putiDianhuaNotice ||
+                      g.selfBrawl.zhaoyaoResult !== undefined ||
+                      g.selfBrawl.dapengExcludedPlayerId ||
+                      g.selfBrawl.generalFeedback
+                    ))
                   )
                 ) ? 'pulse-action' : ''
               }`}

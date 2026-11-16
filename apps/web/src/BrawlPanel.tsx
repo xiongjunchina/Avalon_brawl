@@ -30,11 +30,27 @@ export function BrawlPanel({
     selfBrawl.skillAvailable && !selfBrawl.skillUsed && selfBrawl.skill.actionType !== 'passive'
   );
 
+  const hasFeedbackNotice = Boolean(
+    selfBrawl.skillUsed && (
+      selfBrawl.jinjiaoNotice ||
+      selfBrawl.yutuNotice ||
+      selfBrawl.baiyanDuchaStatus ||
+      selfBrawl.guanyinGanluResult ||
+      selfBrawl.baiguLijianStatus ||
+      selfBrawl.tieshanSecret ||
+      selfBrawl.huangmeiNotice ||
+      selfBrawl.putiDianhuaNotice ||
+      selfBrawl.zhaoyaoResult !== undefined ||
+      selfBrawl.dapengExcludedPlayerId ||
+      selfBrawl.generalFeedback
+    )
+  );
+
   return (
     <div className="brawl-container" style={{ margin: '6px 0' }}>
       {/* 隐私防偷看模式（用于对局大盘公屏）：隐藏敏感神魔底牌、阵营色与技能，仅提供不泄密的中性提示，在「真身」私密面板内操作 */}
       {privacyMode ? (
-        hasPendingAction && (
+        hasPendingAction ? (
           <div
             className="brawl-privacy-notice-pill"
             onClick={onOpenIdentity}
@@ -42,7 +58,22 @@ export function BrawlPanel({
           >
             <span>✦ 你有神魔法宝待决，点击「真身」私下查看与发动 ❯</span>
           </div>
-        )
+        ) : hasFeedbackNotice ? (
+          <div
+            className="brawl-privacy-notice-pill"
+            onClick={onOpenIdentity}
+            title="点击打开真身面板查看法宝私密反馈"
+            style={{
+              background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(168, 85, 247, 0.25))',
+              borderColor: 'rgba(234, 179, 8, 0.5)',
+              boxShadow: '0 0 10px rgba(234, 179, 8, 0.3)',
+            }}
+          >
+            <span style={{ color: '#fde047', fontWeight: 600 }}>
+              ✦ 法宝施法结果已出（无论成败），点击「真身」私密查阅 ❯
+            </span>
+          </div>
+        ) : null
       ) : (
         <>
           {/* 个人乱斗真身与弱技能胶囊卡 */}
@@ -151,6 +182,13 @@ export function BrawlPanel({
               {selfBrawl.yutuNotice && (
                 <div style={{ marginTop: '6px', fontSize: '12px', fontWeight: 'bold', color: '#ec4899' }}>
                   {selfBrawl.yutuNotice}
+                </div>
+              )}
+
+              {/* 通用神魔法宝施法回执与生效确认 */}
+              {selfBrawl.generalFeedback && (
+                <div style={{ marginTop: '6px', fontSize: '12px', fontWeight: 'bold', color: '#38bdf8' }}>
+                  {selfBrawl.generalFeedback}
                 </div>
               )}
             </div>

@@ -280,6 +280,42 @@ export function projectSelfBrawlView(
     }
   }
 
+  let generalFeedback: string | undefined;
+  if (playerState.skillUsed) {
+    if (playerState.roleId === 'rulai_fozu') {
+      const imprisonedP = players.find(p => p.id === state.imprisonedTargetId);
+      generalFeedback = imprisonedP
+        ? `🪷 五行山神威显化：已降下佛法巨掌，将【${imprisonedP.seat}号 · ${imprisonedP.nickname}】镇压于五行山下（本轮禁止随队出征与参与表决）！`
+        : '🪷 五行山神威已施展：本轮佛法镇压已生效。';
+    } else if (playerState.roleId === 'yinjiao_dawang') {
+      const yishanP = players.find(p => p.id === state.yishanTargetId);
+      generalFeedback = yishanP
+        ? `⛰️ 移山压顶神威显化：已调遣须弥泰山重压【${yishanP.seat}号 · ${yishanP.nickname}】，其在本次表决中票数将强制按弃权处理！`
+        : '⛰️ 移山压顶神威已施展：移山压顶已生效。';
+    } else if (playerState.roleId === 'zhizhu_jing') {
+      const bannedP = players.find(p => p.id === state.zhizhuBannedTargetId);
+      generalFeedback = bannedP
+        ? `🕸️ 盘丝结茧暗施魔功：已布下天罗地网缠缚【${bannedP.seat}号 · ${bannedP.nickname}】，本轮禁止其入队出征！`
+        : '🕸️ 盘丝结茧魔功已施展：万千蛛丝封禁已生效。';
+    } else if (playerState.roleId === 'zhenyuan_daxian') {
+      generalFeedback = '袖里乾坤混元一掷：已施展无上道法收走争议车队，本轮重新洗牌！';
+    } else if (playerState.roleId === 'nezha' || playerState.roleId === 'niu_mowang') {
+      generalFeedback = state.doubleVoteUserId === userId
+        ? '🔥 神力爆发显圣：已成功激活在本次表决中的双倍表决权（投出 2 票）！'
+        : '🔥 神力爆发显圣：本命神力已消耗完毕。';
+    } else if (playerState.roleId === 'yuhuang_dadi') {
+      generalFeedback = '📜 天尊玉旨天条已敕：本轮组队队长已受无上玉旨庇佑，一切封印压制均告无效！';
+    } else if (playerState.roleId === 'wangmu_niangniang') {
+      generalFeedback = '🍑 瑶池九转仙桃神威：已赐下圣桃护体，全场需至少 2 张失败牌方可导致出征溃败！';
+    } else if (playerState.roleId === 'bailong_ma') {
+      generalFeedback = '🐴 龙马负重天马显圣：已激发神足负重潜能，本轮出征车队席位上限已提升 +1！';
+    } else if (playerState.roleId === 'sha_wujing') {
+      generalFeedback = '🌊 降妖宝杖沉沙定海：平票定海之威已就绪，遇平票即视为正道大胜！';
+    } else if (playerState.roleId === 'zhu_bajie') {
+      generalFeedback = '🌾 倒打一耙暗度陈仓：九齿钉耙神机已蓄势，出征时将尝试逆转乾坤！';
+    }
+  }
+
   return {
     roleId: playerState.roleId,
     roleName: roleDef.name,
@@ -302,5 +338,6 @@ export function projectSelfBrawlView(
     ...(baiyanDuchaStatus ? { baiyanDuchaStatus } : {}),
     ...(jinjiaoNotice ? { jinjiaoNotice } : {}),
     ...(yutuNotice ? { yutuNotice } : {}),
+    ...(generalFeedback ? { generalFeedback } : {}),
   };
 }

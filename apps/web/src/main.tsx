@@ -305,6 +305,104 @@ function App() {
     page === 'table' && !loading && !!user, !!practiceGame || !roomId || connection === '已连接');
   useNavigationSound(`${page}:${!!user}:${roomId ?? ''}:${practiceGame?.id ?? ''}:${setupOpen}:${joinOpen}`, !loading);
 
+  // Birthday Celebration for Dennis (932866) & Chen Xin (805678)
+  // Active only before Beijing Time 2026-11-17 00:00:00+08:00
+  const [birthdayBanner, setBirthdayBanner] = useState<string | null>(null);
+  const birthdayIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const birthdayDismissTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const birthdayTriggeredContextRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const DEADLINE = new Date('2026-11-17T00:00:00+08:00').getTime();
+    if (Date.now() >= DEADLINE) {
+      setBirthdayBanner(null);
+      return;
+    }
+
+    const membersToCheck = room?.members ?? practiceGame?.players ?? [];
+    const hasBirthdayPerson = membersToCheck.some(m => {
+      const code = String(('playerCode' in m && m.playerCode) || '');
+      if (code === '932866' || code === '805678') return true;
+      const n = (m.nickname || '').toLowerCase();
+      return n.includes('dennis') || n.includes('小一') || n.includes('邓一名') || n.includes('陈欣') || n.includes('小陈');
+    }) || (user && (
+      String(user.playerCode || '') === '932866' || String(user.playerCode || '') === '805678' ||
+      user.nickname.toLowerCase().includes('dennis') || user.nickname.includes('小一') || user.nickname.includes('邓一名') ||
+      user.nickname.includes('陈欣') || user.nickname.includes('小陈')
+    ));
+
+    const currentContextId = room?.id ?? practiceGame?.id ?? null;
+
+    if (!hasBirthdayPerson || !currentContextId) {
+      setBirthdayBanner(null);
+      if (birthdayIntervalRef.current) {
+        clearInterval(birthdayIntervalRef.current);
+        birthdayIntervalRef.current = null;
+      }
+      if (birthdayDismissTimeoutRef.current) {
+        clearTimeout(birthdayDismissTimeoutRef.current);
+        birthdayDismissTimeoutRef.current = null;
+      }
+      birthdayTriggeredContextRef.current = null;
+      return;
+    }
+
+    const triggerBirthdayCelebration = () => {
+      if (Date.now() >= DEADLINE) {
+        setBirthdayBanner(null);
+        if (birthdayIntervalRef.current) {
+          clearInterval(birthdayIntervalRef.current);
+          birthdayIntervalRef.current = null;
+        }
+        return;
+      }
+      const bdayText = '⚡【内核直发 · Birthday.Init()】Happy Birthday to Dennis & 陈欣！🎂 祝两位极客大佬：代码无 Bug，人生无阻断，算力永不限流，灵感常驻缓存！今晚大乱斗全场起立为寿星让道，出征必胜！🎉🚀';
+      setBirthdayBanner(bdayText);
+
+      // Append celebratory message to chat drawer
+      setRoomChatMessages(prev => {
+        const lastMsg = prev.at(-1);
+        if (lastMsg && lastMsg.text === bdayText && Date.now() - new Date(lastMsg.timestamp).getTime() < 60000) {
+          return prev;
+        }
+        return [
+          ...prev.slice(-49),
+          {
+            messageId: `bday-${Date.now()}`,
+            fromUserId: 'system-birthday',
+            seat: 0,
+            nickname: '🎂 寿星贺表',
+            text: bdayText,
+            timestamp: new Date().toISOString(),
+          },
+        ];
+      });
+      setUnreadChatCount(prev => prev + 1);
+
+      // Auto dismiss banner after 16 seconds
+      if (birthdayDismissTimeoutRef.current) clearTimeout(birthdayDismissTimeoutRef.current);
+      birthdayDismissTimeoutRef.current = setTimeout(() => {
+        setBirthdayBanner(null);
+      }, 16000);
+    };
+
+    // First trigger when entering the room
+    if (birthdayTriggeredContextRef.current !== currentContextId) {
+      birthdayTriggeredContextRef.current = currentContextId;
+      triggerBirthdayCelebration();
+
+      if (birthdayIntervalRef.current) clearInterval(birthdayIntervalRef.current);
+      birthdayIntervalRef.current = setInterval(triggerBirthdayCelebration, 180000);
+    }
+  }, [room?.id, room?.members.length, practiceGame?.id, user?.id, user?.playerCode, user?.nickname]);
+
+  useEffect(() => {
+    return () => {
+      if (birthdayIntervalRef.current) clearInterval(birthdayIntervalRef.current);
+      if (birthdayDismissTimeoutRef.current) clearTimeout(birthdayDismissTimeoutRef.current);
+    };
+  }, []);
+
   // Auto-dismiss notice toast after 2 seconds
   useEffect(() => {
     if (!notice) return;
@@ -971,6 +1069,24 @@ function App() {
 
   return (
     <main data-scene={scene} data-sound="tap" className={`app-shell ${inTableViewport ? 'is-table-viewport is-live-table' : ''} ${inHomeViewport ? 'is-home-viewport' : ''}`}>
+      {/* Birthday Celebration Floating Banner */}
+      {birthdayBanner && (
+        <div className="birthday-celebration-banner" role="alert">
+          <div className="birthday-celebration-content">
+            <span className="birthday-icon">🎂</span>
+            <span className="birthday-text">{birthdayBanner}</span>
+          </div>
+          <button
+            type="button"
+            className="birthday-banner-close"
+            onClick={() => setBirthdayBanner(null)}
+            aria-label="关闭生日祝福"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Global Announcement Marquee */}
       {announcement?.enabled && announcement.text && !announcement.text.includes('欢迎光临') && page !== 'admin' && (
         <div className="global-announcement-marquee" role="alert">

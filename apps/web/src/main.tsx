@@ -13,7 +13,9 @@ import {
   type RoomView,
   type Settings,
   type User,
+  type CustomBannerConfig,
 } from '@avalon/contracts';
+import { isCustomBannerActive } from './custom-banner-helper';
 import {
   BRAWL_PLAYER_CONFIG,
   BRAWL_ROLE_REGISTRY,
@@ -210,7 +212,11 @@ function App() {
       setPage('admin');
     }
     let active = true;
-    void api<{ announcement: { text: string; enabled: boolean }; freeAccessMode: boolean }>('/system/announcement')
+    void api<{
+      announcement: { text: string; enabled: boolean };
+      freeAccessMode: boolean;
+      customBanner?: CustomBannerConfig;
+    }>('/system/announcement')
       .then(res => {
         if (!active || !res) return;
         setFreeAccessMode(res.freeAccessMode);
@@ -219,6 +225,9 @@ function App() {
           if (dismissed !== res.announcement.text) {
             setAnnouncement(res.announcement);
           }
+        }
+        if (res.customBanner) {
+          setCustomBanner(res.customBanner);
         }
       })
       .catch(() => {});
@@ -305,101 +314,100 @@ function App() {
     page === 'table' && !loading && !!user, !!practiceGame || !roomId || connection === '已连接');
   useNavigationSound(`${page}:${!!user}:${roomId ?? ''}:${practiceGame?.id ?? ''}:${setupOpen}:${joinOpen}`, !loading);
 
-  // Birthday Celebration for Dennis (932866) & Chen Xin (805678)
-  // Active only before Beijing Time 2026-11-17 00:00:00+08:00
-  const [birthdayBanner, setBirthdayBanner] = useState<string | null>(null);
-  const birthdayIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const birthdayDismissTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const birthdayTriggeredContextRef = useRef<string | null>(null);
+  // Custom Player Celebration & Special Banner System
+  const [customBanner, setCustomBanner] = useState<CustomBannerConfig | null>(null);
+  const [displayedBanner, setDisplayedBanner] = useState<{ text: string; icon?: string; theme?: string } | null>(null);
+  const customBannerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const customBannerDismissTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const customBannerTriggeredContextRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const DEADLINE = new Date('2026-11-17T00:00:00+08:00').getTime();
-    if (Date.now() >= DEADLINE) {
-      setBirthdayBanner(null);
-      return;
-    }
-
     const membersToCheck = room?.members ?? practiceGame?.players ?? [];
-    const hasBirthdayPerson = membersToCheck.some(m => {
-      const code = String(('playerCode' in m && m.playerCode) || '');
-      if (code === '932866' || code === '805678') return true;
-      const n = (m.nickname || '').toLowerCase();
-      return n.includes('dennis') || n.includes('小一') || n.includes('邓一名') || n.includes('陈欣') || n.includes('小陈');
-    }) || (user && (
-      String(user.playerCode || '') === '932866' || String(user.playerCode || '') === '805678' ||
-      user.nickname.toLowerCase().includes('dennis') || user.nickname.includes('小一') || user.nickname.includes('邓一名') ||
-      user.nickname.includes('陈欣') || user.nickname.includes('小陈')
-    ));
-
+    const isActive = isCustomBannerActive(customBanner, Date.now(), user, membersToCheck);
     const currentContextId = room?.id ?? practiceGame?.id ?? null;
 
-    if (!hasBirthdayPerson || !currentContextId) {
-      setBirthdayBanner(null);
-      if (birthdayIntervalRef.current) {
-        clearInterval(birthdayIntervalRef.current);
-        birthdayIntervalRef.current = null;
+    if (!isActive || !currentContextId || !customBanner) {
+      setDisplayedBanner(null);
+      if (customBannerIntervalRef.current) {
+        clearInterval(customBannerIntervalRef.current);
+        customBannerIntervalRef.current = null;
       }
-      if (birthdayDismissTimeoutRef.current) {
-        clearTimeout(birthdayDismissTimeoutRef.current);
-        birthdayDismissTimeoutRef.current = null;
+      if (customBannerDismissTimeoutRef.current) {
+        clearTimeout(customBannerDismissTimeoutRef.current);
+        customBannerDismissTimeoutRef.current = null;
       }
-      birthdayTriggeredContextRef.current = null;
+      customBannerTriggeredContextRef.current = null;
       return;
     }
 
-    const triggerBirthdayCelebration = () => {
-      if (Date.now() >= DEADLINE) {
-        setBirthdayBanner(null);
-        if (birthdayIntervalRef.current) {
-          clearInterval(birthdayIntervalRef.current);
-          birthdayIntervalRef.current = null;
+    const triggerBanner = () => {
+      const stillActive = isCustomBannerActive(customBanner, Date.now(), user, membersToCheck);
+      if (!stillActive) {
+        setDisplayedBanner(null);
+        if (customBannerIntervalRef.current) {
+          clearInterval(customBannerIntervalRef.current);
+          customBannerIntervalRef.current = null;
         }
         return;
       }
-      const bdayText = '⚡【内核直发 · Birthday.Init()】Happy Birthday to Dennis & 陈欣！🎂 祝两位极客大佬：代码无 Bug，人生无阻断，算力永不限流，灵感常驻缓存！今晚大乱斗全场起立为寿星让道，出征必胜！🎉🚀';
-      setBirthdayBanner(bdayText);
 
-      // Append celebratory message to chat drawer
-      setRoomChatMessages(prev => {
-        const lastMsg = prev.at(-1);
-        if (lastMsg && lastMsg.text === bdayText && Date.now() - new Date(lastMsg.timestamp).getTime() < 60000) {
-          return prev;
-        }
-        return [
-          ...prev.slice(-49),
-          {
-            messageId: `bday-${Date.now()}`,
-            fromUserId: 'system-birthday',
-            seat: 0,
-            nickname: '🎂 寿星贺表',
-            text: bdayText,
-            timestamp: new Date().toISOString(),
-          },
-        ];
+      setDisplayedBanner({
+        text: customBanner.text,
+        icon: customBanner.icon || '🎂',
+        theme: customBanner.theme || 'gold',
       });
-      setUnreadChatCount(prev => prev + 1);
 
-      // Auto dismiss banner after 16 seconds
-      if (birthdayDismissTimeoutRef.current) clearTimeout(birthdayDismissTimeoutRef.current);
-      birthdayDismissTimeoutRef.current = setTimeout(() => {
-        setBirthdayBanner(null);
-      }, 16000);
+      if (customBanner.sendToRoomChat) {
+        setRoomChatMessages(prev => {
+          const lastMsg = prev.at(-1);
+          if (lastMsg && lastMsg.text === customBanner.text && Date.now() - new Date(lastMsg.timestamp).getTime() < 60000) {
+            return prev;
+          }
+          return [
+            ...prev.slice(-49),
+            {
+              messageId: `banner-${Date.now()}`,
+              fromUserId: 'system-banner',
+              seat: 0,
+              nickname: `${customBanner.icon || '🎂'} ${customBanner.title || '特别公告'}`,
+              text: customBanner.text,
+              timestamp: new Date().toISOString(),
+            },
+          ];
+        });
+        setUnreadChatCount(prev => prev + 1);
+      }
+
+      if (customBannerDismissTimeoutRef.current) clearTimeout(customBannerDismissTimeoutRef.current);
+      const durationMs = Math.max(3, customBanner.durationSeconds || 16) * 1000;
+      customBannerDismissTimeoutRef.current = setTimeout(() => {
+        setDisplayedBanner(null);
+      }, durationMs);
     };
 
-    // First trigger when entering the room
-    if (birthdayTriggeredContextRef.current !== currentContextId) {
-      birthdayTriggeredContextRef.current = currentContextId;
-      triggerBirthdayCelebration();
+    if (customBannerTriggeredContextRef.current !== currentContextId) {
+      customBannerTriggeredContextRef.current = currentContextId;
+      triggerBanner();
 
-      if (birthdayIntervalRef.current) clearInterval(birthdayIntervalRef.current);
-      birthdayIntervalRef.current = setInterval(triggerBirthdayCelebration, 180000);
+      if (customBannerIntervalRef.current) clearInterval(customBannerIntervalRef.current);
+      if (customBanner.intervalMinutes > 0) {
+        customBannerIntervalRef.current = setInterval(triggerBanner, customBanner.intervalMinutes * 60000);
+      }
     }
-  }, [room?.id, room?.members.length, practiceGame?.id, user?.id, user?.playerCode, user?.nickname]);
+  }, [
+    customBanner,
+    room?.id,
+    room?.members.length,
+    practiceGame?.id,
+    user?.id,
+    user?.playerCode,
+    user?.nickname,
+  ]);
 
   useEffect(() => {
     return () => {
-      if (birthdayIntervalRef.current) clearInterval(birthdayIntervalRef.current);
-      if (birthdayDismissTimeoutRef.current) clearTimeout(birthdayDismissTimeoutRef.current);
+      if (customBannerIntervalRef.current) clearInterval(customBannerIntervalRef.current);
+      if (customBannerDismissTimeoutRef.current) clearTimeout(customBannerDismissTimeoutRef.current);
     };
   }, []);
 
@@ -507,6 +515,9 @@ function App() {
           } else {
             setAnnouncement(null);
           }
+        },
+        customBanner: config => {
+          setCustomBanner(config);
         },
         roomChat: msg => {
           setRoomChatMessages(prev => [...prev.slice(-49), msg]);
@@ -1069,18 +1080,18 @@ function App() {
 
   return (
     <main data-scene={scene} data-sound="tap" className={`app-shell ${inTableViewport ? 'is-table-viewport is-live-table' : ''} ${inHomeViewport ? 'is-home-viewport' : ''}`}>
-      {/* Birthday Celebration Floating Banner */}
-      {birthdayBanner && (
-        <div className="birthday-celebration-banner" role="alert">
+      {/* Custom Banner / Birthday Celebration Floating Banner */}
+      {displayedBanner && (
+        <div className={`birthday-celebration-banner theme-${displayedBanner.theme || 'gold'}`} role="alert">
           <div className="birthday-celebration-content">
-            <span className="birthday-icon">🎂</span>
-            <span className="birthday-text">{birthdayBanner}</span>
+            <span className="birthday-icon">{displayedBanner.icon || '🎂'}</span>
+            <span className="birthday-text">{displayedBanner.text}</span>
           </div>
           <button
             type="button"
             className="birthday-banner-close"
-            onClick={() => setBirthdayBanner(null)}
-            aria-label="关闭生日祝福"
+            onClick={() => setDisplayedBanner(null)}
+            aria-label="关闭横幅提示"
           >
             ✕
           </button>

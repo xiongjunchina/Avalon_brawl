@@ -436,6 +436,23 @@ export async function buildApp(options: { store: PostgresStore; origin?: string;
     return safety.resolveReview(z.string().uuid().parse(req.params.id),input.decision,input.note);
   });
 
+  const customBannerConfigSchema = z.object({
+    enabled: z.boolean(),
+    title: z.string().max(50).optional(),
+    icon: z.string().max(10).optional(),
+    text: z.string().max(500),
+    targetType: z.enum(['all', 'specific']),
+    targetCodes: z.string().max(200),
+    targetNicknames: z.string().max(200),
+    timeWindowEnabled: z.boolean(),
+    startTime: z.string().max(100).optional(),
+    endTime: z.string().max(100).optional(),
+    intervalMinutes: z.number().int().min(0).max(1440),
+    durationSeconds: z.number().int().min(3).max(120),
+    sendToRoomChat: z.boolean(),
+    theme: z.enum(['gold', 'red', 'purple', 'cyan']).optional(),
+  }).strict();
+
   app.get('/api/admin/settings', async (req, reply) => {
     requireAdmin(req, reply);
     return adminService.getSystemSettings();
@@ -448,11 +465,18 @@ export async function buildApp(options: { store: PostgresStore; origin?: string;
     if(key==='broadcast_announcement') {
       value=z.object({text:z.string().max(500),enabled:z.boolean()}).strict().parse(value);
       if(value.text.trim())await safety.text(value.text,'chat');
+    } else if (key === 'custom_banner_config') {
+      value = customBannerConfigSchema.parse(value);
+      if (value.text.trim()) await safety.text(value.text, 'chat');
     }
     await adminService.updateSystemSetting(key, value);
     if (key === 'broadcast_announcement' && value && typeof value === 'object') {
       for (const c of connections.values()) {
         send(c.socket, { type: 'systemAnnouncement', text: value.text || '', enabled: Boolean(value.enabled) });
+      }
+    } else if (key === 'custom_banner_config' && value && typeof value === 'object') {
+      for (const c of connections.values()) {
+        send(c.socket, { type: 'customBannerUpdate', config: value });
       }
     }
     return { ok: true };
@@ -609,6 +633,7 @@ export async function buildApp(options: { store: PostgresStore; origin?: string;
     return {
       announcement: settings.announcement,
       freeAccessMode: settings.freeAccessMode,
+      customBanner: settings.customBanner,
     };
   });
 

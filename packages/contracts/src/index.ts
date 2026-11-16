@@ -244,6 +244,127 @@ export interface SystemAnnouncement {
   enabled: boolean;
 }
 
+export interface CustomBannerConfig {
+  enabled: boolean;
+  title?: string;
+  icon?: string;
+  text: string;
+  targetType: 'all' | 'specific';
+  targetCodes: string;
+  targetNicknames: string;
+  timeWindowEnabled: boolean;
+  startTime?: string;
+  endTime?: string;
+  intervalMinutes: number;
+  durationSeconds: number;
+  sendToRoomChat: boolean;
+  theme?: 'gold' | 'red' | 'purple' | 'cyan';
+}
+
+export const DEFAULT_CUSTOM_BANNER_CONFIG: CustomBannerConfig = {
+  enabled: false,
+  title: '寿星贺表',
+  icon: '🎂',
+  text: 'Happy Birthday to Dennis & 陈欣！🎂 祝两位极客大佬：代码无 Bug，人生无阻断，算力永不限流，灵感常驻缓存！今晚大乱斗全场起立为寿星让道，出征必胜！🎉🚀',
+  targetType: 'specific',
+  targetCodes: '932866, 805678',
+  targetNicknames: 'Dennis, 陈欣, 小一, 小陈, 邓一名',
+  timeWindowEnabled: false,
+  startTime: '',
+  endTime: '',
+  intervalMinutes: 3,
+  durationSeconds: 16,
+  sendToRoomChat: true,
+  theme: 'gold',
+};
+
+export interface BannerPresetTemplate {
+  id: string;
+  label: string;
+  config: Partial<CustomBannerConfig>;
+}
+
+export const BANNER_PRESET_TEMPLATES: BannerPresetTemplate[] = [
+  {
+    id: 'geek-birthday-dennis-chenxin',
+    label: '🎂 极客生辰 (Dennis & 陈欣)',
+    config: {
+      title: '寿星贺表',
+      icon: '🎂',
+      text: 'Happy Birthday to Dennis & 陈欣！🎂 祝两位极客大佬：代码无 Bug，人生无阻断，算力永不限流，灵感常驻缓存！今晚大乱斗全场起立为寿星让道，出征必胜！🎉🚀',
+      targetType: 'specific',
+      targetCodes: '932866, 805678',
+      targetNicknames: 'Dennis, 陈欣, 小一, 小陈, 邓一名',
+      intervalMinutes: 3,
+      durationSeconds: 16,
+      sendToRoomChat: true,
+      theme: 'gold',
+    },
+  },
+  {
+    id: 'general-birthday',
+    label: '🎉 仙友华诞 (通用生辰)',
+    config: {
+      title: '仙友华诞',
+      icon: '🎂',
+      text: '🎂【蟠桃贺表】金光万道，瑞气千条！恭贺仙友生辰大吉！今日王母特开蟠桃盛宴，祝仙寿无疆、入局顺遂，出征取经把把连胜！✨',
+      targetType: 'all',
+      targetCodes: '',
+      targetNicknames: '',
+      intervalMinutes: 5,
+      durationSeconds: 15,
+      sendToRoomChat: true,
+      theme: 'gold',
+    },
+  },
+  {
+    id: 'tech-geek-vip',
+    label: '⚡ 极客大牛莅临',
+    config: {
+      title: '灵台仙阁',
+      icon: '⚡',
+      text: '⚡【灵台仙阁】欢迎技术大牛莅临仙魔战场！全场起立致敬，恭迎极客大佬入座指点乾坤！🔥🚀',
+      targetType: 'specific',
+      intervalMinutes: 3,
+      durationSeconds: 15,
+      sendToRoomChat: true,
+      theme: 'purple',
+    },
+  },
+  {
+    id: 'warrior-triumph',
+    label: '⚔️ 三界战神出征',
+    config: {
+      title: '战神出征',
+      icon: '⚔️',
+      text: '⚔️【三界扬名】齐天大圣真身降临！战无不胜，攻无不克，今晚大乱斗谁与争锋！🏆🔥',
+      targetType: 'all',
+      targetCodes: '',
+      targetNicknames: '',
+      intervalMinutes: 5,
+      durationSeconds: 12,
+      sendToRoomChat: true,
+      theme: 'red',
+    },
+  },
+  {
+    id: 'team-party',
+    label: '🥂 团建狂欢派对',
+    config: {
+      title: '欢聚狂欢',
+      icon: '🎉',
+      text: '🎉【欢聚时刻】今晚不醉不归！吃好喝好玩好，好人局把把三胜，坏人局刀刀绝杀！🥂🎈',
+      targetType: 'all',
+      targetCodes: '',
+      targetNicknames: '',
+      intervalMinutes: 5,
+      durationSeconds: 15,
+      sendToRoomChat: true,
+      theme: 'cyan',
+    },
+  },
+];
+
 export interface RoomChatMessage {
   messageId: string;
   fromUserId: string;
@@ -271,6 +392,7 @@ export type ServerMessage = { type: 'playerCodeChanged'; playerCode: string }
   | { type: 'left' }
   | { type: 'roomInvitation'; fromUser: User; roomId: string; roomCode: string }
   | { type: 'systemAnnouncement'; text: string; enabled: boolean }
+  | { type: 'customBannerUpdate'; config: CustomBannerConfig }
   | { type: 'roomChat'; messageId: string; fromUserId: string; seat: number; nickname: string; text: string; timestamp: string }
   | { type: 'directChat'; messageId: string; fromUser: User; text: string; timestamp: string };
 

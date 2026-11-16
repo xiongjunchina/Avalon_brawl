@@ -5,10 +5,12 @@ import type {
   AdminOverview,
   AdminRoomSummary,
   AdminUserSummary,
+  CustomBannerConfig,
   RedemptionCodeItem,
   Replay,
   SystemAnnouncement,
 } from '@avalon/contracts';
+import { DEFAULT_CUSTOM_BANNER_CONFIG } from '@avalon/contracts';
 import { teamOf } from '@avalon/game-core';
 import { DomainError, PostgresStore } from './store.js';
 
@@ -57,6 +59,7 @@ export class AdminService {
     freeAccessMode: boolean;
     adRewardHours: number;
     announcement: SystemAnnouncement;
+    customBanner: CustomBannerConfig;
   }> {
     const client = await this.pool.connect();
     try {
@@ -69,10 +72,15 @@ export class AdminService {
       if (!announcement || announcement.text?.includes('欢迎光临') || !announcement.text?.trim()) {
         announcement = { text: '', enabled: false };
       }
+      let customBanner: CustomBannerConfig = map.get('custom_banner_config') || DEFAULT_CUSTOM_BANNER_CONFIG;
+      if (!customBanner || typeof customBanner !== 'object') {
+        customBanner = DEFAULT_CUSTOM_BANNER_CONFIG;
+      }
       return {
         freeAccessMode: map.has('free_access_mode') ? Boolean(map.get('free_access_mode')) : true,
         adRewardHours: map.has('ad_reward_hours') ? Number(map.get('ad_reward_hours')) : 24,
         announcement,
+        customBanner,
       };
     } finally {
       client.release();

@@ -348,8 +348,8 @@ export function AdminDashboard({ onBackToGame }: AdminDashboardProps) {
   const [loginError, setLoginError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  // Tabs: 'overview' | 'strategy' | 'banner' | 'users' | 'rooms' | 'codes' | 'special' | 'content'
-  const [activeTab, setActiveTab] = useState<'overview' | 'strategy' | 'banner' | 'users' | 'rooms' | 'codes' | 'special' | 'content'>('overview');
+  // Tabs: 'overview' | 'strategy' | 'users' | 'rooms' | 'codes' | 'special' | 'content'
+  const [activeTab, setActiveTab] = useState<'overview' | 'strategy' | 'users' | 'rooms' | 'codes' | 'special' | 'content'>('overview');
   const [specialRefresh,setSpecialRefresh]=useState(0);
   const [contentRefresh,setContentRefresh]=useState(0);
 
@@ -529,7 +529,7 @@ export function AdminDashboard({ onBackToGame }: AdminDashboardProps) {
     if (activeTab === 'overview') {
       void loadOverview();
       void loadSettings();
-    } else if (activeTab === 'strategy' || activeTab === 'banner') {
+    } else if (activeTab === 'strategy') {
       void loadSettings();
     } else if (activeTab === 'users') {
       void loadUsers(userSearchQuery);
@@ -790,7 +790,7 @@ export function AdminDashboard({ onBackToGame }: AdminDashboardProps) {
             className="admin-tool-btn"
             onClick={() => {
               if (activeTab === 'overview') { void loadOverview(); void loadSettings(); }
-              else if (activeTab === 'strategy' || activeTab === 'banner') { void loadSettings(); }
+              else if (activeTab === 'strategy') { void loadSettings(); }
               else if (activeTab === 'users') { void loadUsers(userSearchQuery); }
               else if (activeTab === 'rooms') { void loadRooms(); }
               else if (activeTab === 'codes') { void loadCodes(); }
@@ -824,28 +824,6 @@ export function AdminDashboard({ onBackToGame }: AdminDashboardProps) {
           onClick={() => setActiveTab('strategy')}
         >
           ⚙️ 运营策略
-        </button>
-        <button
-          type="button"
-          className={`admin-nav-item ${activeTab === 'banner' ? 'is-active' : ''}`}
-          onClick={() => setActiveTab('banner')}
-          style={{ position: 'relative' }}
-        >
-          🎉 专属横幅与祝福
-          {customBanner.enabled && (
-            <span
-              style={{
-                display: 'inline-block',
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                background: '#10b981',
-                marginLeft: '6px',
-                boxShadow: '0 0 6px #10b981',
-              }}
-              title="当前已有横幅生效中"
-            />
-          )}
         </button>
         <button
           type="button"
@@ -951,29 +929,10 @@ export function AdminDashboard({ onBackToGame }: AdminDashboardProps) {
           </div>
         )}
 
-        {/* ================= Tab: Custom Banner ================= */}
-        {activeTab === 'banner' && (
-          <div>
-            <CustomBannerPanel
-              customBanner={customBanner}
-              setCustomBanner={setCustomBanner}
-              savingBanner={savingBanner}
-              onSave={handleSaveCustomBanner}
-            />
-          </div>
-        )}
-
         {/* ================= Tab 2: Strategy ================= */}
         {activeTab === 'strategy' && (
           <div>
-            <CustomBannerPanel
-              customBanner={customBanner}
-              setCustomBanner={setCustomBanner}
-              savingBanner={savingBanner}
-              onSave={handleSaveCustomBanner}
-            />
-
-            <div className="admin-panel" style={{ marginTop: '24px' }}>
+            <div className="admin-panel">
               <h3 className="admin-panel-title">⚙️ 商业化与功能放开策略</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1030,7 +989,7 @@ export function AdminDashboard({ onBackToGame }: AdminDashboardProps) {
             </div>
 
             {/* Broadcast Announcement */}
-            <div className="admin-panel">
+            <div className="admin-panel" style={{ marginTop: '24px' }}>
               <h3 className="admin-panel-title">📢 全服跑马灯实时广播推送</h3>
               <p style={{ fontSize: '13px', color: '#94a3b8', margin: '0 0 14px' }}>
                 编辑文字并点击推送后，全服所有当前在线的 WebSocket 客户端将立即同步弹出跑马灯或置顶广播。
@@ -1057,6 +1016,16 @@ export function AdminDashboard({ onBackToGame }: AdminDashboardProps) {
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* Custom Banner & Celebration Settings Panel at the bottom */}
+            <div style={{ marginTop: '24px' }}>
+              <CustomBannerPanel
+                customBanner={customBanner}
+                setCustomBanner={setCustomBanner}
+                savingBanner={savingBanner}
+                onSave={handleSaveCustomBanner}
+              />
             </div>
           </div>
         )}

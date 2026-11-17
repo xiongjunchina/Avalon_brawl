@@ -60,15 +60,19 @@ export function IdentityDetails({
     : self.guinevereCandidates?.length ? self.guinevereCandidates
     : self.guardianClue?.targetIds?.length ? self.guardianClue.targetIds
     : self.evilIds;
+  const isBrawlNiuMowang = Boolean(game?.selfBrawl?.roleId === 'niu_mowang');
   const title = self.merlinCandidates.length ? '两位大圣 · 真假待辨'
     : self.guinevereCandidates?.length ? '两道天机 · 尚待查证'
     : self.guardianClue ? self.guardianClue.title
-    : self.role === 'merlin' ? '你火眼金睛识破的群妖' : self.evilIds.length ? '与你相认的同伙群妖' : '取经漫漫 · 静观其变';
+    : self.role === 'merlin' ? '你火眼金睛识破的群妖'
+    : isBrawlNiuMowang ? '平天独霸 · 孤狼独战'
+    : self.evilIds.length ? '与你相认的同伙群妖' : '取经漫漫 · 静观其变';
   const description = self.merlinCandidates.length ? '一位是真大圣孙悟空，一位是假大圣六耳猕猴，无法分辨对应身份。'
     : self.guinevereCandidates?.length ? '一位是假扮佛祖的黄眉老怪，一位是取经正果同伴，无法分辨对应身份。'
     : self.guardianClue ? self.guardianClue.description
-    : self.role === 'merlin' ? (ROLE_CONFIG[players.length]?.includes('mordred') ? '本局含黄眉老怪（假扮如来设小雷音寺），他不在你的火眼金睛视野中；所见成员仅知阵营，不知角色。' : '以上是本局全部群妖成员，仅知阵营，不知具体角色。')
-    : self.evilIds.length ? (ROLE_CONFIG[players.length]?.includes('oberon') ? '本局牛魔王独霸一方不参与相认；同伙仅知阵营，不知角色。' : '以上是与你相认的群妖同伙，仅知阵营，不知具体角色。')
+    : isBrawlNiuMowang ? '你威震平天独霸一方，属于红方妖魔，但孤身独战——看不见其他妖魔同党，其他妖魔也看不见你（孙悟空能看见你的妖气）。表决时拥有平天大力（计 2 票），请凭战局推断暗助群妖！'
+    : self.role === 'merlin' ? (Boolean(game?.brawl) ? '本局潜伏群妖在你的火眼金睛中显出妖气（若含黄眉老怪，其假佛金身不在其中）；仅知阵营，不知角色。' : ROLE_CONFIG[players.length]?.includes('mordred') ? '本局含黄眉老怪（假扮如来设小雷音寺），他不在你的火眼金睛视野中；所见成员仅知阵营，不知角色。' : '以上是本局全部群妖成员，仅知阵营，不知具体角色。')
+    : self.evilIds.length ? (Boolean(game?.brawl) ? '以上是与你相认的群妖同伙（若抽中牛魔王，其孤身独霸不在相认之列）；仅知阵营，不知角色。' : ROLE_CONFIG[players.length]?.includes('oberon') ? '本局牛魔王独霸一方不参与相认；同伙仅知阵营，不知角色。' : '以上是与你相认的群妖同伙，仅知阵营，不知具体角色。')
     : '没有其他初始身份线索，请从发言与取经战况中判断。';
 
   const is8Plus = players.length >= 8;

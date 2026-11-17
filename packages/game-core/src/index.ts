@@ -1599,8 +1599,19 @@ export function projectGame(g: GameState, userId?: string): GameView {
         }
         return g.roles[p.id] !== 'mordred';
       }).map(p => p.id)
-    : role && teamOf(role) === 'red' && (Boolean(g.brawl) || role !== 'oberon')
-      ? g.players.filter(p => p.id !== userId && teamOf(g.roles[p.id]) === 'red' && (Boolean(g.brawl) || g.roles[p.id] !== 'oberon')).map(p => p.id) : [];
+    : role && teamOf(role) === 'red'
+      ? (
+          g.brawl
+            ? (
+                // 乱斗模式下：若自己是牛魔王，独霸一方，看不见其他红方队友
+                g.brawl.playerStates[userId!]?.roleId === 'niu_mowang'
+                  ? []
+                  // 其他红方队友互认，但看不见孤狼牛魔王
+                  : g.players.filter(p => p.id !== userId && teamOf(g.roles[p.id]) === 'red' && g.brawl!.playerStates[p.id]?.roleId !== 'niu_mowang').map(p => p.id)
+              )
+            : (role !== 'oberon' ? g.players.filter(p => p.id !== userId && teamOf(g.roles[p.id]) === 'red' && g.roles[p.id] !== 'oberon').map(p => p.id) : [])
+        )
+      : [];
   const treasureModeActive = Boolean(g.settings.treasuresEnabled && g.players.length >= 8);
   const treasuresEnabled = Boolean(role && treasuresEnabledFor(g.settings, g.players.length, role, g.rulesetVersion));
   const completedMissions = g.rounds.filter(r => r.result).length;

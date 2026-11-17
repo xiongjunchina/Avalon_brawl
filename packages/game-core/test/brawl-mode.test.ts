@@ -1303,16 +1303,67 @@ test('brawl: 10-player brawl contains no Oberon or Guinevere base roles, all Red
   assert.equal(baseRoles.includes('oberon' as any), false, 'Base roles must NOT contain oberon');
   assert.equal(baseRoles.includes('guinevere' as any), false, 'Base roles must NOT contain guinevere');
 
-  // 所有红方玩家互相可见
+  // 验证红方视野：除孤狼牛魔王外互相可见
   const redPlayers = players.filter(p => game.brawl!.playerStates[p.id].camp === 'red');
   assert.equal(redPlayers.length, 4, '10-player brawl has 4 red players');
   for (const redP of redPlayers) {
     const view = projectGame(game, redP.id);
-    const expectedOtherReds = redPlayers.filter(p => p.id !== redP.id).map(p => p.id);
-    for (const otherRed of expectedOtherReds) {
-      assert.ok(view.self!.evilIds.includes(otherRed), `Red player ${redP.id} must see teammate ${otherRed}`);
+    if (game.brawl!.playerStates[redP.id].roleId === 'niu_mowang') {
+      assert.equal(view.self!.evilIds.length, 0, 'Niu Mowang does not see other Red teammates');
+    } else {
+      const expectedOtherReds = redPlayers.filter(p => p.id !== redP.id && game.brawl!.playerStates[p.id].roleId !== 'niu_mowang').map(p => p.id);
+      for (const otherRed of expectedOtherReds) {
+        assert.ok(view.self!.evilIds.includes(otherRed), `Red player ${redP.id} must see teammate ${otherRed}`);
+      }
     }
   }
+});
+
+test('brawl: Niu Mowang is an isolated rogue demon (evilIds empty, other demons cannot see him, Merlin sees his aura)', () => {
+  const players = Array.from({ length: 10 }, (_, i) => ({
+    id: `u${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+
+  const game = createGame(
+    'brawl-niu-mowang-isolated',
+    players,
+    { ...defaultSettings, playerCount: 10, brawlModeEnabled: true },
+    a => a
+  );
+
+  const redPlayers = players.filter(p => game.brawl!.playerStates[p.id].camp === 'red');
+  const niuPlayer = redPlayers[0];
+  const otherRed1 = redPlayers[1];
+  const otherRed2 = redPlayers[2];
+  const merlinPlayer = players.find(p => game.roles[p.id] === 'merlin')!;
+
+  // 强制将 niuPlayer 设为牛魔王，otherRed1 设为白骨精，otherRed2 设为铁扇公主
+  game.brawlRoles![niuPlayer.id] = 'niu_mowang';
+  game.brawl!.playerStates[niuPlayer.id].roleId = 'niu_mowang';
+  game.brawlRoles![otherRed1.id] = 'bai_gujing';
+  game.brawl!.playerStates[otherRed1.id].roleId = 'bai_gujing';
+  game.brawlRoles![otherRed2.id] = 'tieshan_gongzhu';
+  game.brawl!.playerStates[otherRed2.id].roleId = 'tieshan_gongzhu';
+
+  // 1. 牛魔王视角：看不见任何红方队友 (evilIds 为空)
+  const niuView = projectGame(game, niuPlayer.id);
+  assert.equal(niuView.self!.evilIds.length, 0, 'Niu Mowang sees no evil teammates');
+
+  // 2. 其他红方视角：能看见彼此，但绝对看不见牛魔王
+  const otherRed1View = projectGame(game, otherRed1.id);
+  assert.ok(otherRed1View.self!.evilIds.includes(otherRed2.id), 'Baigujing sees Tieshan');
+  assert.ok(!otherRed1View.self!.evilIds.includes(niuPlayer.id), 'Baigujing does NOT see Niu Mowang');
+
+  const otherRed2View = projectGame(game, otherRed2.id);
+  assert.ok(otherRed2View.self!.evilIds.includes(otherRed1.id), 'Tieshan sees Baigujing');
+  assert.ok(!otherRed2View.self!.evilIds.includes(niuPlayer.id), 'Tieshan does NOT see Niu Mowang');
+
+  // 3. 孙悟空 (Merlin) 视角：能看见牛魔王的红方妖气
+  const merlinView = projectGame(game, merlinPlayer.id);
+  assert.ok(merlinView.self!.evilIds.includes(niuPlayer.id), 'Merlin sees Niu Mowang evil aura');
+  assert.ok(merlinView.self!.evilIds.includes(otherRed1.id), 'Merlin sees Baigujing');
 });
 
 test('brawl: Huangmei Laoguai has mutual vision with Red teammates, but is masked from Merlin', () => {
@@ -1348,7 +1399,7 @@ test('brawl: Huangmei Laoguai has mutual vision with Red teammates, but is maske
 
   // 3. 孙悟空 (Merlin) 看黄眉老怪：严格不可见！
   const merlinView = projectGame(game, merlinPlayer.id);
-  assert.ok(!merlinView.self!.merlinCandidates.includes(huangmeiPlayer.id), 'Merlin does NOT see Huangmei');
+  assert.ok(!merlinView.self!.evilIds.includes(huangmeiPlayer.id), 'Merlin does NOT see Huangmei');
 });
 
 test('brawl: Brawl mode completely disables Guanyin 5-second window, and Rulai cannot trigger Guanyin mirror', () => {

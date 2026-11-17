@@ -411,7 +411,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
       triggerPhase: 'team_voting',
       actionType: 'single_button',
       maxUses: 1,
-      description: '在任意一次队伍公开表决时，牛魔王个人投票权重在此次表决中计为 2 票！',
+      description: '孤狼独战不与群妖相认（大圣可见妖气）；队伍表决时个人投票计2票！',
     },
   },
   tieshan_gongzhu: {

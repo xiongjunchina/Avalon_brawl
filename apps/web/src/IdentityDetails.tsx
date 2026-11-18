@@ -262,9 +262,18 @@ export function IdentityDetails({
                   {selfBrawl.putiDianhuaNotice}
                 </div>
               )}
-              {selfBrawl.guanyinGanluResult && (
+              {selfBrawl.guanyinGanluResult ? (
                 <div style={{ fontSize: '11px', fontWeight: 'bold', color: selfBrawl.guanyinGanluResult.success ? '#4ade80' : '#f87171', marginTop: '4px' }}>
-                  🪷 净瓶甘露探照天机：目标【{selfBrawl.guanyinGanluResult.targetSeat}号 · {selfBrawl.guanyinGanluResult.targetNickname}】在方才失败的任务中投出了【{selfBrawl.guanyinGanluResult.success ? '成功牌' : '失败牌'}】！
+                  🪷 净瓶甘露探照天机：目标【{selfBrawl.guanyinGanluResult.targetSeat}号 · {selfBrawl.guanyinGanluResult.targetNickname}】在方才出征任务中投出了【{selfBrawl.guanyinGanluResult.success ? '成功牌 🟢' : '失败牌 🔴'}】！
+                </div>
+              ) : selfBrawl.guanyinNotice ? (
+                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#67e8f9', marginTop: '4px' }}>
+                  {selfBrawl.guanyinNotice}
+                </div>
+              ) : null}
+              {selfBrawl.huangfengSecret && (
+                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#fde047', marginTop: '4px' }}>
+                  🌪️ {selfBrawl.huangfengSecret}
                 </div>
               )}
               {selfBrawl.tieshanSecret && (
@@ -343,27 +352,85 @@ export function IdentityDetails({
                 ✨ 绝技蓄势待发
               </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {selfBrawl.skill.actionType === 'target_player' && (
-                  <select
-                    value={brawlTarget}
-                    onChange={e => setBrawlTarget(e.target.value)}
-                    style={{
-                      background: '#0f172a',
-                      color: '#fff',
-                      border: '1px solid #475569',
-                      borderRadius: '6px',
-                      padding: '4px 6px',
-                      fontSize: '12px',
-                    }}
-                  >
-                    <option value="">选目标</option>
-                    {players.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.seat}号 {p.nickname}
-                      </option>
-                    ))}
-                  </select>
-                )}
+                {selfBrawl.skill.actionType === 'target_player' && (() => {
+                  const currentTeam = game?.draftTeam?.playerIds ?? game?.rounds.at(-1)?.team ?? [];
+                  const captainId = game?.captainId;
+                  const isQingshi = selfBrawl.roleId === 'qingmao_shizi';
+                  const isZhizhu = selfBrawl.roleId === 'zhizhu_jing';
+                  const isGuanyin = selfBrawl.roleId === 'guanyin_pusa';
+                  const isRulai = selfBrawl.roleId === 'rulai_fozu';
+
+                  const candidateOptions = players.map(p => {
+                    const isSelf = p.id === userId;
+                    const isCaptain = p.id === captainId;
+                    const isOnTeam = currentTeam.includes(p.id);
+
+                    let label = `${p.seat}号 ${p.nickname}`;
+                    let disabledOpt = false;
+
+                    if (isQingshi) {
+                      if (isSelf) {
+                        label += ' (你自己·不可选)';
+                        disabledOpt = true;
+                      } else if (isCaptain) {
+                        label += ' (队长·不可吞)';
+                        disabledOpt = true;
+                      } else if (isOnTeam) {
+                        label = `[车上队员] ${label}`;
+                      } else {
+                        label = `[未入队] ${label}`;
+                      }
+                    } else if (isGuanyin) {
+                      if (isOnTeam) {
+                        label = `[出征队员] ${label}`;
+                      }
+                    } else if (isZhizhu) {
+                      if (isSelf) {
+                        label += ' (你自己·不可选)';
+                        disabledOpt = true;
+                      } else if (isCaptain) {
+                        label += ' (队长·不可结茧)';
+                        disabledOpt = true;
+                      }
+                    } else if (isRulai && isSelf) {
+                      label += ' (你自己·不可选)';
+                      disabledOpt = true;
+                    }
+
+                    return { player: p, label, disabled: disabledOpt, isOnTeam };
+                  });
+
+                  candidateOptions.sort((a, b) => {
+                    if (isQingshi || isGuanyin) {
+                      if (a.isOnTeam && !b.isOnTeam) return -1;
+                      if (!a.isOnTeam && b.isOnTeam) return 1;
+                    }
+                    return a.player.seat - b.player.seat;
+                  });
+
+                  return (
+                    <select
+                      value={brawlTarget}
+                      onChange={e => setBrawlTarget(e.target.value)}
+                      style={{
+                        background: '#0f172a',
+                        color: '#fff',
+                        border: '1px solid #475569',
+                        borderRadius: '6px',
+                        padding: '4px 6px',
+                        fontSize: '12px',
+                        maxWidth: '160px',
+                      }}
+                    >
+                      <option value="">选目标</option>
+                      {candidateOptions.map(opt => (
+                        <option key={opt.player.id} value={opt.player.id} disabled={opt.disabled}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  );
+                })()}
                 <button
                   type="button"
                   disabled={disabled || (selfBrawl.skill.actionType === 'target_player' && !brawlTarget)}

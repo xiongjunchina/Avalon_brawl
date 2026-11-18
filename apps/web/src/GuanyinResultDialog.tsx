@@ -2,13 +2,46 @@ import type { Player, SelfTreasures } from '@avalon/contracts';
 import { Modal } from './Modal';
 import { PlayerAvatar } from './Heraldry';
 
-export function GuanyinResultDialog({ result, players, onClose }: {
-  result: NonNullable<NonNullable<SelfTreasures['guanyinMirror']>['result']>;
+export function GuanyinResultDialog({
+  result,
+  brawlResult,
+  players,
+  onClose,
+}: {
+  result?: NonNullable<NonNullable<SelfTreasures['guanyinMirror']>['result']>;
+  brawlResult?: { targetSeat: number; targetNickname: string; success: boolean };
   players: Player[];
   onClose: () => void;
 }) {
-  const player = players.find(p => p.id === result.targetId);
-  const pure = result.alignment === 'pure';
+  if (brawlResult) {
+    const player = players.find(p => p.seat === brawlResult.targetSeat);
+    const success = brawlResult.success;
+    return (
+      <Modal label="南海净瓶甘露 · 私密显圣结果" scene="mirror" onClose={onClose} sound={false}>
+        <section className="table-modal-sheet guanyin-result-sheet" onClick={e => e.stopPropagation()}>
+          <header className="table-modal-head">
+            <strong>🪷 南海净瓶甘露</strong>
+            <span className="guanyin-private-tag">观音菩萨专属私密</span>
+          </header>
+          <p className="guanyin-result-kicker">出征验票已完成</p>
+          <div className="guanyin-result-avatar">
+            <PlayerAvatar avatar={player?.avatar} avatarUrl={player?.avatarUrl} wechatAvatarUrl={player?.wechatAvatarUrl} fallbackKind="cards" />
+          </div>
+          <h3>{`${String(brawlResult.targetSeat).padStart(2, '0')}号 · ${brawlResult.targetNickname}`}</h3>
+          <p className={`guanyin-result-alignment ${success ? 'is-pure' : 'is-evil'}`}>
+            <strong>{success ? '投出成功牌 🟢' : '投出失败牌 🔴'}</strong>
+            <span>{success ? '此仙友在方才出征任务中投了成功' : '此仙友在方才出征任务中投出了失败！'}</span>
+          </p>
+          <p className="guanyin-result-note">观音大士净瓶显圣，此天机仅知投票结果，不泄露给任何旁人。其他仙友正常继续对局。</p>
+          <button type="button" className="treasure-confirm-btn" onClick={onClose}>已阅，返回对局</button>
+          <small>稍后可随时在「真身」面板中再次查阅</small>
+        </section>
+      </Modal>
+    );
+  }
+
+  const player = players.find(p => p.id === result?.targetId);
+  const pure = result?.alignment === 'pure';
   return (
     <Modal label="慈航照妖镜 · 私密查验结果" scene="mirror" onClose={onClose} sound={false}>
       <section className="table-modal-sheet guanyin-result-sheet" onClick={e => e.stopPropagation()}>

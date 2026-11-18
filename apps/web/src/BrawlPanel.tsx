@@ -136,10 +136,21 @@ export function BrawlPanel({
                 </div>
               )}
 
-              {/* 观音菩萨专属：净瓶甘露探查结果 */}
-              {selfBrawl.guanyinGanluResult && (
+              {/* 观音菩萨专属：净瓶甘露探查结果与状态 */}
+              {selfBrawl.guanyinGanluResult ? (
                 <div style={{ marginTop: '6px', fontSize: '12px', fontWeight: 'bold', color: selfBrawl.guanyinGanluResult.success ? '#4ade80' : '#f87171' }}>
-                  🪷 净瓶甘露探照天机：目标【{selfBrawl.guanyinGanluResult.targetSeat}号 · {selfBrawl.guanyinGanluResult.targetNickname}】在方才失败的任务中投出了【{selfBrawl.guanyinGanluResult.success ? '成功牌' : '失败牌'}】！
+                  🪷 净瓶甘露探照天机：目标【{selfBrawl.guanyinGanluResult.targetSeat}号 · {selfBrawl.guanyinGanluResult.targetNickname}】在方才出征任务中投出了【{selfBrawl.guanyinGanluResult.success ? '成功牌 🟢' : '失败牌 🔴'}】！
+                </div>
+              ) : selfBrawl.guanyinNotice ? (
+                <div style={{ marginTop: '6px', fontSize: '12px', fontWeight: 'bold', color: '#67e8f9' }}>
+                  {selfBrawl.guanyinNotice}
+                </div>
+              ) : null}
+
+              {/* 黄风怪专属：三昧神风窥探天机 */}
+              {selfBrawl.huangfengSecret && (
+                <div style={{ marginTop: '6px', fontSize: '12px', fontWeight: 'bold', color: '#fde047' }}>
+                  🌪️ {selfBrawl.huangfengSecret}
                 </div>
               )}
 
@@ -196,27 +207,50 @@ export function BrawlPanel({
             {/* 技能发动交互 */}
             {selfBrawl.skillAvailable && !selfBrawl.skillUsed && selfBrawl.skill.actionType !== 'passive' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {selfBrawl.skill.actionType === 'target_player' && (
-                  <select
-                    value={selectedTarget}
-                    onChange={e => setSelectedTarget(e.target.value)}
-                    style={{
-                      background: '#0f172a',
-                      color: '#fff',
-                      border: '1px solid #475569',
-                      borderRadius: '6px',
-                      padding: '4px 6px',
-                      fontSize: '12px',
-                    }}
-                  >
-                    <option value="">选目标</option>
-                    {players.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.seat}号 {p.nickname}
-                      </option>
-                    ))}
-                  </select>
-                )}
+                {selfBrawl.skill.actionType === 'target_player' && (() => {
+                  const isQingshi = selfBrawl.roleId === 'qingmao_shizi';
+                  const isZhizhu = selfBrawl.roleId === 'zhizhu_jing';
+                  const isRulai = selfBrawl.roleId === 'rulai_fozu';
+
+                  return (
+                    <select
+                      value={selectedTarget}
+                      onChange={e => setSelectedTarget(e.target.value)}
+                      style={{
+                        background: '#0f172a',
+                        color: '#fff',
+                        border: '1px solid #475569',
+                        borderRadius: '6px',
+                        padding: '4px 6px',
+                        fontSize: '12px',
+                        maxWidth: '160px',
+                      }}
+                    >
+                      <option value="">选目标</option>
+                      {players.map(p => {
+                        let label = `${p.seat}号 ${p.nickname}`;
+                        let disabledOpt = false;
+                        if (isQingshi && p.id === selfBrawl.roleId) {
+                          disabledOpt = true;
+                          label += ' (自己)';
+                        }
+                        if (isZhizhu && p.id === selfBrawl.roleId) {
+                          disabledOpt = true;
+                          label += ' (自己)';
+                        }
+                        if (isRulai && p.id === selfBrawl.roleId) {
+                          disabledOpt = true;
+                          label += ' (自己)';
+                        }
+                        return (
+                          <option key={p.id} value={p.id} disabled={disabledOpt}>
+                            {label}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  );
+                })()}
                 <button
                   type="button"
                   disabled={selfBrawl.skill.actionType === 'target_player' && !selectedTarget}

@@ -146,6 +146,7 @@ export interface BrawlGameState {
   yuhuangYuzhiArmed?: boolean;      // 玉皇大帝天尊玉旨赦免待命
   guanyinGanluTargetId?: string;    // 观音菩萨净瓶甘露标记目标
   guanyinGanluResult?: { targetId: string; targetSuccess: boolean }; // 观音菩萨净瓶甘露探查结果
+  guanyinGanluNotOnTeam?: string;   // 观音菩萨甘露目标未随队出征
   putiDianhuaNotice?: { targetBlueUserId: string; redRoleName: string }; // 菩提祖师点化揭露的红方真名
   jinjiaoHuluTargetId?: string;     // 金角大王紫金葫芦锁定的队员
   jinjiaoResult?: { targetSeat: number; targetNickname: string; absorbed: boolean; notOnTeam?: boolean }; // 金角大王紫金葫芦结算结果
@@ -154,6 +155,7 @@ export interface BrawlGameState {
   qingshiTuntianTargetId?: string;  // 青毛狮子怪大口吞天锁定的队员
   baiguLijianArmed?: boolean;       // 白骨精画皮离间待命中
   baiguLijianResult?: boolean;      // 白骨精画皮离间是否已生效虚增
+  huangfengSecret?: string;         // 黄风怪三昧神风刺探出的神仙真名
   huangmeiDianhuaNotice?: { targetBlueUserId: string; targetSeat: number; targetNickname: string }; // 黄眉老怪假设雷音假传佛旨
   baiyanDuchaTargetId?: string;     // 百眼魔君黄花毒茶锁定的队员
   baiyanDuchaResult?: boolean;      // 百眼魔君黄花毒茶是否成功毒化出失败
@@ -176,7 +178,9 @@ export interface SelfBrawlView {
   dapengExcludedPlayerId?: string; // 终局刺杀阶段排除的非孙悟空席位
   putiDianhuaNotice?: string; // 菩提祖师专属私密点化天机（或黄眉老怪假托之天机）
   guanyinGanluResult?: { targetSeat: number; targetNickname: string; success: boolean }; // 观音菩萨专属私密出征探查
+  guanyinNotice?: string; // 观音菩萨专属净瓶甘露显圣状态/结果回执
   tieshanSecret?: string; // 铁扇公主专属芭蕉神风窥破仙阶天机
+  huangfengSecret?: string; // 黄风怪专属三昧神风吹探天机
   huangmeiNotice?: string; // 黄眉老怪专属假传佛旨状态回执
   baiguLijianStatus?: string; // 白骨精专属画皮离间状态回执
   baiyanDuchaStatus?: string; // 百眼魔君专属黄花毒茶状态回执

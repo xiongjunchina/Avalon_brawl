@@ -43,6 +43,7 @@ export function createBrawlGameState(
     yuhuangYuzhiArmed: false,
     guanyinGanluTargetId: undefined,
     guanyinGanluResult: undefined,
+    guanyinGanluNotOnTeam: undefined,
     putiDianhuaNotice: undefined,
     jinjiaoHuluTargetId: undefined,
     jinjiaoResult: undefined,
@@ -51,6 +52,7 @@ export function createBrawlGameState(
     qingshiTuntianTargetId: undefined,
     baiguLijianArmed: false,
     baiguLijianResult: false,
+    huangfengSecret: undefined,
     huangmeiDianhuaNotice: undefined,
     baiyanDuchaTargetId: undefined,
     baiyanDuchaResult: undefined,
@@ -124,14 +126,17 @@ export function projectBrawlGameState(
   delete sanitized.huangmeiDianhuaNotice;
   delete sanitized.guanyinGanluTargetId;
   delete sanitized.guanyinGanluResult;
+  delete sanitized.guanyinGanluNotOnTeam;
   delete sanitized.putiDianhuaNotice;
   delete sanitized.jinjiaoHuluTargetId;
   delete sanitized.jinjiaoResult;
   delete sanitized.yutuMihunTargetId;
   delete sanitized.yutuResult;
+  delete sanitized.qingshiTuntianTargetId;
   delete sanitized.baiguLijianArmed;
   delete sanitized.baiguLijianResult;
   delete sanitized.tieshanSecret;
+  delete sanitized.huangfengSecret;
   delete sanitized.dapengArmed;
   delete sanitized.dapengExcludedPlayerId;
   delete sanitized.zhaoyaoResult;
@@ -208,15 +213,29 @@ export function projectSelfBrawlView(
   const isGuanyin = playerState.roleId === 'guanyin_pusa';
   const isAssassinOrDapeng = playerState.roleId === 'hong_haier' || playerState.roleId === 'jinchi_dapeng';
 
-  let guanyinNotice: { targetSeat: number; targetNickname: string; success: boolean } | undefined;
-  if (isGuanyin && state.guanyinGanluResult) {
-    const targetPlayer = players.find(p => p.id === state.guanyinGanluResult?.targetId);
-    if (targetPlayer) {
-      guanyinNotice = {
-        targetSeat: targetPlayer.seat,
-        targetNickname: targetPlayer.nickname,
-        success: state.guanyinGanluResult.targetSuccess,
-      };
+  let guanyinNoticeResult: { targetSeat: number; targetNickname: string; success: boolean } | undefined;
+  let guanyinStatusText: string | undefined;
+  if (isGuanyin) {
+    if (state.guanyinGanluResult) {
+      const targetPlayer = players.find(p => p.id === state.guanyinGanluResult?.targetId);
+      if (targetPlayer) {
+        guanyinNoticeResult = {
+          targetSeat: targetPlayer.seat,
+          targetNickname: targetPlayer.nickname,
+          success: state.guanyinGanluResult.targetSuccess,
+        };
+        guanyinStatusText = `🪷 净瓶甘露探照天机：目标【${targetPlayer.seat}号 · ${targetPlayer.nickname}】在本次出征中投出了【${state.guanyinGanluResult.targetSuccess ? '成功牌 🟢' : '失败牌 🔴'}】！`;
+      }
+    } else if (state.guanyinGanluNotOnTeam) {
+      const notOnTeamPlayer = players.find(p => p.id === state.guanyinGanluNotOnTeam);
+      guanyinStatusText = notOnTeamPlayer
+        ? `🪷 净瓶甘露未能显圣：选定目标【${notOnTeamPlayer.seat}号 · ${notOnTeamPlayer.nickname}】未随队出征，甘露未被饮用。`
+        : '🪷 净瓶甘露未能显圣：选定目标未随队出征。';
+    } else if (state.guanyinGanluTargetId) {
+      const markedP = players.find(p => p.id === state.guanyinGanluTargetId);
+      guanyinStatusText = markedP
+        ? `🪷 净瓶甘露已洒向【${markedP.seat}号 · ${markedP.nickname}】：待其随队出征归来，将私密显圣验其票底！`
+        : '🪷 净瓶甘露已洒向出征队员，待出征结算显圣...';
     }
   }
 
@@ -303,10 +322,17 @@ export function projectSelfBrawlView(
       generalFeedback = state.doubleVoteUserId === userId
         ? '🔥 神力爆发显圣：已成功激活在本次表决中的双倍表决权（投出 2 票）！'
         : '🔥 神力爆发显圣：本命神力已消耗完毕。';
+    } else if (playerState.roleId === 'qingmao_shizi') {
+      const bannedP = players.find(p => p.id === state.qingshiTuntianTargetId);
+      generalFeedback = bannedP
+        ? `🦁 大口吞天神威显化：已张开巨口强行将【${bannedP.seat}号 · ${bannedP.nickname}】吞走剔除出队，本轮禁止其入队！`
+        : '🦁 大口吞天神威已施展：已将车上队员吞走剔除出队！';
+    } else if (playerState.roleId === 'puti_zhushi') {
+      generalFeedback = '🔮 道法点化真传已发：已暗授天机告知蓝方同修场上潜伏群妖之一的真名！';
     } else if (playerState.roleId === 'yuhuang_dadi') {
-      generalFeedback = '📜 天尊玉旨天条已敕：本轮组队队长已受无上玉旨庇佑，一切封印压制均告无效！';
+      generalFeedback = '📜 天尊玉旨天条已敕：已降下三界至尊御旨，本轮出征若溃败将降旨赦免尝试逆转！';
     } else if (playerState.roleId === 'wangmu_niangniang') {
-      generalFeedback = '🍑 瑶池九转仙桃神威：已赐下圣桃护体，全场需至少 2 张失败牌方可导致出征溃败！';
+      generalFeedback = '🍑 瑶池九转仙桃神威：已赐下圣桃仙气护体，本轮出征若出现失败牌有 50% 概率当场化解赦免 1 败！';
     } else if (playerState.roleId === 'bailong_ma') {
       generalFeedback = '🐴 龙马负重天马显圣：已激发神足负重潜能，本轮出征车队席位上限已提升 +1！';
     } else if (playerState.roleId === 'sha_wujing') {
@@ -314,6 +340,11 @@ export function projectSelfBrawlView(
     } else if (playerState.roleId === 'zhu_bajie') {
       generalFeedback = '🌾 倒打一耙暗度陈仓：九齿钉耙神机已蓄势，出征时将尝试逆转乾坤！';
     }
+  }
+
+  let huangfengSecret: string | undefined;
+  if (playerState.roleId === 'huangfeng_guai' && state.huangfengSecret) {
+    huangfengSecret = state.huangfengSecret;
   }
 
   return {
@@ -330,9 +361,11 @@ export function projectSelfBrawlView(
     peekedRoles: peekedMap[playerState.roleId]?.length ? peekedMap[playerState.roleId] : undefined,
     ...(isLiTianwang && state.zhaoyaoResult ? { zhaoyaoResult: state.zhaoyaoResult.hasDemon } : {}),
     ...(isAssassinOrDapeng && state.dapengExcludedPlayerId ? { dapengExcludedPlayerId: state.dapengExcludedPlayerId } : {}),
-    ...(guanyinNotice ? { guanyinGanluResult: guanyinNotice } : {}),
+    ...(guanyinNoticeResult ? { guanyinGanluResult: guanyinNoticeResult } : {}),
+    ...(guanyinStatusText ? { guanyinNotice: guanyinStatusText } : {}),
     ...(dianhuaNoticeText ? { putiDianhuaNotice: dianhuaNoticeText } : {}),
     ...(playerState.roleId === 'tieshan_gongzhu' && state.tieshanSecret ? { tieshanSecret: state.tieshanSecret } : {}),
+    ...(huangfengSecret ? { huangfengSecret } : {}),
     ...(huangmeiNotice ? { huangmeiNotice } : {}),
     ...(baiguLijianStatus ? { baiguLijianStatus } : {}),
     ...(baiyanDuchaStatus ? { baiyanDuchaStatus } : {}),

@@ -177,9 +177,12 @@ export function createGame(
 
     const redRoleCount = BRAWL_BASE_ROLE_CONFIG[players.length].filter(r => teamOf(r) === 'red').length;
 
-    // 1. 计算每个玩家对红方与蓝方的阵营倾向得分
-    // 偏好排名：第1志愿 8分, 第2志愿 4分, 第3志愿 2分, 第4志愿 1分, 第5志愿 1分
+    // 1. 计算每个玩家对红方与蓝方的阵营倾向得分，融入连庄惩罚 (anti-streak) 与保底约束
     const PREF_WEIGHTS = [8, 4, 2, 1, 1];
+    const REPEAT_SCALE = 81;
+    const blueGuaranteed = new Set(protectionOpts.blueGuaranteedUserIds ?? []);
+    const bossCooldown = new Set(protectionOpts.bossCooldownUserIds ?? []);
+
     const playerScores = sorted.map(p => {
       const prefs = settings.rolePreferenceEnabled ? (rawPreferences?.[p.id] ?? []) : [];
       let redScore = 0;
@@ -190,19 +193,51 @@ export function createGame(
         if (camp === 'red') redScore += w;
         else if (camp === 'blue') blueScore += w;
       });
+
+      // 计算历史连续出任阵营的连庄数 (redStreak / blueStreak)
+      const userRecentRoles = protectionOpts.recentRoles?.[p.id] ?? [];
+      let redStreak = 0;
+      let blueStreak = 0;
+      for (const r of userRecentRoles) {
+        const camp = teamOf(r);
+        if (camp === 'red') {
+          if (blueStreak === 0) redStreak++;
+          else break;
+        } else if (camp === 'blue') {
+          if (redStreak === 0) blueStreak++;
+          else break;
+        }
+      }
+
+      // 阵营权重：偏好得分 + 连庄衰减（连当红方则大幅下调红方权重，避免固定阵营）
+      let redWeight = (redScore + 1) * (REPEAT_SCALE / 3 ** Math.min(redStreak, 4));
+      let blueWeight = (blueScore + 1) * (REPEAT_SCALE / 3 ** Math.min(blueStreak, 4));
+
+      // 若受好人保底保护，严禁分入红方
+      if (blueGuaranteed.has(p.id) || redStreak >= 3) {
+        redWeight = 0;
+        blueWeight = Math.max(blueWeight, 1000);
+      } else if (blueStreak >= 4) {
+        redWeight = Math.max(redWeight * 5, 500);
+      }
+
+      const totalW = redWeight + blueWeight;
+      const redRatio = totalW > 0 ? (redWeight / totalW) * 1000 : 500;
+
       return {
         player: p,
         prefs,
-        netRed: redScore - blueScore,
-        tieBreaker: Math.random(),
+        redStreak,
+        blueStreak,
+        redWeight,
+        blueWeight,
+        // 倾向比率 + 随机微扰（消除相同志愿时的绝对固定座次绑定）
+        redPropensity: redWeight <= 0 ? -999999 : redRatio + (Math.random() * 40 - 20),
       };
     });
 
-    // 2. 根据净倾向得分将玩家分入红蓝两队（得分高者优先入红方，得分低者优先入蓝方）
-    const sortedByRedPreference = [...playerScores].sort((a, b) => {
-      if (b.netRed !== a.netRed) return b.netRed - a.netRed;
-      return b.tieBreaker - a.tieBreaker;
-    });
+    // 2. 根据倾向得分将玩家分入红蓝两队（高红倾向者优先入红，低者入蓝）
+    const sortedByRedPreference = [...playerScores].sort((a, b) => b.redPropensity - a.redPropensity);
 
     const redPlayers = sortedByRedPreference.slice(0, redRoleCount).map(x => x.player);
     const bluePlayers = sortedByRedPreference.slice(redRoleCount).map(x => x.player);
@@ -219,15 +254,38 @@ export function createGame(
       defaultNonCoreRole: Role
     ) => {
       const remainingPlayers = [...teamPlayers];
-      // 优先满足对核心角色（孙悟空/唐僧/红孩儿/六耳猕猴）有志愿的玩家
+      // 优先满足对核心角色（孙悟空/唐僧/红孩儿/六耳猕猴）有志愿的玩家，兼顾 bossCooldown 与历史连庄衰减
       for (const core of coreRoles) {
-        const candidateIdx = remainingPlayers.findIndex(p => {
-          const prefs = rawPreferences?.[p.id] ?? [];
-          return prefs.includes(core.id);
+        const candidates = remainingPlayers.map(p => {
+          const prefs = settings.rolePreferenceEnabled ? (rawPreferences?.[p.id] ?? []) : [];
+          const prefIndex = prefs.indexOf(core.id);
+          let w = prefIndex >= 0 ? (PREF_WEIGHTS[prefIndex] ?? 2) : 1;
+
+          const recent = protectionOpts.recentRoles?.[p.id] ?? [];
+          const isBossRole = core.role === 'merlin' || core.role === 'morgana' || core.role === 'assassin';
+          if (isBossRole && bossCooldown.has(p.id)) {
+            w = 0.01;
+          } else if (recent.length > 0 && recent[0] === core.role) {
+            // 上局刚出任过相同核心首领角色，大幅降低权重，促进轮换
+            w = w / 9;
+          }
+
+          return { player: p, weight: Math.max(0.01, w) };
         });
-        const assignedPlayer = candidateIdx !== -1
-          ? remainingPlayers.splice(candidateIdx, 1)[0]
-          : remainingPlayers.splice(Math.floor(Math.random() * remainingPlayers.length), 1)[0];
+
+        const totalWeight = candidates.reduce((sum, c) => sum + c.weight, 0);
+        let randTicket = Math.random() * totalWeight;
+        let chosenCandidate = candidates[0].player;
+        for (const c of candidates) {
+          if (randTicket < c.weight) {
+            chosenCandidate = c.player;
+            break;
+          }
+          randTicket -= c.weight;
+        }
+
+        const candidateIdx = remainingPlayers.findIndex(p => p.id === chosenCandidate.id);
+        const assignedPlayer = remainingPlayers.splice(candidateIdx, 1)[0];
 
         if (assignedPlayer) {
           roles[assignedPlayer.id] = core.role;
@@ -242,9 +300,10 @@ export function createGame(
         }
       }
 
-      // 对剩余非核心队员，优先根据心仪志愿匹配盲盒池中抽出的角色
-      for (const p of remainingPlayers) {
-        const playerPrefs = rawPreferences?.[p.id] ?? [];
+      // 对剩余非核心队员，随机打乱顺序后根据心仪志愿优先匹配盲盒池中抽出的角色
+      const shuffledRemaining = shuffle([...remainingPlayers]);
+      for (const p of shuffledRemaining) {
+        const playerPrefs = settings.rolePreferenceEnabled ? (rawPreferences?.[p.id] ?? []) : [];
         let matchedRole: typeof nonCorePool[number] | undefined;
         for (const prefId of playerPrefs) {
           const idx = nonCorePool.findIndex(r => r.id === prefId);
@@ -1035,16 +1094,17 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           });
         }
 
-        // 观音菩萨【净瓶甘露】：若洒甘露者出征且任务失败，100% 私密获知该人是否投了成功
-        if (g.brawl?.guanyinGanluTargetId && round.team.includes(g.brawl.guanyinGanluTargetId)) {
-          const targetVote = g.missionVotes[g.brawl.guanyinGanluTargetId];
-          if (failures > 0) {
+        // 观音菩萨【净瓶甘露】：若洒甘露者随队出征，100% 私密获知该人是否投了成功（未出征则反馈未生效）
+        if (g.brawl?.guanyinGanluTargetId) {
+          const targetId = g.brawl.guanyinGanluTargetId;
+          const targetP = g.players.find(p => p.id === targetId);
+          if (round.team.includes(targetId)) {
+            const targetVote = g.missionVotes[targetId];
             g.brawl.guanyinGanluResult = {
-              targetId: g.brawl.guanyinGanluTargetId,
+              targetId,
               targetSuccess: Boolean(targetVote),
             };
             const guanyinPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'guanyin_pusa');
-            const targetP = g.players.find(p => p.id === g.brawl?.guanyinGanluTargetId);
             recordBrawlReplayAction(g.brawl, {
               roundNumber: round.number,
               mission: g.mission,
@@ -1061,6 +1121,8 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
               outcome: 'info',
               detail: `净瓶甘露显圣验人：私密探查【${targetP?.seat}号 · ${targetP?.nickname}】的出征票，得悉其真实投票为【${targetVote ? '成功牌' : '失败牌'}】！`,
             });
+          } else {
+            g.brawl.guanyinGanluNotOnTeam = targetId;
           }
         }
 
@@ -1294,27 +1356,30 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           g.brawl.laojunZhuoActive = true;
         } else if (role.skill.skillId === 'dakou_tuntian') {
           // 青毛狮子怪【大口吞天】
-          if (targetPlayer) {
-            requireRule(targetPlayer.id !== captain(g), 'CANNOT_BAN_CAPTAIN');
-            requireRule(targetPlayer.id !== userId, 'CANNOT_BAN_SELF');
+          requireRule(targetPlayer, 'TARGET_REQUIRED');
+          requireRule(targetPlayer.id !== captain(g), 'CANNOT_BAN_CAPTAIN');
+          requireRule(targetPlayer.id !== userId, 'CANNOT_BAN_SELF');
 
-            if (!g.treasuresState) {
-              g.treasuresState = {};
-            }
-            g.treasuresState.humanBag = {
-              used: true,
-              targetId: targetPlayer.id,
-              activeBannedMission: g.mission,
-            };
+          if (!g.treasuresState) {
+            g.treasuresState = {};
+          }
+          g.treasuresState.humanBag = {
+            used: true,
+            targetId: targetPlayer.id,
+            activeBannedMission: g.mission,
+          };
+          g.brawl.qingshiTuntianTargetId = targetPlayer.id;
 
-            // 强制将目标从当前挑人队伍中吸走剔除
-            if (g.draftTeam?.playerIds.includes(targetPlayer.id)) {
-              g.draftTeam.playerIds = g.draftTeam.playerIds.filter(id => id !== targetPlayer.id);
-            }
-            const currentRound = g.rounds.at(-1);
-            if (currentRound && g.phase === 'discussion' && currentRound.team.includes(targetPlayer.id)) {
-              currentRound.team = currentRound.team.filter(id => id !== targetPlayer.id);
+          // 强制将目标从当前挑人队伍中吸走剔除
+          if (g.draftTeam?.playerIds.includes(targetPlayer.id)) {
+            g.draftTeam.playerIds = g.draftTeam.playerIds.filter(id => id !== targetPlayer.id);
+          }
+          const currentRound = g.rounds.at(-1);
+          if (currentRound && currentRound.team.includes(targetPlayer.id)) {
+            currentRound.team = currentRound.team.filter(id => id !== targetPlayer.id);
+            if (g.phase === 'discussion' || g.phase === 'team_vote') {
               g.phase = 'proposing';
+              g.teamVotes = {};
             }
           }
         } else if (role.skill.skillId === 'jiashe_leiyin') {
@@ -1508,6 +1573,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           if (!customSummary) {
             customSummary = `【黄风怪】祭起【三昧神风】黄风蔽日，但神佛宝相庄严，未能吹探出仙佛名号。`;
           }
+          g.brawl.huangfengSecret = customSummary;
         } else if (role.skill.skillId === 'jingping_ganlu') {
           // 观音菩萨【净瓶甘露】
           if (targetPlayer) {

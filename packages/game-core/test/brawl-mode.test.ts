@@ -1531,3 +1531,133 @@ test('brawl: Red skills strictly check if target is on mission team without tran
   const hitView = projectGame(game2, jinjiaoP2.id);
   assert.ok(hitView.selfBrawl!.jinjiaoNotice!.includes('紫金红葫芦神威显圣'), 'Notice confirms hit on target p2');
 });
+
+test('brawl: anti-streak and protections rotate camps even when player has strong role preferences', () => {
+  const players = Array.from({ length: 9 }, (_, i) => ({
+    id: `u${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+
+  // u1 chooses 5 Red roles, but has been Red for 3 consecutive games
+  const u1Prefs = ['niu_mowang', 'dapeng_jinchibird', 'baigu_jing', 'huangfeng_guai', 'qingmao_shizi'];
+
+  const game = createGame(
+    'brawl-anti-streak-test',
+    players,
+    { ...defaultSettings, playerCount: 9, brawlModeEnabled: true, rolePreferenceEnabled: true },
+    a => a,
+    {
+      rolePreferences: { u1: u1Prefs },
+      recentRoles: { u1: ['minion', 'assassin', 'morgana'] }, // 3 red streaks
+    }
+  );
+
+  // Due to 3 consecutive red streaks, u1 MUST be forced to Blue team despite Red preference
+  assert.equal(game.brawl!.playerStates['u1'].camp, 'blue', 'u1 must rotate to Blue camp after 3 red streaks');
+});
+
+test('brawl: Sun Wukong (Merlin) does not stick to the same player under boss cooldown', () => {
+  const players = Array.from({ length: 9 }, (_, i) => ({
+    id: `u${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+
+  // u1 prefers sun_wukong, but was merlin in the previous game and is under boss cooldown
+  const u1Prefs = ['sun_wukong', 'tang_seng'];
+  const u2Prefs = ['sun_wukong', 'erlang_shen'];
+
+  const game = createGame(
+    'brawl-wukong-rotation-test',
+    players,
+    { ...defaultSettings, playerCount: 9, brawlModeEnabled: true, rolePreferenceEnabled: true },
+    a => a,
+    {
+      rolePreferences: { u1: u1Prefs, u2: u2Prefs },
+      recentRoles: { u1: ['merlin'] },
+      bossCooldownUserIds: ['u1'],
+    }
+  );
+
+  assert.notEqual(game.roles['u1'], 'merlin', 'u1 must NOT be Sun Wukong when on boss cooldown');
+});
+
+test('brawl: Guanyin Pusa receives private ganlu result when target goes on mission and notice if target not on team', () => {
+  const players = Array.from({ length: 9 }, (_, i) => ({
+    id: `u${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+
+  let game = createGame('brawl-guanyin-test', players, { ...defaultSettings, playerCount: 9, brawlModeEnabled: true }, a => a);
+  const guanyinPlayer = players.find(p => game.brawl!.playerStates[p.id].camp === 'blue')!;
+  game.brawlRoles![guanyinPlayer.id] = 'guanyin_pusa';
+  game.brawl!.playerStates[guanyinPlayer.id].roleId = 'guanyin_pusa';
+  game.brawl!.playerStates[guanyinPlayer.id].skillUsed = false;
+
+  // 观音对 u2 洒甘露
+  game = transition(game, guanyinPlayer.id, {
+    type: 'brawlCommand',
+    payload: { action: 'useSkill', skillId: 'jingping_ganlu', targetPlayerId: 'u2' },
+  }, [guanyinPlayer.id]);
+
+  // u2 随队出征
+  game.phase = 'mission';
+  game.rounds.push({
+    number: 1,
+    mission: 1,
+    captainId: 'u1',
+    team: ['u1', 'u2', 'u3'],
+    direction: 'clockwise',
+  });
+
+  // 模拟出征：u2 投了成功，u3 投了失败（整体任务失败）
+  game = transition(game, 'u1', { type: 'missionVote', payload: { success: true } }, ['u1']);
+  game = transition(game, 'u2', { type: 'missionVote', payload: { success: true } }, ['u2']);
+  game = transition(game, 'u3', { type: 'missionVote', payload: { success: false } }, ['u3']);
+
+  const guanyinView = projectGame(game, guanyinPlayer.id);
+  assert.ok(guanyinView.selfBrawl?.guanyinGanluResult, 'Guanyin receives ganlu result');
+  assert.equal(guanyinView.selfBrawl?.guanyinGanluResult?.targetSeat, 2);
+  assert.equal(guanyinView.selfBrawl?.guanyinGanluResult?.success, true, 'Guanyin knows u2 voted success');
+  assert.ok(guanyinView.selfBrawl?.guanyinNotice?.includes('成功牌'), 'Notice confirms success card');
+});
+
+test('brawl: Qingmao Shizi [dakou_tuntian] ejects team member during discussion/vote and cancels vote', () => {
+  const players = Array.from({ length: 9 }, (_, i) => ({
+    id: `u${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+
+  let game = createGame('brawl-qingshi-test', players, { ...defaultSettings, playerCount: 9, brawlModeEnabled: true }, a => a);
+  const qingshiPlayer = players.find(p => game.brawl!.playerStates[p.id].camp === 'red')!;
+  game.brawlRoles![qingshiPlayer.id] = 'qingmao_shizi';
+  game.brawl!.playerStates[qingshiPlayer.id].roleId = 'qingmao_shizi';
+  game.brawl!.playerStates[qingshiPlayer.id].skillUsed = false;
+
+  // 队长提出车队 [u1 (captain), u2, u3] 并进入 team_vote
+  game.phase = 'team_vote';
+  game.rounds.push({
+    number: 1,
+    mission: 1,
+    captainId: 'u1',
+    team: ['u1', 'u2', 'u3'],
+    direction: 'clockwise',
+  });
+
+  // 青毛狮子怪吞走 u2
+  game = transition(game, qingshiPlayer.id, {
+    type: 'brawlCommand',
+    payload: { action: 'useSkill', skillId: 'dakou_tuntian', targetPlayerId: 'u2' },
+  }, [qingshiPlayer.id]);
+
+  // 验证 u2 被剔除出队伍，且投票重置回 proposing
+  assert.equal(game.rounds[0].team.includes('u2'), false, 'u2 was ejected from team');
+  assert.equal(game.phase, 'proposing', 'Phase rolled back to proposing');
+  assert.equal(game.treasuresState?.humanBag?.targetId, 'u2', 'Human bag bans u2');
+
+  const qingshiView = projectGame(game, qingshiPlayer.id);
+  assert.ok(qingshiView.selfBrawl?.generalFeedback?.includes('大口吞天'), 'Qingmao Shizi receives generalFeedback confirmation');
+});

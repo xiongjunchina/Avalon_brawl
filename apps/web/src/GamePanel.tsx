@@ -84,6 +84,7 @@ export function GamePanel({
   const treasureEntry = treasureAccess(g, room.settings.treasuresEnabled);
   const guanyinNotice = useGuanyinNotice(g, userId, connected);
   const guanyinResult = self?.role === 'guinevere' ? self.treasures?.guanyinMirror?.result : undefined;
+  const brawlGuanyinResult = g.selfBrawl?.guanyinGanluResult;
   const bellNotice = usePrivateNotice(heartBellNoticeKey(g, userId), connected);
   const bellMessage = self?.treasures?.incomingHeartBell;
   const privateNoticeVisible = guanyinNotice.visible || bellNotice.visible;
@@ -97,6 +98,10 @@ export function GamePanel({
   };
   const openTreasure = () => {
     if (g.selfBrawl) {
+      if (guanyinNotice.unread && brawlGuanyinResult) {
+        guanyinNotice.open();
+        return;
+      }
       setIdentityOpen(true);
       return;
     }
@@ -1458,8 +1463,13 @@ export function GamePanel({
           treasuresEnabled={room.settings.treasuresEnabled}
         />
       )}
-      {guanyinNotice.visible && guanyinResult && !abortConfirm && (
-        <GuanyinResultDialog result={guanyinResult} players={publicPlayers} onClose={guanyinNotice.acknowledge} />
+      {guanyinNotice.visible && (guanyinResult || brawlGuanyinResult) && !abortConfirm && (
+        <GuanyinResultDialog
+          result={guanyinResult}
+          brawlResult={brawlGuanyinResult}
+          players={publicPlayers}
+          onClose={guanyinNotice.acknowledge}
+        />
       )}
       {bellNotice.visible && bellMessage && !abortConfirm && (
         <HeartBellDialog message={bellMessage} onClose={bellNotice.acknowledge} />

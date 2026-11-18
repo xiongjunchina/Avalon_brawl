@@ -242,9 +242,15 @@ export function createGame(
     const redPlayers = sortedByRedPreference.slice(0, redRoleCount).map(x => x.player);
     const bluePlayers = sortedByRedPreference.slice(redRoleCount).map(x => x.player);
 
-    // 3. 准备盲盒抽取出来的红蓝两方角色池
-    const blueNonCore = shuffle(assignment.roles.filter(r => r.camp === 'blue' && !r.isCore));
-    const redNonCore = shuffle(assignment.roles.filter(r => r.camp === 'red' && !r.isCore));
+    const is9Plus = sorted.length >= 9;
+
+    // 3. 准备盲盒抽取出来的红蓝两方角色池（9人及以上局排除已作为核心固定登场的观音与黄眉）
+    const blueNonCore = shuffle(
+      assignment.roles.filter(r => r.camp === 'blue' && !r.isCore && (!is9Plus || r.id !== 'guanyin_pusa'))
+    );
+    const redNonCore = shuffle(
+      assignment.roles.filter(r => r.camp === 'red' && !r.isCore && (!is9Plus || r.id !== 'huangmei_laoguai'))
+    );
 
     // 4. 为队伍分配角色
     const assignTeamRoles = (
@@ -254,7 +260,7 @@ export function createGame(
       defaultNonCoreRole: Role
     ) => {
       const remainingPlayers = [...teamPlayers];
-      // 优先满足对核心角色（孙悟空/唐僧/红孩儿/六耳猕猴）有志愿的玩家，兼顾 bossCooldown 与历史连庄衰减
+      // 优先满足对核心角色（孙悟空/唐僧/红孩儿/六耳猕猴/9人局观音与黄眉）有志愿的玩家，兼顾 bossCooldown 与历史连庄衰减
       for (const core of coreRoles) {
         const candidates = remainingPlayers.map(p => {
           const prefs = settings.rolePreferenceEnabled ? (rawPreferences?.[p.id] ?? []) : [];
@@ -294,7 +300,7 @@ export function createGame(
             userId: assignedPlayer.id,
             seat: assignedPlayer.seat,
             roleId: core.id,
-            camp: core.role === 'assassin' || core.role === 'morgana' ? 'red' : 'blue',
+            camp: BRAWL_ROLE_REGISTRY[core.id]?.camp ?? (teamOf(core.role) === 'red' ? 'red' : 'blue'),
             skillUsed: false,
           };
         }
@@ -328,24 +334,36 @@ export function createGame(
       }
     };
 
-    // 执行红方分配
+    // 执行红方分配（9人及以上局固定登场黄眉老怪）
     assignTeamRoles(
       redPlayers,
-      [
-        { id: 'hong_haier', role: 'assassin' },
-        { id: 'liuer_mihou', role: 'morgana' },
-      ],
+      is9Plus
+        ? [
+            { id: 'hong_haier', role: 'assassin' },
+            { id: 'liuer_mihou', role: 'morgana' },
+            { id: 'huangmei_laoguai', role: 'minion' },
+          ]
+        : [
+            { id: 'hong_haier', role: 'assassin' },
+            { id: 'liuer_mihou', role: 'morgana' },
+          ],
       redNonCore,
       'minion'
     );
 
-    // 执行蓝方分配
+    // 执行蓝方分配（9人及以上局固定登场观音菩萨）
     assignTeamRoles(
       bluePlayers,
-      [
-        { id: 'sun_wukong', role: 'merlin' },
-        { id: 'tang_seng', role: 'percival' },
-      ],
+      is9Plus
+        ? [
+            { id: 'sun_wukong', role: 'merlin' },
+            { id: 'tang_seng', role: 'percival' },
+            { id: 'guanyin_pusa', role: 'loyal' },
+          ]
+        : [
+            { id: 'sun_wukong', role: 'merlin' },
+            { id: 'tang_seng', role: 'percival' },
+          ],
       blueNonCore,
       'loyal'
     );

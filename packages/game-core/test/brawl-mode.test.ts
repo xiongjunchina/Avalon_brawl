@@ -312,12 +312,32 @@ test('brawl: 9-player (5B:4R), 11-player (6B:5R), and 12-player (7B:5R) custom b
   assert.equal(pStates9.filter(p => p.camp === 'blue').length, 5, '9-player brawl has 5 Blue');
   assert.equal(pStates9.filter(p => p.camp === 'red').length, 4, '9-player brawl has 4 Red');
   assert.deepEqual(projectGame(game9).missionSizes, [3, 4, 4, 5, 5], '9-player mission sizes');
+  // 9人局固定出场观音菩萨与黄眉老怪
+  assert.ok(pStates9.some(p => p.roleId === 'guanyin_pusa'), '9-player brawl guarantees Guanyin Pusa');
+  assert.ok(pStates9.some(p => p.roleId === 'huangmei_laoguai'), '9-player brawl guarantees Huangmei Laoguai');
+  const roleIds9 = pStates9.map(p => p.roleId);
+  assert.equal(new Set(roleIds9).size, 9, 'All 9 players have distinct roles');
+
   // Failures required in 9p brawl: R1..R3 = 1 fail, R4..R5 = 2 fails (given 5 Blue vs 4 Red)
   assert.equal(failuresRequiredFor(9, 1, true), 1);
   assert.equal(failuresRequiredFor(9, 2, true), 1);
   assert.equal(failuresRequiredFor(9, 3, true), 1);
   assert.equal(failuresRequiredFor(9, 4, true), 2);
   assert.equal(failuresRequiredFor(9, 5, true), 2);
+
+  // 10-player Brawl Game: R4 takes 2 fails, R5 takes 1 fail, Guanyin and Huangmei guaranteed
+  assert.equal(failuresRequiredFor(10, 1, true), 1);
+  assert.equal(failuresRequiredFor(10, 2, true), 1);
+  assert.equal(failuresRequiredFor(10, 3, true), 1);
+  assert.equal(failuresRequiredFor(10, 4, true), 2);
+  assert.equal(failuresRequiredFor(10, 5, true), 1);
+  const p10 = Array.from({ length: 10 }, (_, i) => ({ id: `p${i + 1}`, nickname: `P${i + 1}`, seat: i + 1 }));
+  const game10 = createGame('brawl-10', p10, { ...defaultSettings, playerCount: 10, brawlModeEnabled: true }, a => a);
+  const pStates10 = Object.values(game10.brawl!.playerStates);
+  assert.ok(pStates10.some(p => p.roleId === 'guanyin_pusa'), '10-player brawl guarantees Guanyin Pusa');
+  assert.ok(pStates10.some(p => p.roleId === 'huangmei_laoguai'), '10-player brawl guarantees Huangmei Laoguai');
+  const roleIds10 = pStates10.map(p => p.roleId);
+  assert.equal(new Set(roleIds10).size, 10, 'All 10 players have distinct roles');
 
   // 2. 11-player Brawl Game (6 Blue : 5 Red)
   const p11 = Array.from({ length: 11 }, (_, i) => ({ id: `p${i + 1}`, nickname: `P${i + 1}`, seat: i + 1 }));
@@ -326,6 +346,10 @@ test('brawl: 9-player (5B:4R), 11-player (6B:5R), and 12-player (7B:5R) custom b
   assert.equal(pStates11.filter(p => p.camp === 'blue').length, 6, '11-player brawl has 6 Blue');
   assert.equal(pStates11.filter(p => p.camp === 'red').length, 5, '11-player brawl has 5 Red');
   assert.deepEqual(projectGame(game11).missionSizes, [3, 4, 5, 5, 6], '11-player mission sizes: [3, 4, 5, 5, 6]');
+  assert.ok(pStates11.some(p => p.roleId === 'guanyin_pusa'), '11-player brawl guarantees Guanyin Pusa');
+  assert.ok(pStates11.some(p => p.roleId === 'huangmei_laoguai'), '11-player brawl guarantees Huangmei Laoguai');
+  const roleIds11 = pStates11.map(p => p.roleId);
+  assert.equal(new Set(roleIds11).size, 11, 'All 11 players have distinct roles');
   // Failures required in 11p brawl: R1..R2 = 1 fail, R3..R5 = 2 fails
   assert.equal(failuresRequiredFor(11, 1, true), 1);
   assert.equal(failuresRequiredFor(11, 2, true), 1);
@@ -340,6 +364,10 @@ test('brawl: 9-player (5B:4R), 11-player (6B:5R), and 12-player (7B:5R) custom b
   assert.equal(pStates12.filter(p => p.camp === 'blue').length, 7, '12-player brawl has 7 Blue');
   assert.equal(pStates12.filter(p => p.camp === 'red').length, 5, '12-player brawl has 5 Red');
   assert.deepEqual(projectGame(game12).missionSizes, [3, 4, 5, 6, 6], '12-player mission sizes: [3, 4, 5, 6, 6]');
+  assert.ok(pStates12.some(p => p.roleId === 'guanyin_pusa'), '12-player brawl guarantees Guanyin Pusa');
+  assert.ok(pStates12.some(p => p.roleId === 'huangmei_laoguai'), '12-player brawl guarantees Huangmei Laoguai');
+  const roleIds12 = pStates12.map(p => p.roleId);
+  assert.equal(new Set(roleIds12).size, 12, 'All 12 players have distinct roles');
   // Failures required in 12p brawl: R1..R2 = 1 fail, R3..R5 = 2 fails
   assert.equal(failuresRequiredFor(12, 1, true), 1);
   assert.equal(failuresRequiredFor(12, 2, true), 1);
@@ -1591,36 +1619,36 @@ test('brawl: Guanyin Pusa receives private ganlu result when target goes on miss
   }));
 
   let game = createGame('brawl-guanyin-test', players, { ...defaultSettings, playerCount: 9, brawlModeEnabled: true }, a => a);
-  const guanyinPlayer = players.find(p => game.brawl!.playerStates[p.id].camp === 'blue')!;
-  game.brawlRoles![guanyinPlayer.id] = 'guanyin_pusa';
-  game.brawl!.playerStates[guanyinPlayer.id].roleId = 'guanyin_pusa';
-  game.brawl!.playerStates[guanyinPlayer.id].skillUsed = false;
+  const guanyinPlayer = players.find(p => game.brawl!.playerStates[p.id].roleId === 'guanyin_pusa')!;
+  const targetPlayer = players.find(p => p.id !== guanyinPlayer.id && game.brawl!.playerStates[p.id].camp === 'blue')!;
+  const redPlayer = players.find(p => game.brawl!.playerStates[p.id].camp === 'red')!;
+  const thirdPlayer = players.find(p => p.id !== guanyinPlayer.id && p.id !== targetPlayer.id && p.id !== redPlayer.id)!;
 
-  // 观音对 u2 洒甘露
+  // 观音对 targetPlayer 洒甘露
   game = transition(game, guanyinPlayer.id, {
     type: 'brawlCommand',
-    payload: { action: 'useSkill', skillId: 'jingping_ganlu', targetPlayerId: 'u2' },
+    payload: { action: 'useSkill', skillId: 'jingping_ganlu', targetPlayerId: targetPlayer.id },
   }, [guanyinPlayer.id]);
 
-  // u2 随队出征
+  // 随队出征
   game.phase = 'mission';
   game.rounds.push({
     number: 1,
     mission: 1,
-    captainId: 'u1',
-    team: ['u1', 'u2', 'u3'],
+    captainId: thirdPlayer.id,
+    team: [targetPlayer.id, redPlayer.id, thirdPlayer.id],
     direction: 'clockwise',
   });
 
-  // 模拟出征：u2 投了成功，u3 投了失败（整体任务失败）
-  game = transition(game, 'u1', { type: 'missionVote', payload: { success: true } }, ['u1']);
-  game = transition(game, 'u2', { type: 'missionVote', payload: { success: true } }, ['u2']);
-  game = transition(game, 'u3', { type: 'missionVote', payload: { success: false } }, ['u3']);
+  // 模拟出征：targetPlayer 投了成功，redPlayer 投了失败（整体任务失败）
+  game = transition(game, targetPlayer.id, { type: 'missionVote', payload: { success: true } }, [targetPlayer.id]);
+  game = transition(game, thirdPlayer.id, { type: 'missionVote', payload: { success: true } }, [thirdPlayer.id]);
+  game = transition(game, redPlayer.id, { type: 'missionVote', payload: { success: false } }, [redPlayer.id]);
 
   const guanyinView = projectGame(game, guanyinPlayer.id);
   assert.ok(guanyinView.selfBrawl?.guanyinGanluResult, 'Guanyin receives ganlu result');
-  assert.equal(guanyinView.selfBrawl?.guanyinGanluResult?.targetSeat, 2);
-  assert.equal(guanyinView.selfBrawl?.guanyinGanluResult?.success, true, 'Guanyin knows u2 voted success');
+  assert.equal(guanyinView.selfBrawl?.guanyinGanluResult?.targetSeat, targetPlayer.seat);
+  assert.equal(guanyinView.selfBrawl?.guanyinGanluResult?.success, true, 'Guanyin knows targetPlayer voted success');
   assert.ok(guanyinView.selfBrawl?.guanyinNotice?.includes('成功牌'), 'Notice confirms success card');
 });
 
@@ -1637,26 +1665,30 @@ test('brawl: Qingmao Shizi [dakou_tuntian] ejects team member during discussion/
   game.brawl!.playerStates[qingshiPlayer.id].roleId = 'qingmao_shizi';
   game.brawl!.playerStates[qingshiPlayer.id].skillUsed = false;
 
-  // 队长提出车队 [u1 (captain), u2, u3] 并进入 team_vote
+  const captainPlayer = players.find(p => p.id !== qingshiPlayer.id)!;
+  const targetPlayer = players.find(p => p.id !== qingshiPlayer.id && p.id !== captainPlayer.id)!;
+  const thirdPlayer = players.find(p => p.id !== qingshiPlayer.id && p.id !== captainPlayer.id && p.id !== targetPlayer.id)!;
+
+  // 队长提出车队 [captain, target, third] 并进入 team_vote
   game.phase = 'team_vote';
   game.rounds.push({
     number: 1,
     mission: 1,
-    captainId: 'u1',
-    team: ['u1', 'u2', 'u3'],
+    captainId: captainPlayer.id,
+    team: [captainPlayer.id, targetPlayer.id, thirdPlayer.id],
     direction: 'clockwise',
   });
 
-  // 青毛狮子怪吞走 u2
+  // 青毛狮子怪吞走 targetPlayer
   game = transition(game, qingshiPlayer.id, {
     type: 'brawlCommand',
-    payload: { action: 'useSkill', skillId: 'dakou_tuntian', targetPlayerId: 'u2' },
+    payload: { action: 'useSkill', skillId: 'dakou_tuntian', targetPlayerId: targetPlayer.id },
   }, [qingshiPlayer.id]);
 
-  // 验证 u2 被剔除出队伍，且投票重置回 proposing
-  assert.equal(game.rounds[0].team.includes('u2'), false, 'u2 was ejected from team');
+  // 验证 targetPlayer 被剔除出队伍，且投票重置回 proposing
+  assert.equal(game.rounds[0].team.includes(targetPlayer.id), false, 'targetPlayer was ejected from team');
   assert.equal(game.phase, 'proposing', 'Phase rolled back to proposing');
-  assert.equal(game.treasuresState?.humanBag?.targetId, 'u2', 'Human bag bans u2');
+  assert.equal(game.treasuresState?.humanBag?.targetId, targetPlayer.id, 'Human bag bans targetPlayer');
 
   const qingshiView = projectGame(game, qingshiPlayer.id);
   assert.ok(qingshiView.selfBrawl?.generalFeedback?.includes('大口吞天'), 'Qingmao Shizi receives generalFeedback confirmation');

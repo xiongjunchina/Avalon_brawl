@@ -579,10 +579,11 @@ export const BRAWL_PLAYER_CONFIG: Record<number, BrawlPlayerCountConfig> = {
   6: { playerCount: 6, blueTotal: 4, redTotal: 2, blueDrawCount: 2, redDrawCount: 0 },
   7: { playerCount: 7, blueTotal: 4, redTotal: 3, blueDrawCount: 2, redDrawCount: 1 },
   8: { playerCount: 8, blueTotal: 5, redTotal: 3, blueDrawCount: 3, redDrawCount: 1 },
-  9: { playerCount: 9, blueTotal: 5, redTotal: 4, blueDrawCount: 3, redDrawCount: 2 },
-  10: { playerCount: 10, blueTotal: 6, redTotal: 4, blueDrawCount: 4, redDrawCount: 2 },
-  11: { playerCount: 11, blueTotal: 6, redTotal: 5, blueDrawCount: 4, redDrawCount: 3 },
-  12: { playerCount: 12, blueTotal: 7, redTotal: 5, blueDrawCount: 5, redDrawCount: 3 },
+  // 9人及以上局：蓝方固定孙悟空、唐僧、观音菩萨；红方固定红孩儿、六耳猕猴、黄眉老怪
+  9: { playerCount: 9, blueTotal: 5, redTotal: 4, blueDrawCount: 2, redDrawCount: 1 },
+  10: { playerCount: 10, blueTotal: 6, redTotal: 4, blueDrawCount: 3, redDrawCount: 1 },
+  11: { playerCount: 11, blueTotal: 6, redTotal: 5, blueDrawCount: 3, redDrawCount: 2 },
+  12: { playerCount: 12, blueTotal: 7, redTotal: 5, blueDrawCount: 4, redDrawCount: 2 },
 };
 
 /**
@@ -630,13 +631,21 @@ export function drawBrawlRoles(
   const tangSeng = customRegistry.tang_seng;
   const liuerMihou = customRegistry.liuer_mihou;
   const hongHaier = customRegistry.hong_haier;
+  const guanyinPusa = customRegistry.guanyin_pusa;
+  const huangmeiLaoguai = customRegistry.huangmei_laoguai;
 
-  if (!sunWukong || !tangSeng || !liuerMihou || !hongHaier) {
+  if (!sunWukong || !tangSeng || !liuerMihou || !hongHaier || !guanyinPusa || !huangmeiLaoguai) {
     throw new Error('Core roles missing from registry');
   }
 
   assigned.push(sunWukong, tangSeng);
   assigned.push(liuerMihou, hongHaier);
+
+  const is9Plus = playerCount >= 9;
+  if (is9Plus) {
+    assigned.push(guanyinPusa);
+    assigned.push(huangmeiLaoguai);
+  }
 
   // 提取心仪偏好角色集合
   const preferredBlue = new Set<string>();
@@ -655,8 +664,8 @@ export function drawBrawlRoles(
     }
   }
 
-  // 3. 蓝方乱斗池抽取（心仪角色优先入池）
-  const bluePool = Object.values(customRegistry).filter(r => r.camp === 'blue' && !r.isCore);
+  // 3. 蓝方乱斗池抽取（心仪角色优先入池；若 9+ 人局则排除已固定出场的观音菩萨）
+  const bluePool = Object.values(customRegistry).filter(r => r.camp === 'blue' && !r.isCore && (!is9Plus || r.id !== 'guanyin_pusa'));
   const favoredBlue = bluePool.filter(r => preferredBlue.has(r.id));
   const otherBlue = bluePool.filter(r => !preferredBlue.has(r.id));
   const pickedBlue: BrawlRoleDef[] = [];
@@ -670,8 +679,8 @@ export function drawBrawlRoles(
   }
   assigned.push(...pickedBlue);
 
-  // 4. 红方乱斗池抽取（心仪角色优先入池）
-  const redPool = Object.values(customRegistry).filter(r => r.camp === 'red' && !r.isCore);
+  // 4. 红方乱斗池抽取（心仪角色优先入池；若 9+ 人局则排除已固定出场的黄眉老怪）
+  const redPool = Object.values(customRegistry).filter(r => r.camp === 'red' && !r.isCore && (!is9Plus || r.id !== 'huangmei_laoguai'));
   const favoredRed = redPool.filter(r => preferredRed.has(r.id));
   const otherRed = redPool.filter(r => !preferredRed.has(r.id));
   const pickedRed: BrawlRoleDef[] = [];
@@ -701,20 +710,19 @@ export function drawBrawlRoles(
 
   // 二郎神：看 1 红
   if (pickedBlue.some(r => r.id === 'erlang_shen')) {
-    // 如果红方抽中了乱斗妖魔，看乱斗妖魔；如果只有核心（如5、6人局），看核心妖魔
-    const targetRed = pickedRed.length > 0 ? pickedRed[0] : hongHaier;
+    const targetRed = pickedRed.length > 0 ? pickedRed[0] : (is9Plus ? huangmeiLaoguai : hongHaier);
     peekedMap.erlang_shen = [{ roleId: targetRed.id, roleName: targetRed.name, camp: 'red' }];
   }
 
   // 百眼魔君：看 1 蓝
   if (pickedRed.some(r => r.id === 'baiyan_mojun')) {
-    const targetBlue = pickedBlue.length > 0 ? pickedBlue[0] : sunWukong;
+    const targetBlue = pickedBlue.length > 0 ? pickedBlue[0] : (is9Plus ? guanyinPusa : sunWukong);
     peekedMap.baiyan_mojun = [{ roleId: targetBlue.id, roleName: targetBlue.name, camp: 'blue' }];
   }
 
   // 老鼠精：看 1 蓝
   if (pickedRed.some(r => r.id === 'laoshu_jing')) {
-    const targetBlue = pickedBlue.length > 0 ? pickedBlue[pickedBlue.length - 1] : tangSeng;
+    const targetBlue = pickedBlue.length > 0 ? pickedBlue[pickedBlue.length - 1] : (is9Plus ? guanyinPusa : tangSeng);
     peekedMap.laoshu_jing = [{ roleId: targetBlue.id, roleName: targetBlue.name, camp: 'blue' }];
   }
 

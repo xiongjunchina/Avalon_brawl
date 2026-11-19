@@ -104,3 +104,25 @@ curl -i https://game.ccnepower.com/avalon_vs/api/health
 - `https://game.ccnepower.com/avalon` → 直接进入常规原版（真假猴王）
 - `https://game.ccnepower.com/avalon_vs` → 直接进入乱斗版本（嘻游 · 大乱斗）
 - `https://game.ccnepower.com/` → 大厅首页卡片并列展示两款西游版本
+
+---
+
+### 四、配置每 10 分钟自动检测 GitHub 更新与热发布
+
+为免除每次提交代码后手动登录 ECS 执行构建拉取的繁琐操作，可一键安装自动更新定时任务：
+
+```bash
+cd /opt/avalon_brawl
+git pull origin main
+bash scripts/install-brawl-auto-update.sh
+```
+
+- **工作机制**：由系统级 `systemd.timer` 每 10 分钟（00、10、20、30、40、50 分）静默检测一次 GitHub `origin/main`；若有新提交，自动 `git pull --ff-only` 并平滑重建更新容器；无新提交时零开销跳过。
+- **并发保护**：内置 `flock` 文件锁，避免构建耗时较长时并发冲突。
+- **常用运维命令**：
+  - 查看实时更新日志：`journalctl -u avalon-brawl-auto-update.service -f`
+  - 立即手动触发检查更新：`systemctl start avalon-brawl-auto-update.service`
+  - 查看定时器运行状态：`systemctl status avalon-brawl-auto-update.timer`
+  - 暂停定时自动更新：`systemctl disable --now avalon-brawl-auto-update.timer`
+  - 恢复定时自动更新：`systemctl enable --now avalon-brawl-auto-update.timer`
+

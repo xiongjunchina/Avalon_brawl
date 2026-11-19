@@ -223,7 +223,7 @@ test('brawl: createGame with brawlModeEnabled assigns full brawl roles, projectG
   // Pick a non-silent player to verify brawlCommand event generation
   const nonSilentPlayer = players.find(p => {
     const roleId = game.brawlRoles![p.id];
-    return roleId !== 'baigu_jing' && roleId !== 'baiyan_mojun' && roleId !== 'huangmei_laoguai';
+    return ['tang_seng', 'sun_wukong', 'sha_wujing', 'zhu_bajie', 'yuhuang_dadi', 'wangmu_niangniang', 'bai_longma'].includes(roleId);
   }) || players[0];
   const viewActor = projectGame(game, nonSilentPlayer.id);
   game.mission = 3;
@@ -1693,3 +1693,110 @@ test('brawl: Qingmao Shizi [dakou_tuntian] ejects team member during discussion/
   const qingshiView = projectGame(game, qingshiPlayer.id);
   assert.ok(qingshiView.selfBrawl?.generalFeedback?.includes('大口吞天'), 'Qingmao Shizi receives generalFeedback confirmation');
 });
+
+test('brawl: human-centric wish-direct engine assigns non-core roles directly from players wishes', () => {
+  const players = Array.from({ length: 9 }, (_, i) => ({
+    id: `u${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+
+  // u4, u5 分别心仪 如来佛祖 和 镇元大仙（均为仙佛非核心角色）
+  // u1 心仪 孙悟空（仙佛核心）
+  // u2 心仪 唐僧（仙佛核心）
+  // u3 心仪 观音菩萨（仙佛核心）
+  const rolePreferences = {
+    u1: ['sun_wukong'],
+    u2: ['tang_seng'],
+    u3: ['guanyin_pusa'],
+    u4: ['rulai_fozu'],
+    u5: ['zhenyuan_daxian'],
+    // 红方
+    u6: ['hong_haier'],
+    u7: ['liuer_mihou'],
+    u8: ['huangmei_laoguai'],
+    u9: ['jinchi_dapeng'], // 红方非核心
+  };
+
+  const game = createGame(
+    'wish-direct-test-1',
+    players,
+    { ...defaultSettings, playerCount: 9, brawlModeEnabled: true, rolePreferenceEnabled: true },
+    a => a,
+    { rolePreferences }
+  );
+
+  // 验证仙佛阵营全员精准命中心愿
+  assert.equal(game.brawlRoles!['u1'], 'sun_wukong');
+  assert.equal(game.brawl!.playerStates['u1'].wishRank, 1);
+  assert.equal(game.brawlRoles!['u2'], 'tang_seng');
+  assert.equal(game.brawl!.playerStates['u2'].wishRank, 1);
+  assert.equal(game.brawlRoles!['u3'], 'guanyin_pusa');
+  assert.equal(game.brawl!.playerStates['u3'].wishRank, 1);
+  assert.equal(game.brawlRoles!['u4'], 'rulai_fozu');
+  assert.equal(game.brawl!.playerStates['u4'].wishRank, 1);
+  assert.equal(game.brawlRoles!['u5'], 'zhenyuan_daxian');
+  assert.equal(game.brawl!.playerStates['u5'].wishRank, 1);
+
+  // 验证红方金翅大鹏雕作为非核心角色，精准直达进入游戏
+  assert.equal(game.brawlRoles!['u9'], 'jinchi_dapeng');
+  assert.equal(game.brawl!.playerStates['u9'].wishRank, 1);
+
+  // 验证盲盒池与情报联动：盲盒池准确收录了玩家直选进场的非核心角色
+  assert.ok(game.brawl!.blindBox.bluePoolRoles.includes('rulai_fozu'));
+  assert.ok(game.brawl!.blindBox.bluePoolRoles.includes('zhenyuan_daxian'));
+  assert.ok(game.brawl!.blindBox.redPoolRoles.includes('jinchi_dapeng'));
+
+  // 验证投影视图 projectGame 成功透传 wishRank 给玩家前端
+  const u4View = projectGame(game, 'u4');
+  assert.equal(u4View.selfBrawl?.wishRank, 1);
+});
+
+test('brawl: wish competition resolution and cascade to lower ranks', () => {
+  const players = Array.from({ length: 9 }, (_, i) => ({
+    id: `u${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+
+  // u4 与 u5 同时将 如来佛祖 作为第一志愿争抢
+  // u4 第二志愿为 镇元大仙
+  // u5 第二志愿为 玉皇大帝
+  const rolePreferences = {
+    u1: ['sun_wukong'],
+    u2: ['tang_seng'],
+    u3: ['guanyin_pusa'],
+    u4: ['rulai_fozu', 'zhenyuan_daxian'],
+    u5: ['rulai_fozu', 'yuhuang_dadi'],
+    u6: ['hong_haier'],
+    u7: ['liuer_mihou'],
+    u8: ['huangmei_laoguai'],
+    u9: ['jinchi_dapeng'],
+  };
+
+  const game = createGame(
+    'wish-competition-test',
+    players,
+    { ...defaultSettings, playerCount: 9, brawlModeEnabled: true, rolePreferenceEnabled: true },
+    a => a,
+    { rolePreferences }
+  );
+
+  // 必然有一人拿到 如来佛祖 (wishRank: 1)，另一人顺延拿到第二志愿 (wishRank: 2)
+  const u4Role = game.brawlRoles!['u4'];
+  const u5Role = game.brawlRoles!['u5'];
+  const u4Rank = game.brawl!.playerStates['u4'].wishRank;
+  const u5Rank = game.brawl!.playerStates['u5'].wishRank;
+
+  if (u4Role === 'rulai_fozu') {
+    assert.equal(u4Rank, 1, 'u4 won rulai with rank 1');
+    assert.equal(u5Role, 'yuhuang_dadi', 'u5 cascaded to rank 2 yuhuang');
+    assert.equal(u5Rank, 2, 'u5 wishRank is 2');
+  } else {
+    assert.equal(u5Role, 'rulai_fozu', 'u5 won rulai with rank 1');
+    assert.equal(u5Rank, 1, 'u5 wishRank is 1');
+    assert.equal(u4Role, 'zhenyuan_daxian', 'u4 cascaded to rank 2 zhenyuan');
+    assert.equal(u4Rank, 2, 'u4 wishRank is 2');
+  }
+});
+

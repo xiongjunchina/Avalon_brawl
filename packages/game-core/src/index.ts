@@ -3,9 +3,9 @@ export { roleWeight, ROLE_ASSIGNMENT_VERSION, ROLE_WEIGHT_VERSION } from './role
 export type { RoleProtectionOptions } from './role-assignment.js';
 export { randomBigIntBelow } from './random.js';
 import type { Command, GameResult, GameView, LoyalGuardian, FemaleDemon, Player, Role, RoundView, Settings, Team, PrivateInspection, EarlyWindow, TeamBallot, GuardianClue, SelfTreasures, HeartBellAdvice, RoleAssignmentAudit, BrawlGameState, BrawlPlayerState, BrawlCommandPayload, BrawlCamp, BrawlTriggerPhase } from '@avalon/contracts';
-export { drawBrawlRoles, BRAWL_ROLE_REGISTRY } from './brawl-registry.js';
+export { drawBrawlRoles, BRAWL_ROLE_REGISTRY, sampleWithoutReplacement } from './brawl-registry.js';
 export type { BrawlRoleDef } from '@avalon/contracts';
-import { drawBrawlRoles, BRAWL_ROLE_REGISTRY } from './brawl-registry.js';
+import { drawBrawlRoles, BRAWL_ROLE_REGISTRY, sampleWithoutReplacement } from './brawl-registry.js';
 import {
   createBrawlGameState,
   appendBattleEvent,
@@ -146,6 +146,250 @@ export function roleHistoryAfterDeal(game: Pick<GameState, 'roles' | 'roleAssign
     [id, [role, ...(game.roleAssignmentAudit?.players[id]?.recentRoles ?? [])].slice(0, 5)]));
 }
 
+interface AssignCampResult {
+  assignedRoles: Record<string, Role>;
+  assignedBrawlRoles: Record<string, string>;
+  assignedPlayerStates: Record<string, BrawlPlayerState>;
+  nonCoreAssignedRoleIds: string[];
+}
+
+/**
+ * 以人为本的大乱斗阵营角色直发引擎：
+ * 1. 优先满足玩家个人心仪志愿（第 1 志愿 -> 第 5 志愿），多名玩家争抢时依志愿权重轮盘抽签；
+ * 2. 保证阵营固定核心角色（悟空/唐僧/观音 或 孩儿/六耳/黄眉）100% 必须有人出任；
+ * 3. 严格限制非核心盲盒名额，防止角色超额或重复；
+ * 4. 完美兼顾首领防连庄 (bossCooldown) 与近期角色防重复 (recentRoles / 9)。
+ */
+function assignCampRolesDirectly(
+  campPlayers: Player[],
+  camp: 'blue' | 'red',
+  coreDefs: { id: string; role: Role }[],
+  defaultNonCoreRole: Role,
+  rawPreferences: Record<string, string[]> | undefined,
+  rolePreferenceEnabled: boolean,
+  protectionOpts: RoleProtectionOptions,
+  shuffle: <T>(values: T[]) => T[],
+  rng: () => number = Math.random
+): AssignCampResult {
+  const PREF_WEIGHTS = [8, 4, 2, 1, 1];
+  const bossCooldown = new Set(protectionOpts.bossCooldownUserIds ?? []);
+
+  const assignedRoles: Record<string, Role> = {};
+  const assignedBrawlRoles: Record<string, string> = {};
+  const assignedPlayerStates: Record<string, BrawlPlayerState> = {};
+  const nonCoreAssignedRoleIds: string[] = [];
+
+  let unassignedPlayers = [...campPlayers];
+  let unassignedCoreDefs = [...coreDefs];
+  const nonCoreSlotsTotal = campPlayers.length - coreDefs.length;
+  let remainingNonCoreSlots = nonCoreSlotsTotal;
+  const takenRoleIds = new Set<string>();
+
+  interface PlayerWish {
+    player: Player;
+    roleId: string;
+    wishRank: number; // 1 to 5
+    weight: number;
+    isCore: boolean;
+    coreDef?: { id: string; role: Role };
+  }
+
+  const playerWishesByRank: Record<number, PlayerWish[]> = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+
+  if (rolePreferenceEnabled && rawPreferences) {
+    for (const p of campPlayers) {
+      const prefs = (rawPreferences[p.id] ?? []).slice(0, 5);
+      prefs.forEach((roleId, idx) => {
+        const def = BRAWL_ROLE_REGISTRY[roleId];
+        if (!def || def.camp !== camp) return; // 严格过滤非本阵营角色，杜绝阵营错配
+
+        const coreDef = unassignedCoreDefs.find(c => c.id === roleId);
+        const isCore = Boolean(coreDef);
+
+        let w = PREF_WEIGHTS[idx] ?? 1;
+        const recent = protectionOpts.recentRoles?.[p.id] ?? [];
+        const isBossRole = isCore && (coreDef!.role === 'merlin' || coreDef!.role === 'morgana' || coreDef!.role === 'assassin');
+        if (isBossRole && bossCooldown.has(p.id)) {
+          w = 0.01;
+        } else if (recent.length > 0 && recent[0] === (isCore ? coreDef!.role : defaultNonCoreRole)) {
+          w = w / 9;
+        }
+
+        playerWishesByRank[idx + 1].push({
+          player: p,
+          roleId,
+          wishRank: idx + 1,
+          weight: Math.max(0.01, w),
+          isCore,
+          coreDef,
+        });
+      });
+    }
+  }
+
+  const grantRole = (player: Player, roleId: string, role: Role, wishRank?: number) => {
+    assignedRoles[player.id] = role;
+    assignedBrawlRoles[player.id] = roleId;
+    assignedPlayerStates[player.id] = {
+      userId: player.id,
+      seat: player.seat,
+      roleId,
+      camp,
+      skillUsed: false,
+      ...(wishRank ? { wishRank } : {}),
+    };
+    takenRoleIds.add(roleId);
+    unassignedPlayers = unassignedPlayers.filter(p => p.id !== player.id);
+  };
+
+  // 1. 逐级按志愿位次（第1志愿 -> 第2志愿 -> ... -> 第5志愿）以人为本分发
+  for (let rank = 1; rank <= 5; rank++) {
+    const wishesAtRank = playerWishesByRank[rank] ?? [];
+    const activeWishes = wishesAtRank.filter(w =>
+      unassignedPlayers.some(p => p.id === w.player.id) &&
+      !takenRoleIds.has(w.roleId) &&
+      (!w.isCore || unassignedCoreDefs.some(c => c.id === w.roleId)) &&
+      (w.isCore || remainingNonCoreSlots > 0)
+    );
+
+    if (activeWishes.length === 0) continue;
+
+    // 按角色归集候选愿望
+    const wishesByRole = new Map<string, PlayerWish[]>();
+    for (const w of activeWishes) {
+      const list = wishesByRole.get(w.roleId) ?? [];
+      list.push(w);
+      wishesByRole.set(w.roleId, list);
+    }
+
+    const winnersForCore: PlayerWish[] = [];
+    const winnersForNonCore: PlayerWish[] = [];
+
+    for (const [, candidates] of wishesByRole.entries()) {
+      let winner = candidates[0];
+      if (candidates.length > 1) {
+        const totalW = candidates.reduce((sum, c) => sum + c.weight, 0);
+        let randTicket = rng() * totalW;
+        for (const c of candidates) {
+          if (randTicket < c.weight) {
+            winner = c;
+            break;
+          }
+          randTicket -= c.weight;
+        }
+      }
+      if (winner.isCore) {
+        winnersForCore.push(winner);
+      } else {
+        winnersForNonCore.push(winner);
+      }
+    }
+
+    // A. 授予核心角色
+    for (const win of winnersForCore) {
+      if (!unassignedPlayers.some(p => p.id === win.player.id)) continue;
+      if (takenRoleIds.has(win.roleId)) continue;
+      const cDef = unassignedCoreDefs.find(c => c.id === win.roleId);
+      if (!cDef) continue;
+
+      grantRole(win.player, win.roleId, cDef.role, win.wishRank);
+      unassignedCoreDefs = unassignedCoreDefs.filter(c => c.id !== win.roleId);
+    }
+
+    // B. 授予非核心盲盒角色
+    const validNonCoreWinners = winnersForNonCore.filter(w =>
+      unassignedPlayers.some(p => p.id === w.player.id) &&
+      !takenRoleIds.has(w.roleId)
+    );
+
+    if (validNonCoreWinners.length <= remainingNonCoreSlots) {
+      for (const win of validNonCoreWinners) {
+        grantRole(win.player, win.roleId, defaultNonCoreRole, win.wishRank);
+        nonCoreAssignedRoleIds.push(win.roleId);
+        remainingNonCoreSlots--;
+      }
+    } else if (remainingNonCoreSlots > 0) {
+      const lotteryPool = [...validNonCoreWinners];
+      while (remainingNonCoreSlots > 0 && lotteryPool.length > 0) {
+        const totalW = lotteryPool.reduce((sum, c) => sum + c.weight, 0);
+        let randTicket = rng() * totalW;
+        let chosenIdx = 0;
+        for (let i = 0; i < lotteryPool.length; i++) {
+          if (randTicket < lotteryPool[i].weight) {
+            chosenIdx = i;
+            break;
+          }
+          randTicket -= lotteryPool[i].weight;
+        }
+        const win = lotteryPool.splice(chosenIdx, 1)[0];
+        grantRole(win.player, win.roleId, defaultNonCoreRole, win.wishRank);
+        nonCoreAssignedRoleIds.push(win.roleId);
+        remainingNonCoreSlots--;
+      }
+    }
+  }
+
+  // 2. 兜底处理：若仍有必出的核心角色未被任何玩家志愿认领，从剩余队员中委任
+  for (const cDef of [...unassignedCoreDefs]) {
+    if (unassignedPlayers.length === 0) break;
+
+    const candidates = unassignedPlayers.map(p => {
+      let w = 1;
+      const recent = protectionOpts.recentRoles?.[p.id] ?? [];
+      const isBossRole = cDef.role === 'merlin' || cDef.role === 'morgana' || cDef.role === 'assassin';
+      if (isBossRole && bossCooldown.has(p.id)) {
+        w = 0.01;
+      } else if (recent.length > 0 && recent[0] === cDef.role) {
+        w = w / 9;
+      }
+      return { player: p, weight: Math.max(0.01, w) };
+    });
+
+    const totalW = candidates.reduce((sum, c) => sum + c.weight, 0);
+    let randTicket = rng() * totalW;
+    let chosenPlayer = candidates[0].player;
+    for (const c of candidates) {
+      if (randTicket < c.weight) {
+        chosenPlayer = c.player;
+        break;
+      }
+      randTicket -= c.weight;
+    }
+
+    grantRole(chosenPlayer, cDef.id, cDef.role);
+    unassignedCoreDefs = unassignedCoreDefs.filter(c => c.id !== cDef.id);
+  }
+
+  // 3. 兜底处理：若仍有剩余非核心名额，从本阵营剩余可用池中随机抽取补齐
+  if (remainingNonCoreSlots > 0 && unassignedPlayers.length > 0) {
+    const availableNonCorePool = Object.values(BRAWL_ROLE_REGISTRY).filter(r =>
+      r.camp === camp &&
+      !r.isCore &&
+      !takenRoleIds.has(r.id) &&
+      coreDefs.every(c => c.id !== r.id)
+    );
+
+    const neededCount = Math.min(remainingNonCoreSlots, unassignedPlayers.length);
+    const drawnRoles = sampleWithoutReplacement(availableNonCorePool, neededCount, rng);
+
+    const shuffledRemaining = shuffle([...unassignedPlayers]);
+    for (let i = 0; i < drawnRoles.length; i++) {
+      const p = shuffledRemaining[i];
+      const roleDef = drawnRoles[i];
+      grantRole(p, roleDef.id, defaultNonCoreRole);
+      nonCoreAssignedRoleIds.push(roleDef.id);
+      remainingNonCoreSlots--;
+    }
+  }
+
+  return {
+    assignedRoles,
+    assignedBrawlRoles,
+    assignedPlayerStates,
+    nonCoreAssignedRoleIds,
+  };
+}
+
 export function createGame(
   id: string,
   players: Player[],
@@ -171,9 +415,7 @@ export function createGame(
 
   if (settings.brawlModeEnabled) {
     const rawPreferences = protectionOpts.rolePreferences;
-    const assignment = drawBrawlRoles(sorted.length, undefined, Math.random, rawPreferences);
     brawlRoles = {};
-    const playerStates: Record<string, BrawlPlayerState> = {};
 
     const redRoleCount = BRAWL_BASE_ROLE_CONFIG[players.length].filter(r => teamOf(r) === 'red').length;
 
@@ -244,141 +486,102 @@ export function createGame(
 
     const is9Plus = sorted.length >= 9;
 
-    // 3. 准备盲盒抽取出来的红蓝两方角色池（9人及以上局排除已作为核心固定登场的观音与黄眉）
-    const blueNonCore = shuffle(
-      assignment.roles.filter(r => r.camp === 'blue' && !r.isCore && (!is9Plus || r.id !== 'guanyin_pusa'))
-    );
-    const redNonCore = shuffle(
-      assignment.roles.filter(r => r.camp === 'red' && !r.isCore && (!is9Plus || r.id !== 'huangmei_laoguai'))
-    );
+    // 3. 执行“以人为本、志愿直达”的阵营角色分配
+    const blueCoreDefs: { id: string; role: Role }[] = is9Plus
+      ? [
+          { id: 'sun_wukong', role: 'merlin' },
+          { id: 'tang_seng', role: 'percival' },
+          { id: 'guanyin_pusa', role: 'loyal' },
+        ]
+      : [
+          { id: 'sun_wukong', role: 'merlin' },
+          { id: 'tang_seng', role: 'percival' },
+        ];
 
-    // 4. 为队伍分配角色
-    const assignTeamRoles = (
-      teamPlayers: Player[],
-      coreRoles: { id: string; role: Role }[],
-      nonCorePool: typeof blueNonCore,
-      defaultNonCoreRole: Role
-    ) => {
-      const remainingPlayers = [...teamPlayers];
-      // 优先满足对核心角色（孙悟空/唐僧/红孩儿/六耳猕猴/9人局观音与黄眉）有志愿的玩家，兼顾 bossCooldown 与历史连庄衰减
-      for (const core of coreRoles) {
-        const candidates = remainingPlayers.map(p => {
-          const prefs = settings.rolePreferenceEnabled ? (rawPreferences?.[p.id] ?? []) : [];
-          const prefIndex = prefs.indexOf(core.id);
-          let w = prefIndex >= 0 ? (PREF_WEIGHTS[prefIndex] ?? 2) : 1;
+    const redCoreDefs: { id: string; role: Role }[] = is9Plus
+      ? [
+          { id: 'hong_haier', role: 'assassin' },
+          { id: 'liuer_mihou', role: 'morgana' },
+          { id: 'huangmei_laoguai', role: 'minion' },
+        ]
+      : [
+          { id: 'hong_haier', role: 'assassin' },
+          { id: 'liuer_mihou', role: 'morgana' },
+        ];
 
-          const recent = protectionOpts.recentRoles?.[p.id] ?? [];
-          const isBossRole = core.role === 'merlin' || core.role === 'morgana' || core.role === 'assassin';
-          if (isBossRole && bossCooldown.has(p.id)) {
-            w = 0.01;
-          } else if (recent.length > 0 && recent[0] === core.role) {
-            // 上局刚出任过相同核心首领角色，大幅降低权重，促进轮换
-            w = w / 9;
-          }
-
-          return { player: p, weight: Math.max(0.01, w) };
-        });
-
-        const totalWeight = candidates.reduce((sum, c) => sum + c.weight, 0);
-        let randTicket = Math.random() * totalWeight;
-        let chosenCandidate = candidates[0].player;
-        for (const c of candidates) {
-          if (randTicket < c.weight) {
-            chosenCandidate = c.player;
-            break;
-          }
-          randTicket -= c.weight;
-        }
-
-        const candidateIdx = remainingPlayers.findIndex(p => p.id === chosenCandidate.id);
-        const assignedPlayer = remainingPlayers.splice(candidateIdx, 1)[0];
-
-        if (assignedPlayer) {
-          roles[assignedPlayer.id] = core.role;
-          brawlRoles![assignedPlayer.id] = core.id;
-          playerStates[assignedPlayer.id] = {
-            userId: assignedPlayer.id,
-            seat: assignedPlayer.seat,
-            roleId: core.id,
-            camp: BRAWL_ROLE_REGISTRY[core.id]?.camp ?? (teamOf(core.role) === 'red' ? 'red' : 'blue'),
-            skillUsed: false,
-          };
-        }
-      }
-
-      // 对剩余非核心队员，随机打乱顺序后根据心仪志愿优先匹配盲盒池中抽出的角色
-      const shuffledRemaining = shuffle([...remainingPlayers]);
-      for (const p of shuffledRemaining) {
-        const playerPrefs = settings.rolePreferenceEnabled ? (rawPreferences?.[p.id] ?? []) : [];
-        let matchedRole: typeof nonCorePool[number] | undefined;
-        for (const prefId of playerPrefs) {
-          const idx = nonCorePool.findIndex(r => r.id === prefId);
-          if (idx !== -1) {
-            matchedRole = nonCorePool.splice(idx, 1)[0];
-            break;
-          }
-        }
-        if (!matchedRole) {
-          matchedRole = nonCorePool.pop() || (defaultNonCoreRole === 'loyal' ? BRAWL_ROLE_REGISTRY.sun_wukong : BRAWL_ROLE_REGISTRY.hong_haier);
-        }
-
-        roles[p.id] = defaultNonCoreRole;
-        brawlRoles![p.id] = matchedRole.id;
-        playerStates[p.id] = {
-          userId: p.id,
-          seat: p.seat,
-          roleId: matchedRole.id,
-          camp: matchedRole.camp,
-          skillUsed: false,
-        };
-      }
-    };
-
-    // 执行红方分配（9人及以上局固定登场黄眉老怪）
-    assignTeamRoles(
-      redPlayers,
-      is9Plus
-        ? [
-            { id: 'hong_haier', role: 'assassin' },
-            { id: 'liuer_mihou', role: 'morgana' },
-            { id: 'huangmei_laoguai', role: 'minion' },
-          ]
-        : [
-            { id: 'hong_haier', role: 'assassin' },
-            { id: 'liuer_mihou', role: 'morgana' },
-          ],
-      redNonCore,
-      'minion'
-    );
-
-    // 执行蓝方分配（9人及以上局固定登场观音菩萨）
-    assignTeamRoles(
+    const blueResult = assignCampRolesDirectly(
       bluePlayers,
-      is9Plus
-        ? [
-            { id: 'sun_wukong', role: 'merlin' },
-            { id: 'tang_seng', role: 'percival' },
-            { id: 'guanyin_pusa', role: 'loyal' },
-          ]
-        : [
-            { id: 'sun_wukong', role: 'merlin' },
-            { id: 'tang_seng', role: 'percival' },
-          ],
-      blueNonCore,
-      'loyal'
+      'blue',
+      blueCoreDefs,
+      'loyal',
+      rawPreferences,
+      Boolean(settings.rolePreferenceEnabled),
+      protectionOpts,
+      shuffle,
+      Math.random
     );
+
+    const redResult = assignCampRolesDirectly(
+      redPlayers,
+      'red',
+      redCoreDefs,
+      'minion',
+      rawPreferences,
+      Boolean(settings.rolePreferenceEnabled),
+      protectionOpts,
+      shuffle,
+      Math.random
+    );
+
+    roles = { ...blueResult.assignedRoles, ...redResult.assignedRoles };
+    brawlRoles = { ...blueResult.assignedBrawlRoles, ...redResult.assignedBrawlRoles };
+    const playerStates: Record<string, BrawlPlayerState> = {
+      ...blueResult.assignedPlayerStates,
+      ...redResult.assignedPlayerStates,
+    };
 
     brawlState = createBrawlGameState(
       playerStates,
-      assignment.blindBox.bluePoolRoles,
-      assignment.blindBox.redPoolRoles,
+      blueResult.nonCoreAssignedRoleIds,
+      redResult.nonCoreAssignedRoleIds
     );
-    brawlPeekedMap = assignment.peekedMap;
+
+    // 构造特定情报特权（二郎神看 1 妖，百眼魔君看 1 仙，老鼠精看 1 仙）
+    brawlPeekedMap = {};
+    const allAssignedBlue = Object.values(blueResult.assignedBrawlRoles);
+    const allAssignedRed = Object.values(redResult.assignedBrawlRoles);
+
+    // 二郎神：看 1 红
+    if (allAssignedBlue.includes('erlang_shen')) {
+      const targetRedId = redResult.nonCoreAssignedRoleIds.length > 0
+        ? redResult.nonCoreAssignedRoleIds[0]
+        : (is9Plus ? 'huangmei_laoguai' : 'hong_haier');
+      const targetDef = BRAWL_ROLE_REGISTRY[targetRedId];
+      brawlPeekedMap.erlang_shen = [{ roleId: targetRedId, roleName: targetDef ? targetDef.name : targetRedId, camp: 'red' }];
+    }
+
+    // 百眼魔君：看 1 蓝
+    if (allAssignedRed.includes('baiyan_mojun')) {
+      const targetBlueId = blueResult.nonCoreAssignedRoleIds.length > 0
+        ? blueResult.nonCoreAssignedRoleIds[0]
+        : (is9Plus ? 'guanyin_pusa' : 'sun_wukong');
+      const targetDef = BRAWL_ROLE_REGISTRY[targetBlueId];
+      brawlPeekedMap.baiyan_mojun = [{ roleId: targetBlueId, roleName: targetDef ? targetDef.name : targetBlueId, camp: 'blue' }];
+    }
+
+    // 老鼠精：看 1 蓝
+    if (allAssignedRed.includes('laoshu_jing')) {
+      const targetBlueId = blueResult.nonCoreAssignedRoleIds.length > 0
+        ? blueResult.nonCoreAssignedRoleIds[blueResult.nonCoreAssignedRoleIds.length - 1]
+        : (is9Plus ? 'guanyin_pusa' : 'tang_seng');
+      const targetDef = BRAWL_ROLE_REGISTRY[targetBlueId];
+      brawlPeekedMap.laoshu_jing = [{ roleId: targetBlueId, roleName: targetDef ? targetDef.name : targetBlueId, camp: 'blue' }];
+    }
 
     if (brawlPeekedMap) {
-      for (const [pId, peekedList] of Object.entries(brawlPeekedMap)) {
-        const p = sorted.find(x => x.id === pId);
-        const ps = playerStates[pId];
+      for (const [roleId, peekedList] of Object.entries(brawlPeekedMap)) {
+        const p = sorted.find(x => playerStates[x.id]?.roleId === roleId);
+        const ps = p ? playerStates[p.id] : undefined;
         if (p && ps && peekedList.length > 0) {
           const roleDef = BRAWL_ROLE_REGISTRY[ps.roleId];
           const peekedNames = peekedList.map(x => `【${x.roleName}】`).join('、');

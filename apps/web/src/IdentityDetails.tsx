@@ -234,6 +234,20 @@ export function IdentityDetails({
                 }}>
                   {selfBrawl.camp === 'blue' ? '仙佛阵营' : '妖魔阵营'}
                 </span>
+                {Boolean(selfBrawl.wishRank) && (
+                  <span style={{
+                    fontSize: '11px',
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    background: 'rgba(234, 179, 8, 0.2)',
+                    color: '#fde047',
+                    border: '1px solid rgba(234, 179, 8, 0.4)',
+                    flexShrink: 0,
+                    fontWeight: 600,
+                  }}>
+                    ✨ 命中第 {selfBrawl.wishRank} 心愿
+                  </span>
+                )}
               </div>
               <div style={{ fontSize: '12px', color: '#e2e8f0', marginTop: '2px', lineHeight: 1.45 }}>
                 <strong style={{ color: '#fbbf24' }}>绝技 · {selfBrawl.skill.skillName}：</strong>

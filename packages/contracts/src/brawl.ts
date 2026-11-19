@@ -120,6 +120,7 @@ export interface BrawlPlayerState {
   camp: BrawlCamp;
   skillUsed: boolean;
   isAwakened?: boolean;
+  wishRank?: number; // 命中心愿的志愿序号 (1 ~ 5)
 }
 
 export interface BrawlGameState {
@@ -173,6 +174,7 @@ export interface SelfBrawlView {
   skillAvailable: boolean;
   skillUsed: boolean;
   isAwakened?: boolean;
+  wishRank?: number; // 命中心愿的志愿序号 (1 ~ 5)
   peekedRoles?: { roleId: string; roleName: string; camp: BrawlCamp }[];
   zhaoyaoResult?: boolean; // 李天王专属：当前车队是否有妖魔
   dapengExcludedPlayerId?: string; // 终局刺杀阶段排除的非孙悟空席位

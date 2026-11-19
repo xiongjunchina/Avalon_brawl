@@ -358,6 +358,7 @@ export function projectSelfBrawlView(
     skillAvailable: !playerState.skillUsed,
     skillUsed: playerState.skillUsed,
     isAwakened: playerState.isAwakened,
+    wishRank: playerState.wishRank,
     peekedRoles: peekedMap[playerState.roleId]?.length ? peekedMap[playerState.roleId] : undefined,
     ...(isLiTianwang && state.zhaoyaoResult ? { zhaoyaoResult: state.zhaoyaoResult.hasDemon } : {}),
     ...(isAssassinOrDapeng && state.dapengExcludedPlayerId ? { dapengExcludedPlayerId: state.dapengExcludedPlayerId } : {}),

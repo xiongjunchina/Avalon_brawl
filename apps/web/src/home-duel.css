@@ -118,6 +118,16 @@ main.app-shell.is-home-viewport::before { background: none; }
   height: var(--home-toolbar-height) !important;
   min-height: var(--home-toolbar-height) !important; max-height: var(--home-toolbar-height) !important;
   border-radius: 999px !important;
+  background: linear-gradient(180deg, #1b3a5d 0%, #0d2238 100%) !important;
+  border: 1.4px solid #ffd875 !important;
+  color: #fffdf0 !important;
+  box-shadow: 0 3px 8px rgba(10, 25, 45, 0.35), inset 0 1px 0 rgba(255, 235, 160, 0.35) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7) !important;
+}
+.home-duel-screen .home-tools .tool-pill:hover:not(:disabled) {
+  background: linear-gradient(180deg, #254d7b 0%, #133252 100%) !important;
+  border-color: #ffe082 !important;
+  color: #ffffff !important;
 }
 .home-duel-screen .home-tools .sound-button.has-label {
   flex: 0 0 auto !important; width: auto !important; min-width: 74px !important; max-width: none !important;
@@ -125,6 +135,15 @@ main.app-shell.is-home-viewport::before { background: none; }
   min-height: var(--home-toolbar-height) !important; max-height: var(--home-toolbar-height) !important;
   padding: 0 10px !important; gap: 5px; border-radius: 999px !important;
   font-size: 13px;
+  background: linear-gradient(180deg, #1b3a5d 0%, #0d2238 100%) !important;
+  border: 1.4px solid #ffd875 !important;
+  color: #fffdf0 !important;
+  box-shadow: 0 3px 8px rgba(10, 25, 45, 0.35), inset 0 1px 0 rgba(255, 235, 160, 0.35) !important;
+}
+.home-duel-screen .home-tools .sound-button.has-label:hover:not(:disabled) {
+  background: linear-gradient(180deg, #254d7b 0%, #133252 100%) !important;
+  border-color: #ffe082 !important;
+  color: #ffffff !important;
 }
 @media (max-width: 380px) {
   .mp-home-screen.home-duel-screen { --home-toolbar-height: 36px; }

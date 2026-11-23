@@ -45,7 +45,7 @@
 .chronicle-surface .battle-history { display: block; min-width: 0; }
 .chronicle-surface .round-jump-nav { top: 0; padding: 4px; gap: 4px; background: #e9dcc1; border-color: #d5c4a6; border-radius: 8px; }
 .chronicle-surface .round-jump-nav > button { min-height: 36px; padding: 5px 8px; font-size: 12px; }
-.chronicle-surface .round-jump-nav [aria-pressed="true"] { border-color: #a28047; color: #683c0b; background: #fffaf0; }
+.chronicle-surface .round-jump-nav [aria-pressed="true"] { border-color: #ffd875; color: #fffdf0; background: linear-gradient(180deg, #1b3a5d 0%, #0d2238 100%); font-weight: 800; box-shadow: 0 2px 8px rgba(10, 25, 45, 0.4), inset 0 1px 0 rgba(255, 235, 160, 0.4); }
 .account-replay.chronicle-surface .round-jump-nav { top: 64px; }
 .chronicle-surface .battle-round-anchor { margin-top: 8px; scroll-margin-top: 52px; }
 .account-replay.chronicle-surface .battle-round-anchor { scroll-margin-top: 116px; }
@@ -103,7 +103,7 @@
 .chronicle-sheet .mission-modal-tabs { flex-shrink: 0; padding: 8px 10px; background: #e9dcc1; }
 .chronicle-sheet .mission-modal-tabs button { min-height: 40px; padding: 4px 2px; font-size: 11px; }
 .chronicle-sheet .mission-modal-tabs .wuyue-bg-svg { display: none; }
-.chronicle-sheet .mission-modal-tabs [aria-pressed="true"] { color: #683c0b; border-color: #a28047; background: #fffaf0; }
+.chronicle-sheet .mission-modal-tabs [aria-pressed="true"] { color: #fffdf0; border-color: #ffd875; background: linear-gradient(180deg, #1b3a5d 0%, #0d2238 100%); font-weight: 800; box-shadow: 0 2px 8px rgba(10, 25, 45, 0.4), inset 0 1px 0 rgba(255, 235, 160, 0.4); }
 .chronicle-sheet .game-history { padding: 8px 0; margin: 10px 0 0; border-color: #d5c4a6; }
 .chronicle-sheet .game-history summary { color: #553b25; font-size: 14px; }
 .mp-setup-screen .mp-setup-footer .setup-practice-entry { display: flex; align-items: center; justify-content: center; gap: 12px; width: auto; min-height: 40px; padding: 6px 10px; margin: 2px 0 0; color: #f6e6c6; background: #321816; border: 1px solid #856443; border-radius: 8px; box-shadow: none; text-shadow: none; font: 500 14px/1.4 var(--sans); }

@@ -419,11 +419,9 @@ export function createGame(
 
     const redRoleCount = BRAWL_BASE_ROLE_CONFIG[players.length].filter(r => teamOf(r) === 'red').length;
 
-    // 1. 计算每个玩家对红方与蓝方的阵营倾向得分，融入连庄惩罚 (anti-streak) 与保底约束
+    // 1. 计算每个玩家对红方与蓝方的阵营倾向得分，融入自然概率与连庄保护约束
     const PREF_WEIGHTS = [8, 4, 2, 1, 1];
-    const REPEAT_SCALE = 81;
     const blueGuaranteed = new Set(protectionOpts.blueGuaranteedUserIds ?? []);
-    const bossCooldown = new Set(protectionOpts.bossCooldownUserIds ?? []);
 
     const playerScores = sorted.map(p => {
       const prefs = settings.rolePreferenceEnabled ? (rawPreferences?.[p.id] ?? []) : [];
@@ -451,30 +449,38 @@ export function createGame(
         }
       }
 
-      // 阵营权重：偏好得分 + 连庄衰减（连当红方则大幅下调红方权重，避免固定阵营）
-      let redWeight = (redScore + 1) * (REPEAT_SCALE / 3 ** Math.min(redStreak, 4));
-      let blueWeight = (blueScore + 1) * (REPEAT_SCALE / 3 ** Math.min(blueStreak, 4));
+      // 阵营偏好净得分：红方偏好加分，蓝方偏好减分（满心愿最大加减 800 分，绝对主导阵营划分）
+      const preferenceDiff = (redScore - blueScore) * 50;
 
-      // 若受好人保底保护，严禁分入红方
-      if (blueGuaranteed.has(p.id) || redStreak >= 3) {
-        redWeight = 0;
-        blueWeight = Math.max(blueWeight, 1000);
-      } else if (blueStreak >= 4) {
-        redWeight = Math.max(redWeight * 5, 500);
+      // 平滑连庄调节分（避免单局 1 连庄即遭遇 500 分断层惩罚导致机械式的红蓝交替）：
+      // redStreak === 1: 仅微扣 80 分，保留约 30%~40% 的自然连庄概率
+      // redStreak === 2: 明显扣 350 分，有效抑制 3 连红
+      // redStreak >= 3: 强制归零 -999999，绝对保底转蓝
+      let streakAdjustment = 0;
+      if (redStreak === 1) streakAdjustment = -80;
+      else if (redStreak === 2) streakAdjustment = -350;
+      else if (redStreak >= 3 || blueGuaranteed.has(p.id)) streakAdjustment = -999999;
+
+      if (streakAdjustment > -999999) {
+        if (blueStreak === 1) streakAdjustment += 40;
+        else if (blueStreak === 2) streakAdjustment += 100;
+        else if (blueStreak === 3) streakAdjustment += 200;
+        else if (blueStreak >= 4) streakAdjustment += 600;
       }
 
-      const totalW = redWeight + blueWeight;
-      const redRatio = totalW > 0 ? (redWeight / totalW) * 1000 : 500;
+      // 基础分为 500，加上偏好分、连庄调节分与随机自然微扰 (±120)
+      const isHardBlue = blueGuaranteed.has(p.id) || redStreak >= 3;
+      const jitter = (Math.random() * 240) - 120;
+      const redPropensity = isHardBlue ? -999999 : (500 + preferenceDiff + streakAdjustment + jitter);
 
       return {
         player: p,
         prefs,
         redStreak,
         blueStreak,
-        redWeight,
-        blueWeight,
-        // 倾向比率 + 随机微扰（消除相同志愿时的绝对固定座次绑定）
-        redPropensity: redWeight <= 0 ? -999999 : redRatio + (Math.random() * 40 - 20),
+        redScore,
+        blueScore,
+        redPropensity,
       };
     });
 

@@ -249,6 +249,9 @@ test('IdentityDetails: renders compact brawl identity card with protected avatar
   assert.match(html, /brawl-identity-avatar-btn/);
   assert.match(html, /【红孩儿】· 圣婴大王/);
   assert.match(html, /绝技 · 三昧真火/);
+  assert.match(html, /发动时机/);
+  assert.match(html, /法宝效果/);
+  assert.match(html, /破局要诀/);
   assert.match(html, /发动绝技/);
   assert.match(html, /神魔心法/);
   // Strictly verifies that the second classic role card and redundant legacy treasures are NOT rendered in brawl mode

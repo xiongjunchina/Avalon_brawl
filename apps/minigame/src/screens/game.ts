@@ -1,4 +1,4 @@
-import {GUANYIN_WINDOW_MS} from '@avalon/game-core';
+import {GUANYIN_WINDOW_MS, BRAWL_ROLE_REGISTRY} from '@avalon/game-core';
 import type { Command, GameView, RoomView, User } from '@avalon/contracts';
 import { commandId } from './lobby.js';
 import { formatRoleName } from '../../../web/src/roles.js';
@@ -97,7 +97,7 @@ export function gameScreen(room: RoomView, user: User, ui: GameUiState, now = Da
     ...(game.humanBagBannedPlayerId ? [{ id: 'treasure:banNotice', text: `本轮人种袋禁选：${playerLabel(game.humanBagBannedPlayerId)}` }] : []),
     ...(game.bananaFanNotice ? [{ id: 'treasure:fanNotice', text: game.bananaFanNotice }] : []),
     ...game.players.map(player => ({ id: `player:${player.id}`, text: `${player.seat}号 ${player.nickname}${player.id === game.captainId ? ' · 队长' : ''}${ui.selectedIds?.includes(player.id) ? ' · 已选队员' : ''}${ui.targetId === player.id ? ' · 已选目标' : ''}` })),
-    { id: 'role', text: ui.privateRoleVisible && self ? `你的身份：${formatRoleName(self.role, self.loyalGuardian, self.femaleDemon)} · ${self.team === 'blue' ? '取经阵营' : '妖魔阵营'}` : '点此查看自己的身份' },
+    { id: 'role', text: ui.privateRoleVisible && self ? `你的身份：${game.selfBrawl ? game.selfBrawl.roleName : formatRoleName(self.role, self.loyalGuardian, self.femaleDemon)} · ${self.team === 'blue' ? '取经阵营' : '妖魔阵营'}` : '点此查看自己的身份' },
   ];
   if (ui.privateRoleVisible && self?.guardianClue) rows.push({ id: 'clue', text: self.guardianClue.description });
   if (ui.privateRoleVisible && self?.evilIds.length) rows.push({ id: 'evil', text: `已知妖魔：${self.evilIds.map(playerLabel).join('、')}` });
@@ -159,7 +159,7 @@ export function gameScreen(room: RoomView, user: User, ui: GameUiState, now = Da
   if (game.phase === 'assassination' && self?.role === 'assassin') rows.push({ id: 'assassinate', text: `刺杀所选玩家${ui.targetId ? ' ✓' : ''}` });
   if (game.phase === 'finished' || game.phase === 'aborted') rows.push(
     { id: 'result', text: `结果：${game.result?.winner === 'blue' ? '取经阵营获胜' : game.result?.winner === 'red' ? '妖魔阵营获胜' : '对局中止'} · ${game.result?.reason ?? ''}` },
-    ...Object.entries(game.revealedRoles ?? {}).map(([id, role]) => ({ id: `revealed:${id}`, text: `${playerLabel(id)} · ${formatRoleName(role)}` })),
+    ...Object.entries(game.revealedRoles ?? {}).map(([id, role]) => ({ id: `revealed:${id}`, text: `${playerLabel(id)} · ${game.revealedBrawlRoles?.[id] ? (BRAWL_ROLE_REGISTRY[game.revealedBrawlRoles[id]]?.name ?? formatRoleName(role)) : formatRoleName(role)}` })),
     ...(room.hostId === user.id ? [{ id: 'rematch', text: '返回房间再来一局' }] : [{ id: 'result:waiting', text: '等待房主返回房间' }]),
   );
   if (!['finished', 'aborted'].includes(game.phase)) {
@@ -216,8 +216,11 @@ function gameOverlayScreen(room: RoomView, user: User, ui: GameUiState, base: Sc
     title = '我的身份法相';
     portrait = (self.loyalGuardian ? self.loyalGuardian + '-loyal' : self.femaleDemon ? 'minion-' + self.femaleDemon : self.role) + '-160.webp';
     const description = roleDescriptions[self.role];
-    rows = [{ id: 'role-name', text: formatRoleName(self.role, self.loyalGuardian, self.femaleDemon) + ' · ' + (self.team === 'blue' ? '取经正果' : '群妖乱道') },
-      { id: 'role-ability', text: '身份能力：' + description.ability }, { id: 'role-visibility', text: '身份关联：' + description.visibility },
+    const brawlName = game.selfBrawl?.roleName;
+    const displayName = brawlName ?? formatRoleName(self.role, self.loyalGuardian, self.femaleDemon);
+    const abilityText = game.selfBrawl ? `【${game.selfBrawl.skill.skillName}】${game.selfBrawl.skill.description}` : description.ability;
+    rows = [{ id: 'role-name', text: displayName + ' · ' + (self.team === 'blue' ? '取经正果' : '群妖乱道') },
+      { id: 'role-ability', text: '身份能力：' + abilityText }, { id: 'role-visibility', text: '身份关联：' + description.visibility },
       ...base.rows.filter(row => row.id === 'clue' || row.id === 'evil' || row.id.endsWith('Candidates') || row.id.startsWith('inspection:')),
       { id: 'role-tip', text: '取经锦囊：' + description.tip }, { id: 'treasures', text: '专属法宝与神兵' },
       ...base.rows.filter(row => ['confirmRole','confirmInspection','earlyAttempt','earlySkip'].includes(row.id))];

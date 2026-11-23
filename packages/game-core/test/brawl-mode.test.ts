@@ -20,7 +20,7 @@ import {
   BRAWL_MISSION_SIZES,
   hasUnusedGuanyin,
 } from '../src/index.js';
-import { defaultSettings, type BrawlRoleDef, type BrawlPlayerState } from '@avalon/contracts';
+import { defaultSettings, type BrawlRoleDef, type BrawlPlayerState, type Role } from '@avalon/contracts';
 
 test('brawl: registry contains 30 legendary Journey to the West characters (15 Blue vs 15 Red)', () => {
   const roles = Object.values(BRAWL_ROLE_REGISTRY);
@@ -1799,4 +1799,68 @@ test('brawl: wish competition resolution and cascade to lower ranks', () => {
     assert.equal(u4Rank, 2, 'u4 wishRank is 2');
   }
 });
+
+test('brawl: smooth anti-streak allows natural same-camp continuation without rigid oscillation', () => {
+  const players = Array.from({ length: 9 }, (_, i) => ({
+    id: `u${i + 1}`,
+    nickname: `玩家${i + 1}`,
+    seat: i + 1,
+  }));
+
+  // u1, u2, u3 played Red in the previous single match (redStreak = 1)
+  // u4, u5, u6, u7, u8, u9 played Blue (blueStreak = 1)
+  const recentRoles: Record<string, Role[]> = {
+    u1: ['minion'],
+    u2: ['assassin'],
+    u3: ['morgana'],
+    u4: ['merlin'],
+    u5: ['percival'],
+    u6: ['loyal'],
+    u7: ['loyal'],
+    u8: ['loyal'],
+    u9: ['loyal'],
+  };
+
+  let sameCampContinuationCount = 0;
+  const iterations = 50;
+  for (let i = 0; i < iterations; i++) {
+    const game = createGame(
+      `brawl-streak-test-${i}`,
+      players,
+      { ...defaultSettings, playerCount: 9, brawlModeEnabled: true },
+      a => a,
+      { recentRoles }
+    );
+    // Count if any of u1, u2, u3 is Red again
+    const u1Camp = game.brawl!.playerStates['u1'].camp;
+    const u2Camp = game.brawl!.playerStates['u2'].camp;
+    const u3Camp = game.brawl!.playerStates['u3'].camp;
+    if (u1Camp === 'red' || u2Camp === 'red' || u3Camp === 'red') {
+      sameCampContinuationCount++;
+    }
+  }
+
+  // Under the old 81x penalty, sameCampContinuationCount was exactly 0 (100% ping-pong lockout)
+  // Under the new smooth formula, single-streak players have natural ~25%-40% continuation opportunity
+  assert.ok(
+    sameCampContinuationCount > 0,
+    `Natural continuation occurred in ${sameCampContinuationCount}/${iterations} games (no longer 0% lockout)`
+  );
+
+  // Now verify strict 3-streak protection: u1 has 3 consecutive red streaks
+  const hardRedStreakRoles: Record<string, Role[]> = {
+    u1: ['minion', 'assassin', 'morgana'],
+  };
+  for (let i = 0; i < 10; i++) {
+    const game = createGame(
+      `brawl-hard-streak-test-${i}`,
+      players,
+      { ...defaultSettings, playerCount: 9, brawlModeEnabled: true },
+      a => a,
+      { recentRoles: hardRedStreakRoles }
+    );
+    assert.equal(game.brawl!.playerStates['u1'].camp, 'blue', 'Player with 3 red streaks is strictly guaranteed Blue');
+  }
+});
+
 

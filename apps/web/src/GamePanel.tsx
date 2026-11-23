@@ -397,12 +397,18 @@ export function GamePanel({
         (() => {
           const myRevealedRole = g.revealedRoles?.[userId] ?? self?.role;
           const myLoyalGuardian = revealedLoyalGuardians[userId] ?? self?.loyalGuardian;
-          const myTeam = myRevealedRole ? roleTeam(myRevealedRole) : self?.team;
+          const myBrawlRoleId = g.revealedBrawlRoles?.[userId] ?? g.selfBrawl?.roleId;
+          const myBrawlRole = myBrawlRoleId ? BRAWL_ROLE_REGISTRY[myBrawlRoleId] : undefined;
+          const myTeam = myBrawlRole ? myBrawlRole.camp : (myRevealedRole ? roleTeam(myRevealedRole) : self?.team);
+          const myRoleDisplayName = myBrawlRole ? myBrawlRole.name : (myRevealedRole ? formatRoleName(myRevealedRole, myLoyalGuardian) : '');
           const winnerTeam = g.result.winner;
           const isPersonalWin = winnerTeam && myTeam ? winnerTeam === myTeam : null;
           const targetRole =
             g.result.targetId && g.revealedRoles ? g.revealedRoles[g.result.targetId] : undefined;
           const targetLoyalGuardian = g.result.targetId ? revealedLoyalGuardians[g.result.targetId] : undefined;
+          const targetBrawlRoleId = g.result.targetId ? g.revealedBrawlRoles?.[g.result.targetId] : undefined;
+          const targetBrawlRole = targetBrawlRoleId ? BRAWL_ROLE_REGISTRY[targetBrawlRoleId] : undefined;
+          const targetRoleDisplayName = targetBrawlRole ? targetBrawlRole.name : (targetRole ? formatRoleName(targetRole, targetLoyalGuardian) : '');
           return (
             <section
               className={[
@@ -442,11 +448,11 @@ export function GamePanel({
                         : '本局不计胜负'}
                   </h2>
                 </div>
-                {myRevealedRole && (
+                {myRoleDisplayName && (
                   <div className={`ended-my-role-pill team-${myTeam}`}>
                     <span>我的底牌</span>
                     <strong>
-                      {formatRoleName(myRevealedRole, myLoyalGuardian)}（{myTeam === 'blue' ? '蓝方' : '红方'}）
+                      {myRoleDisplayName}（{myTeam === 'blue' ? '蓝方' : '红方'}）
                     </strong>
                   </div>
                 )}
@@ -472,7 +478,7 @@ export function GamePanel({
                   {reasons[g.result.reason]}
                   {g.result.targetId
                     ? `，刺杀目标为 ${name(g.result.targetId)}${
-                        targetRole ? `（${formatRoleName(targetRole, targetLoyalGuardian)}）` : ''
+                        targetRoleDisplayName ? `（${targetRoleDisplayName}）` : ''
                       }`
                     : ''}
                   。
@@ -1450,7 +1456,7 @@ export function GamePanel({
         />
       )}
 
-      {self && treasureOpen && treasureEntry.canOpen && connected && guanyinNotice.pageVisible && !privateResultPending && (
+      {self && treasureOpen && treasureEntry.canOpen && connected && guanyinNotice.pageVisible && !privateResultPending && !g.brawl && !g.selfBrawl && (
         <TreasureModal
           open
           onClose={() => setTreasureOpen(false)}

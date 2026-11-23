@@ -9,6 +9,7 @@ import { RoleViewerModal } from './RoleViewerModal';
 import { TreasureModal } from './TreasureModal';
 import { GUARDIAN_TREASURE_DISABLED_REASON, treasureAccess } from './treasure-access';
 import { roleDescriptions } from './GuidePanel';
+import { BRAWL_PHASE_NAMES, BRAWL_TACTICAL_TIPS, getBrawlTacticalTip } from './brawl-roles';
 
 /** Only the server-projected, private self view is accepted. Never infer other roles. */
 export function IdentityDetails({
@@ -249,9 +250,41 @@ export function IdentityDetails({
                   </span>
                 )}
               </div>
-              <div style={{ fontSize: '12px', color: '#e2e8f0', marginTop: '2px', lineHeight: 1.45 }}>
-                <strong style={{ color: '#fbbf24' }}>绝技 · {selfBrawl.skill.skillName}：</strong>
-                <span style={{ color: '#cbd5e1' }}>{selfBrawl.skill.description}</span>
+              <div style={{
+                fontSize: '12px',
+                color: '#e2e8f0',
+                marginTop: '6px',
+                background: 'rgba(15, 23, 42, 0.65)',
+                border: '1px solid rgba(148, 163, 184, 0.2)',
+                borderRadius: '8px',
+                padding: '6px 8px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px',
+                lineHeight: 1.45,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
+                  <span style={{ color: '#ffd54f', fontWeight: 700, fontSize: '13px' }}>
+                    📿 本命法宝 · 绝技 · {selfBrawl.skill.skillName}
+                  </span>
+                  <span style={{ fontSize: '10.5px', color: '#94a3b8', background: 'rgba(51, 65, 85, 0.6)', padding: '1px 6px', borderRadius: '4px' }}>
+                    {selfBrawl.skill.maxUses === 1 ? '整局限用 1 次' : '常驻被动'}
+                  </span>
+                </div>
+                <div style={{ fontSize: '11.5px', color: '#cbd5e1' }}>
+                  <strong style={{ color: '#38bdf8' }}>⏳ 发动时机：</strong>
+                  <span>{BRAWL_PHASE_NAMES[selfBrawl.skill.triggerPhase] || selfBrawl.skill.triggerPhase}</span>
+                </div>
+                <div style={{ fontSize: '11.5px', color: '#e2e8f0' }}>
+                  <strong style={{ color: '#fbbf24' }}>✨ 法宝效果：</strong>
+                  <span>{selfBrawl.skill.description}</span>
+                </div>
+                {Boolean(getBrawlTacticalTip(selfBrawl.roleId)) && (
+                  <div style={{ fontSize: '11px', color: '#cbd5e1', borderTop: '1px dashed rgba(148, 163, 184, 0.2)', paddingTop: '3px' }}>
+                    <strong style={{ color: '#a78bfa' }}>💡 破局要诀：</strong>
+                    <span>{getBrawlTacticalTip(selfBrawl.roleId)}</span>
+                  </div>
+                )}
               </div>
               {selfBrawl.peekedRoles && selfBrawl.peekedRoles.length > 0 && (
                 <div style={{ fontSize: '11px', color: '#fbbf24', marginTop: '4px', borderTop: '1px dashed rgba(245, 158, 11, 0.3)', paddingTop: '3px' }}>
@@ -508,9 +541,9 @@ export function IdentityDetails({
           <span className="tip-capsule-badge">💡 神魔心法</span>
           <p className="tip-capsule-text">
             {selfBrawl.motto ? `「${selfBrawl.motto}」—— ` : ''}
-            {selfBrawl.camp === 'blue'
+            {getBrawlTacticalTip(selfBrawl.roleId) || (selfBrawl.camp === 'blue'
               ? '凝聚仙佛神力，明辨真假猴王，严防妖魔作祟，护持灵山大道。'
-              : '潜伏同流隐匿妖气，伺机制造失败，混淆视听以夺天机。'}
+              : '潜伏同流隐匿妖气，伺机制造失败，混淆视听以夺天机。')}
           </p>
         </div>
       ) : roleDescriptions[self.role]?.tip ? (

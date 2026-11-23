@@ -160,8 +160,8 @@ export function IdentityDetails({
             boxSizing: 'border-box',
           }}
         >
-          {/* 上部：真身法相头像与基础描述 */}
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', width: '100%' }}>
+          {/* 上部：真身法相头像与基础描述（左右结构，头像在左，名字阵营在右） */}
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', width: '100%' }}>
             {selfBrawl.artPrefix && (
               <button
                 type="button"
@@ -217,7 +217,7 @@ export function IdentityDetails({
               </button>
             )}
             <div style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px', marginBottom: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px', marginBottom: '2px' }}>
                 <span style={{
                   fontWeight: 700,
                   fontSize: '15px',
@@ -250,137 +250,146 @@ export function IdentityDetails({
                   </span>
                 )}
               </div>
-              <div style={{
-                fontSize: '12px',
-                color: '#e2e8f0',
-                marginTop: '6px',
-                background: 'rgba(15, 23, 42, 0.65)',
-                border: '1px solid rgba(148, 163, 184, 0.2)',
-                borderRadius: '8px',
-                padding: '6px 8px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '4px',
-                lineHeight: 1.45,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
-                  <span style={{ color: '#ffd54f', fontWeight: 700, fontSize: '13px' }}>
-                    📿 本命法宝 · 绝技 · {selfBrawl.skill.skillName}
-                  </span>
-                  <span style={{ fontSize: '10.5px', color: '#94a3b8', background: 'rgba(51, 65, 85, 0.6)', padding: '1px 6px', borderRadius: '4px' }}>
-                    {selfBrawl.skill.maxUses === 1 ? '整局限用 1 次' : '常驻被动'}
-                  </span>
-                </div>
-                <div style={{ fontSize: '11.5px', color: '#cbd5e1' }}>
-                  <strong style={{ color: '#38bdf8' }}>⏳ 发动时机：</strong>
-                  <span>{BRAWL_PHASE_NAMES[selfBrawl.skill.triggerPhase] || selfBrawl.skill.triggerPhase}</span>
-                </div>
-                <div style={{ fontSize: '11.5px', color: '#e2e8f0' }}>
-                  <strong style={{ color: '#fbbf24' }}>✨ 法宝效果：</strong>
-                  <span>{selfBrawl.skill.description}</span>
-                </div>
-                {Boolean(getBrawlTacticalTip(selfBrawl.roleId)) && (
-                  <div style={{ fontSize: '11px', color: '#cbd5e1', borderTop: '1px dashed rgba(148, 163, 184, 0.2)', paddingTop: '3px' }}>
-                    <strong style={{ color: '#a78bfa' }}>💡 破局要诀：</strong>
-                    <span>{getBrawlTacticalTip(selfBrawl.roleId)}</span>
-                  </div>
-                )}
-              </div>
-              {selfBrawl.peekedRoles && selfBrawl.peekedRoles.length > 0 && (
-                <div style={{ fontSize: '11px', color: '#fbbf24', marginTop: '4px', borderTop: '1px dashed rgba(245, 158, 11, 0.3)', paddingTop: '3px' }}>
-                  🔍 <strong>盲盒天机：</strong>侦察到本局潜伏敌手包含【{selfBrawl.peekedRoles.map(r => r.roleName).join('、')}】
+              {selfBrawl.motto && (
+                <div style={{ fontSize: '11.5px', color: '#94a3b8', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  「{selfBrawl.motto}」
                 </div>
               )}
-              {selfBrawl.zhaoyaoResult !== undefined && (
-                <div style={{ fontSize: '11px', fontWeight: 'bold', color: selfBrawl.zhaoyaoResult ? '#f87171' : '#4ade80', marginTop: '4px' }}>
-                  {selfBrawl.zhaoyaoResult ? '🪞 照妖镜探照天机：当前车队中【有妖魔潜伏！】' : '🪞 照妖镜探照天机：当前车队中【无妖魔，皆是正道仙友！】'}
-                </div>
-              )}
-              {selfBrawl.dapengExcludedPlayerId && (() => {
-                const excluded = players.find(p => p.id === selfBrawl.dapengExcludedPlayerId);
-                return excluded ? (
-                  <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#fb923c', marginTop: '4px' }}>
-                    🦅 云程万里俯瞰天机：已暗中排除【{excluded.seat}号 · {excluded.nickname}】（此人绝非孙悟空）！
-                  </div>
-                ) : null;
-              })()}
-              {selfBrawl.putiDianhuaNotice && (
-                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#c084fc', marginTop: '4px' }}>
-                  {selfBrawl.putiDianhuaNotice}
-                </div>
-              )}
-              {selfBrawl.guanyinGanluResult ? (
-                <div style={{ fontSize: '11px', fontWeight: 'bold', color: selfBrawl.guanyinGanluResult.success ? '#4ade80' : '#f87171', marginTop: '4px' }}>
-                  🪷 净瓶甘露探照天机：目标【{selfBrawl.guanyinGanluResult.targetSeat}号 · {selfBrawl.guanyinGanluResult.targetNickname}】在方才出征任务中投出了【{selfBrawl.guanyinGanluResult.success ? '成功牌 🟢' : '失败牌 🔴'}】！
-                </div>
-              ) : selfBrawl.guanyinNotice ? (
-                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#67e8f9', marginTop: '4px' }}>
-                  {selfBrawl.guanyinNotice}
-                </div>
-              ) : null}
-              {selfBrawl.huangfengSecret && (
-                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#fde047', marginTop: '4px' }}>
-                  🌪️ {selfBrawl.huangfengSecret}
-                </div>
-              )}
-              {selfBrawl.tieshanSecret && (
-                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#34d399', marginTop: '4px' }}>
-                  {selfBrawl.tieshanSecret}
-                </div>
-              )}
-              {selfBrawl.huangmeiNotice && (
-                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#fbbf24', marginTop: '4px' }}>
-                  {selfBrawl.huangmeiNotice}
-                </div>
-              )}
-              {selfBrawl.baiguLijianStatus && (
-                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#f43f5e', marginTop: '4px' }}>
-                  {selfBrawl.baiguLijianStatus}
-                </div>
-              )}
-              {selfBrawl.baiyanDuchaStatus && (
-                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#f59e0b', marginTop: '4px' }}>
-                  {selfBrawl.baiyanDuchaStatus}
-                </div>
-              )}
-              {selfBrawl.jinjiaoNotice && (
-                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#eab308', marginTop: '4px' }}>
-                  {selfBrawl.jinjiaoNotice}
-                </div>
-              )}
-              {selfBrawl.yutuNotice && (
-                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#ec4899', marginTop: '4px' }}>
-                  {selfBrawl.yutuNotice}
-                </div>
-              )}
-              {selfBrawl.generalFeedback && (
-                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#38bdf8', marginTop: '4px' }}>
-                  {selfBrawl.generalFeedback}
-                </div>
-              )}
-              <div style={{ marginTop: '4px' }}>
-                <button
-                  type="button"
-                  onClick={() => setViewingBrawlArt(true)}
-                  style={{
-                    background: 'transparent',
-                    border: '1px solid rgba(255, 216, 117, 0.3)',
-                    borderRadius: '12px',
-                    color: '#ffd875',
-                    fontSize: '11px',
-                    padding: '2px 8px',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                  title="点击赏析高清专属神魔法相与生平典故"
-                >
-                  🔍 点击赏析专属法相大图
-                </button>
-              </div>
             </div>
           </div>
+
+          {/* 中部：本命法宝与发动时机（整行 100% 满宽展示，充分利用横向空间，不留空白，控制纵向高度） */}
+          <div style={{
+            fontSize: '12px',
+            color: '#e2e8f0',
+            background: 'rgba(15, 23, 42, 0.65)',
+            border: '1px solid rgba(148, 163, 184, 0.2)',
+            borderRadius: '8px',
+            padding: '7px 10px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '3px',
+            lineHeight: 1.45,
+            width: '100%',
+            boxSizing: 'border-box',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
+              <span style={{ color: '#ffd54f', fontWeight: 700, fontSize: '12.5px' }}>
+                📿 本命法宝 · 绝技 · {selfBrawl.skill.skillName}
+              </span>
+              <span style={{ fontSize: '10.5px', color: '#94a3b8', background: 'rgba(51, 65, 85, 0.6)', padding: '1px 6px', borderRadius: '4px' }}>
+                {selfBrawl.skill.maxUses === 1 ? '整局限用 1 次' : '常驻被动'}
+              </span>
+            </div>
+            <div style={{ fontSize: '11.5px', color: '#cbd5e1' }}>
+              <strong style={{ color: '#38bdf8' }}>⏳ 发动时机：</strong>
+              <span>{BRAWL_PHASE_NAMES[selfBrawl.skill.triggerPhase] || selfBrawl.skill.triggerPhase}</span>
+            </div>
+            <div style={{ fontSize: '11.5px', color: '#e2e8f0' }}>
+              <strong style={{ color: '#fbbf24' }}>✨ 法宝效果：</strong>
+              <span>{selfBrawl.skill.description}</span>
+            </div>
+          </div>
+
+          {/* 私密天机与状态反馈通知（整行满宽） */}
+          {selfBrawl.peekedRoles && selfBrawl.peekedRoles.length > 0 && (
+            <div style={{ fontSize: '11px', color: '#fbbf24', background: 'rgba(245, 158, 11, 0.1)', border: '1px dashed rgba(245, 158, 11, 0.3)', borderRadius: '6px', padding: '4px 8px' }}>
+              🔍 <strong>盲盒天机：</strong>侦察到本局潜伏敌手包含【{selfBrawl.peekedRoles.map(r => r.roleName).join('、')}】
+            </div>
+          )}
+          {selfBrawl.zhaoyaoResult !== undefined && (
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: selfBrawl.zhaoyaoResult ? '#f87171' : '#4ade80' }}>
+              {selfBrawl.zhaoyaoResult ? '🪞 照妖镜探照天机：当前车队中【有妖魔潜伏！】' : '🪞 照妖镜探照天机：当前车队中【无妖魔，皆是正道仙友！】'}
+            </div>
+          )}
+          {selfBrawl.dapengExcludedPlayerId && (() => {
+            const excluded = players.find(p => p.id === selfBrawl.dapengExcludedPlayerId);
+            return excluded ? (
+              <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#fb923c' }}>
+                🦅 云程万里俯瞰天机：已暗中排除【{excluded.seat}号 · {excluded.nickname}】（此人绝非孙悟空）！
+              </div>
+            ) : null;
+          })()}
+          {selfBrawl.putiDianhuaNotice && (
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#c084fc' }}>
+              {selfBrawl.putiDianhuaNotice}
+            </div>
+          )}
+          {selfBrawl.guanyinGanluResult ? (
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: selfBrawl.guanyinGanluResult.success ? '#4ade80' : '#f87171' }}>
+              🪷 净瓶甘露探照天机：目标【{selfBrawl.guanyinGanluResult.targetSeat}号 · {selfBrawl.guanyinGanluResult.targetNickname}】在方才出征任务中投出了【{selfBrawl.guanyinGanluResult.success ? '成功牌 🟢' : '失败牌 🔴'}】！
+            </div>
+          ) : selfBrawl.guanyinNotice ? (
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#67e8f9' }}>
+              {selfBrawl.guanyinNotice}
+            </div>
+          ) : null}
+          {selfBrawl.huangfengSecret && (
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#fde047' }}>
+              🌪️ {selfBrawl.huangfengSecret}
+            </div>
+          )}
+          {selfBrawl.tieshanSecret && (
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#34d399' }}>
+              {selfBrawl.tieshanSecret}
+            </div>
+          )}
+          {selfBrawl.huangmeiNotice && (
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#fbbf24' }}>
+              {selfBrawl.huangmeiNotice}
+            </div>
+          )}
+          {selfBrawl.baiguLijianStatus && (
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#f43f5e' }}>
+              {selfBrawl.baiguLijianStatus}
+            </div>
+          )}
+          {selfBrawl.baiyanDuchaStatus && (
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#f59e0b' }}>
+              {selfBrawl.baiyanDuchaStatus}
+            </div>
+          )}
+          {selfBrawl.jinjiaoNotice && (
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#eab308' }}>
+              {selfBrawl.jinjiaoNotice}
+            </div>
+          )}
+          {selfBrawl.yutuNotice && (
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#ec4899' }}>
+              {selfBrawl.yutuNotice}
+            </div>
+          )}
+          {selfBrawl.generalFeedback && (
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#38bdf8' }}>
+              {selfBrawl.generalFeedback}
+            </div>
+          )}
+
+          {/* 法相大图赏析按钮（满宽居中，与下方绝技发动框完全对齐保持一致） */}
+          <button
+            type="button"
+            onClick={() => setViewingBrawlArt(true)}
+            style={{
+              width: '100%',
+              boxSizing: 'border-box',
+              background: 'rgba(255, 216, 117, 0.08)',
+              border: '1px solid rgba(255, 216, 117, 0.3)',
+              borderRadius: '8px',
+              color: '#ffd875',
+              fontSize: '12px',
+              fontWeight: 600,
+              padding: '6px 12px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              textAlign: 'center',
+            }}
+            title="点击赏析高清专属神魔法相与生平典故"
+          >
+            🔍 点击赏析专属法相大图
+          </button>
 
           {/* 技能发动交互区 */}
           {selfBrawl.skillAvailable && !selfBrawl.skillUsed && selfBrawl.skill.actionType !== 'passive' && (

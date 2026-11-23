@@ -713,12 +713,9 @@ export function GamePanel({
           </section>
         )}
 
-      {/* 3. Scheme A: Dual-Flank Altar Arena (Hidden for non-assassins during assassination phase) */}
+      {/* 3. Celestial Feast Table Arena (Hidden for non-assassins during assassination phase) */}
       {!(g.phase === 'assassination' && self?.role !== 'assassin') && (() => {
-        const leftPlayers = g.players.filter((_, idx) => idx % 2 === 0);
-        const rightPlayers = g.players.filter((_, idx) => idx % 2 === 1);
-
-        const renderSeat = (p: Player, flank: 'left' | 'right') => {
+        const renderSeat = (p: Player, flank: 'left' | 'right', style?: React.CSSProperties) => {
           const member = room.members.find(m => m.id === p.id);
           const isCaptain = !ended && g.phase !== 'assassination' && p.id === g.captainId;
           const isNextCaptain = isCaptain && effectivePhase === 'early_window';
@@ -766,6 +763,8 @@ export function GamePanel({
                   handleSeatTap(p.id);
                 }
               }}
+              style={style}
+              data-player-id={p.id}
               className={[
                 'table-seat-card',
                 'flank-seat-card',
@@ -924,27 +923,32 @@ export function GamePanel({
             data-player-count={g.players.length}
             aria-label="对局座位表"
           >
-            <div className="scheme-a-main-arena">
-              <div className="scheme-a-flank flank-left">
-                {leftPlayers.map(p => renderSeat(p, 'left'))}
+            <div className="scheme-a-main-arena circular-ring-arena">
+              {/* Central Pantao Feast Table: 420px pure feathered ellipse with zero rectangular corners and 100% complete platters */}
+              <div className="pantao-celestial-table-bg" aria-hidden="true">
+                <picture className="pantao-celestial-table-picture">
+                  <source srcSet="/art/scenes/pantao_table_ellipse.webp" type="image/webp" />
+                  <img
+                    src="/art/scenes/pantao_table_ellipse.png"
+                    alt="瑶池八宝蟠桃仙案"
+                    className="pantao-celestial-table-img"
+                    loading="eager"
+                    decoding="async"
+                  />
+                </picture>
               </div>
 
-              {/* Central BaGua Altar Core (中央八卦伏魔台) */}
-              <div className="scheme-a-center-altar" aria-hidden="true">
-                <div className="altar-bagua-disc">
-                  <span className="altar-core-taichi">☯</span>
-                  <span className="altar-direction-tag">
-                    {direction === 'clockwise' ? '⟳ 顺时针' : '⟲ 逆时针'}
-                  </span>
-                  <span className="altar-mission-tag">
-                    {ended ? '胜负已分' : `第 ${g.mission} 难`}
-                  </span>
-                </div>
-              </div>
-
-              <div className="scheme-a-flank flank-right">
-                {rightPlayers.map(p => renderSeat(p, 'right'))}
-              </div>
+              {g.players.map((p, idx) => {
+                const angleDeg = -90 + (idx * 360) / g.players.length;
+                const rad = (angleDeg * Math.PI) / 180;
+                const leftPct = 50 + Math.cos(rad) * 40;
+                const topPct = 50 + Math.sin(rad) * 37;
+                const flank = Math.cos(rad) < 0 ? 'left' : 'right';
+                return renderSeat(p, flank, {
+                  left: `${leftPct.toFixed(1)}%`,
+                  top: `${topPct.toFixed(1)}%`,
+                });
+              })}
             </div>
           </div>
         );

@@ -131,7 +131,7 @@ export function EntryDialog({ intent, knownAccounts, onClose, onAuthenticated }:
           : '输入仙友码即可找回原账号，继续使用原昵称、头像和战绩。'}</p>
         {mode === 'create' && <p className="hint">{NICKNAME_CONTENT_SAFETY_NOTICE}</p>}
         {error && <p className="error entry-error" role="alert">{error}</p>}
-        <button className="mp-cyan-pill" disabled={busy || (mode === 'create' ? !nickname.trim() : code.length !== 6)} type="submit">
+        <button className="entry-submit-btn btn-primary-cta" disabled={busy || (mode === 'create' ? !nickname.trim() : code.length !== 6)} type="submit">
           {busy ? '正在进入…' : mode==='create'?joining?'使用此昵称加入房间':`取好昵称，${purpose}`:joining?'找回账号并加入房间':`找回账号，${purpose}`}
         </button>
       </form>

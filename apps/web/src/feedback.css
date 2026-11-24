@@ -593,13 +593,13 @@
 .guide-config h3 { font-size: 14px; color: #ffd54f; margin: 0 0 3px; }
 .guide-config p { font-size: 12px; margin: 2px 0; }
 .guide-missions { display: flex; gap: 4px; padding: 0; margin: 4px 0 0; list-style: none; }
-.guide-missions li { display: flex; flex-direction: column; align-items: center; padding: 2px 5px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; font-size: 11px; margin: 0; }
-.guide-missions li strong { color: #93c5fd; font-size: 11.5px; }
-.guide-options dt { font-size: 13px; font-weight: 700; color: #ffd54f; margin-top: 6px; }
-.guide-options dd { font-size: 12.5px; margin: 2px 0 6px; color: #cbd5e1; }
-.guide-roles > .hint { margin: 6px 0; line-height: 1.45; font-size: 12.5px; }
+.guide-missions li { display: flex; flex-direction: column; align-items: center; padding: 4px 6px; background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.25); border-radius: 6px; font-size: 11px; margin: 0; }
+.guide-missions li strong { color: #0369a1; font-size: 11.5px; font-weight: 700; }
+.guide-options dt { font-size: 13px; font-weight: 700; color: #831843; margin-top: 6px; }
+.guide-options dd { font-size: 12.5px; margin: 2px 0 6px; color: #241208; }
+.guide-roles > .hint { margin: 6px 0; line-height: 1.45; font-size: 12.5px; color: #78350f; }
 .guide-faction { margin-top: 12px; }
-.guide-faction > h2 { font-size: 18px; margin: 0 0 8px; gap: 8px; }
+.guide-faction > h2 { font-size: 18px; margin: 0 0 8px; gap: 8px; color: #831843; }
 .guide-role-grid { gap: 8px; }
 .guide-role { padding: 10px 12px; gap: 6px; border-radius: 14px; }
 .guide-role-heading { grid-template-columns: 48px minmax(0,1fr); gap: 10px; padding-bottom: 6px; margin-bottom: 0; }
@@ -607,12 +607,12 @@
 .guide-role-meta { gap: 2px; }
 .guide-role-badges { gap: 4px; }
 .guide-role-faction-pill, .guide-role-title-pill { padding: 1px 6px; font-size: 10.5px; line-height: 1.3; }
-.guide-role-heading h3 { font-size: 18px; line-height: 1.15; margin: 1px 0 0; letter-spacing: 1px; white-space: normal; }
-.guide-role-motto { font-size: 12px; line-height: 1.3; }
+.guide-role-heading h3 { font-size: 18px; line-height: 1.15; margin: 1px 0 0; letter-spacing: 1px; white-space: normal; color: #241208; }
+.guide-role-motto { font-size: 12px; line-height: 1.3; color: #78350f; }
 .guide-role-dl { gap: 4px; }
-.guide-role-detail { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: baseline; gap: 8px; padding: 4px 8px; border-radius: 6px; background: rgba(9, 16, 23, 0.42); border: 1px solid rgba(255, 255, 255, 0.05); }
-.guide-role-detail dt { margin: 0; min-width: 64px; font-size: 11.5px; line-height: 1.35; letter-spacing: 0.5px; color: var(--accent); font-weight: 700; white-space: nowrap; }
-.guide-role-detail dd { margin: 0; font-size: 12.5px; line-height: 1.38; color: #e8e3d7; }
+.guide-role-detail { display: grid; grid-template-columns: max-content minmax(0, 1fr); align-items: baseline; gap: 8px; padding: 6px 8px; border-radius: 6px; background: rgba(254, 252, 245, 0.9); border: 1px solid rgba(212, 175, 55, 0.3); }
+.guide-role-detail dt { margin: 0; min-width: 64px; font-size: 11.5px; line-height: 1.35; letter-spacing: 0.5px; color: #831843; font-weight: 700; white-space: nowrap; }
+.guide-role-detail dd { margin: 0; font-size: 12.5px; line-height: 1.38; color: #241208; }
 @media (max-width: 360px), (max-height: 620px) {
   .table-modal-sheet.team-vote-sheet { padding: 10px; }
   .vote-option { min-height: 62px; }

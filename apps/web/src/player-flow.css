@@ -338,20 +338,145 @@ main.app-shell.is-live-table { --table-gap: 8px; }
 .round-jump-nav > button { flex: 0 0 auto; width: auto; min-height: 36px; padding: 5px 10px; margin: 0; white-space: nowrap; font: 600 12px/1.4 var(--sans); }
 .round-jump-nav [aria-pressed="true"] { border-color: #ffd875; background: #67231e; }
 .battle-round-anchor { scroll-margin-top: 62px; }
-.guide-flow .guide-navigation { position: sticky; top: 0; z-index: 5; padding: 4px; background: #260e0d; border: 1px solid #d4a35980; border-radius: 12px; }
-.guide-flow .guide-controls { display: flex; align-items: center; gap: 4px; }
-.guide-controls > button { flex: 0 0 auto; width: auto; height: 40px; min-height: 40px; margin: 0; padding: 4px 6px; font: 600 12px/1.4 var(--sans); white-space: nowrap; }
-.guide-controls > button.guide-back-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 40px; min-width: 40px; padding: 0; }
-.guide-controls > button.guide-back-icon-btn svg { display: block; }
+.guide-flow .guide-navigation {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 6px 8px;
+  background: linear-gradient(180deg, rgba(254, 252, 245, 0.98) 0%, rgba(245, 235, 210, 0.98) 100%) !important;
+  border: 1.5px solid #d4af37 !important;
+  border-radius: 14px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
+  backdrop-filter: blur(10px);
+}
+.guide-flow .guide-controls { display: flex; align-items: center; gap: 6px; }
+.guide-controls > button {
+  flex: 0 0 auto;
+  width: auto;
+  height: 38px;
+  min-height: 38px;
+  margin: 0;
+  padding: 4px 10px;
+  font: 700 12.5px/1.4 var(--sans);
+  white-space: nowrap;
+  background: #ffffff !important;
+  border: 1.2px solid #d4af37 !important;
+  color: #78350f !important;
+  border-radius: 10px !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06) !important;
+}
+.guide-controls > button:hover:not(:disabled) {
+  background: #fef3c7 !important;
+  color: #831843 !important;
+  border-color: #831843 !important;
+}
+.guide-controls > button.guide-back-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  min-width: 38px;
+  padding: 0;
+}
+.guide-controls > button.guide-back-icon-btn svg { display: block; color: #78350f; }
 .guide-controls .guide-nav { flex: 0 0 auto; display: flex; gap: 4px; margin: 0; }
-.guide-controls .guide-nav > button { flex: 0 0 auto; width: auto; height: 40px; min-height: 40px; margin: 0; padding: 4px 8px; font: 600 12px/1.4 var(--sans); white-space: nowrap; }
-.guide-controls .guide-chapter-select { flex: 1 1 0; width: 0; min-width: 0; height: 40px; min-height: 40px; margin: 0; padding: 4px 6px; border: 1px solid #d4a359; border-radius: 10px; font: 600 12px/1.4 var(--sans); }
-.guide-flow .guide-heading { padding: 10px 12px; margin-top: 8px; }
-/* Only the single-row toolbar follows scrolling; the full index stays in flow. */
-.guide-directory { padding: 8px; border: 1px solid #d4a35966; border-radius: 12px; background: #260e0df5; }
-.guide-index-heading { margin: 0 0 6px; font: 600 12px/1.4 var(--sans); color: #ffd875; }
-.guide-index { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; margin: 4px 0 0; }
-.guide-index > button { width: 100%; min-width: 0; min-height: 40px; padding: 6px 4px; margin: 0; white-space: nowrap; font: 600 12px/1.4 var(--sans); }
+.guide-controls .guide-nav > button {
+  flex: 0 0 auto;
+  width: auto;
+  height: 38px;
+  min-height: 38px;
+  margin: 0;
+  padding: 4px 10px;
+  font: 700 13px/1.4 var(--sans);
+  white-space: nowrap;
+  background: #ffffff !important;
+  border: 1.2px solid rgba(212, 175, 55, 0.45) !important;
+  color: #78350f !important;
+  border-radius: 10px !important;
+}
+.guide-controls .guide-nav > button[aria-pressed="true"] {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 50%, #78350f 100%) !important;
+  border-color: #fde68a !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(180, 83, 9, 0.35) !important;
+}
+.guide-controls .guide-chapter-select {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 0;
+  height: 38px;
+  min-height: 38px;
+  margin: 0;
+  padding: 4px 8px;
+  background: #ffffff !important;
+  border: 1.2px solid #d4af37 !important;
+  color: #241208 !important;
+  border-radius: 10px !important;
+  font: 700 12.5px/1.4 var(--sans);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05) !important;
+}
+.guide-flow .guide-heading {
+  padding: 14px 16px !important;
+  margin-top: 10px !important;
+  background: linear-gradient(180deg, #ffffff 0%, #fefcf5 100%) !important;
+  border: 1.5px solid #d4af37 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.18) !important;
+}
+.guide-flow .guide-heading h1 {
+  font-family: var(--calligraphy) !important;
+  color: #831843 !important;
+  font-size: clamp(20px, 5vw, 24px) !important;
+  margin: 0 0 4px !important;
+  letter-spacing: 0.5px !important;
+}
+.guide-flow .guide-heading p.muted {
+  color: #78350f !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+  margin: 0 !important;
+}
+.guide-directory {
+  padding: 12px 14px !important;
+  border: 1.5px solid rgba(212, 175, 55, 0.45) !important;
+  border-radius: 16px !important;
+  background: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+  margin-top: 10px !important;
+}
+.guide-index-heading {
+  margin: 0 0 8px !important;
+  font: 700 15px/1.4 var(--calligraphy) !important;
+  color: #831843 !important;
+}
+.guide-index {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 4px 0 0;
+}
+.guide-index > button {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  height: 38px;
+  padding: 4px 6px;
+  margin: 0;
+  white-space: nowrap;
+  font: 700 13px/1.4 var(--sans);
+  background: linear-gradient(180deg, #fefcf5 0%, #fdf8ee 100%) !important;
+  border: 1.2px solid rgba(212, 175, 55, 0.45) !important;
+  color: #241208 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.15s ease !important;
+}
+.guide-index > button:hover:not(:disabled) {
+  background: #fef3c7 !important;
+  border-color: #831843 !important;
+  color: #831843 !important;
+  transform: translateY(-1px);
+}
 .guide-flow :is(.guide-directory, .guide-section, .guide-role) { scroll-margin-top: calc(var(--guide-navigation-height, 50px) + 12px); }
 @media (max-width: 380px) {
   .account-flow .profile-bar { flex-direction: column; align-items: stretch; }

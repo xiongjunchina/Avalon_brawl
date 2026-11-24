@@ -135,15 +135,66 @@
 .account-flow .role-card .role-record { color: #78350f; }
 .account-flow .card-foot, .account-flow .role-card .card-foot { color: #78350f !important; opacity: 1 !important; border-top-color: #d4af37 !important; font-size: 11px !important; }
 .account-flow .score-pair { border-top-color: #d4af37 !important; }
-/* Editors keep a solid dark reading surface for their game controls. */
-.account-editor { --accent: #ffd875; --muted: #eddcc4; --border: #9b7854; --surface: #291514; --raised: #442420; --ink: #1e0b0a; --glass: #291514; color: #fff3db; background: #291514; border: 1px solid #9b7854; box-shadow: none; }
-.account-editor button { background: #ffd875; color: #3b1402; box-shadow: none; }
-.account-editor button.secondary { background: #442420; color: #fff3db; border-color: #9b7854; }
-.account-editor :focus-visible { outline-color: #ffd875; }
-.account-editor .table-modal-head { background: #291514; }
-.account-editor .flow-fixed-actions { background: #291514; }
-.account-editor .hint, .account-editor label, .account-editor legend { color: #eddcc4; }
-.account-editor .flow-scroll-body { background: #291514; }
+/* Scheme A: Profile & Settings Editors */
+.account-editor {
+  --accent: #831843;
+  --muted: #78350f;
+  --border: #d4af37;
+  --surface: #ffffff;
+  --raised: #fefcf5;
+  --ink: #241208;
+  --glass: #fefcf5;
+  color: #241208 !important;
+  background: linear-gradient(180deg, #fefcf5 0%, #fbf4e2 50%, #f5ebd2 100%) !important;
+  border: 1.5px solid #d4af37 !important;
+  border-radius: 20px !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4), 0 0 24px rgba(212, 175, 55, 0.25) !important;
+}
+.account-editor button {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 50%, #78350f 100%) !important;
+  color: #ffffff !important;
+  border: 1.5px solid #fde68a !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 12px rgba(180, 83, 9, 0.35) !important;
+}
+.account-editor button.secondary,
+.account-editor button.tool-pill {
+  background: #ffffff !important;
+  color: #78350f !important;
+  border: 1px solid #d4af37 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+}
+.account-editor button.secondary:hover:not(:disabled),
+.account-editor button.tool-pill:hover:not(:disabled) {
+  background: #fef3c7 !important;
+  color: #831843 !important;
+  border-color: #831843 !important;
+}
+.account-editor :focus-visible { outline-color: #831843; }
+.account-editor .table-modal-head {
+  background: transparent !important;
+  border-bottom: 1.5px solid rgba(212, 175, 55, 0.35) !important;
+}
+.account-editor .table-modal-head strong {
+  color: #831843 !important;
+  font-family: var(--calligraphy) !important;
+  font-size: 20px !important;
+}
+.account-editor .flow-fixed-actions {
+  background: transparent !important;
+  border-top: 1.5px solid rgba(212, 175, 55, 0.35) !important;
+}
+.account-editor .hint, .account-editor label, .account-editor legend {
+  color: #78350f !important;
+}
+.account-editor label, .account-editor legend {
+  color: #831843 !important;
+  font-weight: 700 !important;
+}
+.account-editor .flow-scroll-body {
+  background: transparent !important;
+}
 @media (max-width: 380px) {
   .account.account-flow { margin: 8px; }
   .account-content { padding: 10px; }

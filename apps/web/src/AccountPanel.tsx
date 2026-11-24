@@ -226,13 +226,13 @@ export function ProfileEditor({user,onUser,onClose}:{user:User;onUser:(u:User)=>
     </fieldset>
     <p className="hint">旧对局保留当时昵称。浏览器登录状态连续 30 天未使用会失效；换设备或清除浏览器数据后，可输入当前仙友码找回原账号。</p>
   </form><details className="profile-vip-details flow-details"><summary>VIP 兑换与权益</summary>
-    <div style={{ margin: '10px 0 14px', padding: '12px 14px', background: 'rgba(212,163,89,0.08)', border: '1px solid rgba(212,163,89,0.3)', borderRadius: '10px' }}>
+    <div style={{ margin: '10px 0 14px', padding: '12px 14px', background: 'rgba(212, 175, 55, 0.12)', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '10px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
         <div>
-          <strong style={{ color: '#ffd875', fontSize: '14px' }}>
+          <strong style={{ color: '#831843', fontSize: '14px' }}>
             {user.isVip ? '⭐ 尊享 VIP 仙友' : '🎉 公测全员畅玩阶段'}
           </strong>
-          <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#cbd5e1' }}>
+          <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#78350f' }}>
             {user.isVip
               ? `VIP 到期时间：${new Date(user.vipUntil!).toLocaleDateString()}`
               : '当前处于公测体验期，全员零门槛免费畅享战绩复盘与高级板子！'}
@@ -255,7 +255,7 @@ export function ProfileEditor({user,onUser,onClose}:{user:User;onUser:(u:User)=>
           {redeemBusy ? '核销中…' : '核销兑换'}
         </button>
       </form>
-      {redeemMsg && <p style={{ fontSize: '12px', color: '#34d399', margin: '6px 0 0' }}>{redeemMsg}</p>}
+      {redeemMsg && <p style={{ fontSize: '12px', color: '#059669', margin: '6px 0 0', fontWeight: 600 }}>{redeemMsg}</p>}
     </div>
 
     </details></div><footer className="flow-fixed-actions">{error&&<p role="alert" className="error">{error}</p>}{saved&&<p role="status" className="notice">资料已保存，旧局记录保持原样。</p>}<button form="profile-editor-form" type="submit" disabled={busy||!nickname.trim()}>{busy?'正在保存…':'保存资料'}</button></footer></section></Modal>;

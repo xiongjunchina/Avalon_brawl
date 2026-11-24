@@ -1305,8 +1305,6 @@ function App() {
               ))}
             </div>
 
-            <RoomCreationAccess onChange={setCreationAccess} onSettings={setSetupSettings}/>
-
             <footer className="mp-setup-footer">
               <button
                 type="button"
@@ -1322,7 +1320,7 @@ function App() {
                   })
                 }
               >
-                {busy ? '正在开启法坛…' : setupSettings.voiceChatEnabled ? '开启远端语音房' : '开启线下常规房'}
+                {busy ? '正在开启法坛…' : setupSettings.voiceChatEnabled ? `开启远端语音房 (${setupSettings.playerCount}人)` : `开启线下常规房 (${setupSettings.playerCount}人)`}
               </button>
               <button
                 type="button"
@@ -1333,6 +1331,8 @@ function App() {
                 单人试玩 · 熟悉玩法 <span aria-hidden="true">→</span>
               </button>
             </footer>
+
+            <RoomCreationAccess onChange={setCreationAccess} onSettings={setSetupSettings}/>
             <section className="setup-role-preview" aria-labelledby="setup-role-heading">
               {isSetupBrawl ? (
                 <>
@@ -1680,6 +1680,19 @@ function App() {
               <button
                 type="button"
                 className="secondary tool-pill"
+                onClick={() => setFriendsModalOpen(true)}
+                title="仙友录 · 召集与好友"
+                aria-label="仙友录"
+                style={{ position: 'relative' }}
+              >
+                👥 仙友
+                {incomingFriendRequestsCount > 0 && (
+                  <span className="friends-badge-dot">{incomingFriendRequestsCount}</span>
+                )}
+              </button>
+              <button
+                type="button"
+                className="secondary tool-pill"
                 aria-label="房间设置"
                 onClick={() => setSettingsModalOpen(true)}
               >
@@ -1991,9 +2004,8 @@ function App() {
                   )}
                 </div>
               </div>
-              {/* Bottom Waiting Voice & Social Action Bar */}
-              <div className="waiting-voice-social-row">
-                {room.settings.voiceChatEnabled ? (
+              {room.settings.voiceChatEnabled ? (
+                <div className="waiting-voice-social-row">
                   <div className="waiting-voice-capsule">
                     <VoiceControls
                       voiceState={voiceState}
@@ -2005,89 +2017,63 @@ function App() {
                       onReconnect={handleReconnectVoice}
                     />
                   </div>
-                ) : (
-                  <div className="waiting-offline-badge" title="本房间为线下常规聚会房，无语音干扰">
-                    <span>🏛️ 线下房</span>
-                  </div>
-                )}
-                <button
-                  type="button"
-                  className="secondary tool-pill waiting-friends-pill-btn"
-                  onClick={handleOpenChatDrawer}
-                  title="法坛传音"
-                  style={{ position: 'relative' }}
-                >
-                  <span className="friends-btn-icon">💬</span>
-                  <span className="friends-btn-label">传音</span>
-                  {unreadChatCount > 0 && <span className="chat-unread-dot" />}
-                </button>
-                <button
-                  type="button"
-                  className="secondary tool-pill waiting-friends-pill-btn"
-                  onClick={() => setFriendsModalOpen(true)}
-                  title="仙友录 · 召集与好友"
-                >
-                  <span className="friends-btn-icon">👥</span>
-                  <span className="friends-btn-label">仙友</span>
-                  {incomingFriendRequestsCount > 0 && (
-                    <span className="friends-badge-dot">{incomingFriendRequestsCount}</span>
-                  )}
-                </button>
-              </div>
+                </div>
+              ) : null}
 
               {room.settings.voiceChatEnabled && <RoomVoiceHint enabled />}
-              <details className="waiting-mission-preview flow-details">
-                <summary>五难人数与本局配置</summary>
-              {/* Optional five-mission preview for the current player count */}
-              <div className="avalon-quest-board">
-                <div className="game-score quest-circles-row" aria-label="本局五轮任务配置">
-                  {(missionSizesFor(room.settings.playerCount, room.settings.brawlModeEnabled) ?? MISSION_SIZES[6]).map((count, i) => {
-                    const twoFailsRequired = failuresRequiredFor(room.settings.playerCount, i + 1, room.settings.brawlModeEnabled) === 2;
-                    return (
-                      <QuestMedallion key={i} mission={i + 1} count={count} twoFailsRequired={twoFailsRequired} />
-                    );
-                  })}
+
+              {/* Direct Inline Five-Mission & Room Config Preview */}
+              <div className="waiting-mission-preview flow-details is-direct-display">
+                <div className="waiting-mission-summary-bar">
+                  <span>📜 五难人数与本局配置（{room.settings.playerCount}人局 · 先胜3难定乾坤）</span>
                 </div>
-
-                <div
-                  className="quest-vote-track-zone is-clickable"
-                  onClick={() => setSettingsModalOpen(true)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      setSettingsModalOpen(true);
-                    }
-                  }}
-                  title={host ? '点击修改房间规则与人数配置' : '点击查看房间详细规则配置'}
-                  aria-label="查看完整房间配置"
-                >
-                  <div className="quest-vote-track-left">
-                    <div className="quest-track-head">
-                      <span className="quest-track-sub">
-                        {settingsText(room.settings)}
-                        <span className="quest-track-edit-cue" aria-hidden="true">
-                          {host ? ' ⚙️修改' : ' ⚙️'}
-                        </span>
-                      </span>
-                    </div>
-
+                <div className="avalon-quest-board">
+                  <div className="game-score quest-circles-row" aria-label="本局五轮任务配置">
+                    {(missionSizesFor(room.settings.playerCount, room.settings.brawlModeEnabled) ?? MISSION_SIZES[6]).map((count, i) => {
+                      const twoFailsRequired = failuresRequiredFor(room.settings.playerCount, i + 1, room.settings.brawlModeEnabled) === 2;
+                      return (
+                        <QuestMedallion key={i} mission={i + 1} count={count} twoFailsRequired={twoFailsRequired} />
+                      );
+                    })}
                   </div>
 
-                  <div className="quest-faction-plaque">
-                    <strong>{room.settings.playerCount}位玩家</strong>
-                    <span>
-                      {room.settings.brawlModeEnabled
-                        ? (BRAWL_PLAYER_CONFIG[room.settings.playerCount]?.redTotal ?? 2)
-                        : (ROLE_CONFIG[room.settings.playerCount] ?? []).filter(r => roleTeam(r) === 'red').length}
-                      名群妖乱道
-                    </span>
+                  <div
+                    className="quest-vote-track-zone is-clickable"
+                    onClick={() => setSettingsModalOpen(true)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setSettingsModalOpen(true);
+                      }
+                    }}
+                    title={host ? '点击修改房间规则与人数配置' : '点击查看房间详细规则配置'}
+                    aria-label="查看完整房间配置"
+                  >
+                    <div className="quest-vote-track-left">
+                      <div className="quest-track-head">
+                        <span className="quest-track-sub">
+                          {settingsText(room.settings)}
+                          <span className="quest-track-edit-cue" aria-hidden="true">
+                            {host ? ' ⚙️修改' : ' ⚙️'}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="quest-faction-plaque">
+                      <strong>{room.settings.playerCount}位玩家</strong>
+                      <span>
+                        {room.settings.brawlModeEnabled
+                          ? (BRAWL_PLAYER_CONFIG[room.settings.playerCount]?.redTotal ?? 2)
+                          : (ROLE_CONFIG[room.settings.playerCount] ?? []).filter(r => roleTeam(r) === 'red').length}
+                        名群妖乱道
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-
-              </details>
             </div>
           )}
 

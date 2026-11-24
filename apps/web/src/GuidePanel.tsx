@@ -115,7 +115,7 @@ export function BrawlGuideRules() {
         <h2>无放回随机抽取，情报与盲盒</h2>
         <p>西游大乱斗拥有 15 位蓝方仙佛与 15 位红方妖魔（共 30 位西游全明星神魔）。</p>
         <ul>
-          <li><strong>5~12人局</strong>：蓝方必定包含核心神魔（孙悟空、唐三藏），红方必定包含核心（红孩儿、六耳猕猴），其余席位严格按阿瓦隆经典蓝红配额从各阵营全明星神魔池中<strong>无放回随机抽取</strong>！</li>
+          <li><strong>5~12人局</strong>：蓝方必定包含核心神魔（孙悟空、唐三藏），红方必定包含核心（红孩儿、六耳猕猴），其余席位严格按蓝红阵营标准配额从各阵营全明星神魔池中<strong>无放回随机抽取</strong>！</li>
           <li><strong>天机盲盒</strong>：未被抽入本局的神仙与妖魔隐藏于“盲盒”中，二郎神（天眼照虚）、老鼠精（偷吃灯油）、百眼魔君（千眼窥机）等角色拥有窥探盲盒的专属特异灵觉！</li>
         </ul>
       </section>
@@ -244,7 +244,7 @@ export function BrawlGuideRoles({ onSelectRole }: { onSelectRole?: (role: BrawlR
   );
 }
 
-/** 经典原版规则介绍（保持向后兼容） */
+/** 通用原版规则介绍（保持向后兼容） */
 export function GuideRules({ mode = 'classic' }: { mode?: GuideMode }) {
   if (mode === 'brawl') {
     return <BrawlGuideRules />;
@@ -415,7 +415,7 @@ export function GuideRules({ mode = 'classic' }: { mode?: GuideMode }) {
   );
 }
 
-/** 经典原版角色图鉴（保持向后兼容） */
+/** 通用原版角色图鉴（保持向后兼容） */
 export function GuideRoles({ mode = 'classic', onSelectBrawlRole }: { mode?: GuideMode; onSelectBrawlRole?: (role: BrawlRoleDef) => void }) {
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
 

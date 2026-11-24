@@ -3272,27 +3272,44 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
   align-items: center !important;
   justify-content: center !important;
   box-sizing: border-box !important;
-  background: linear-gradient(180deg, #1b3a5d 0%, #0d2238 100%) !important;
-  border: 1.6px solid #ffd875 !important;
-  color: #fffdf0 !important;
   border-radius: 12px !important;
-  box-shadow: 0 4px 12px rgba(10, 25, 45, 0.45), inset 0 1px 0 rgba(255, 235, 160, 0.4) !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
 }
-.waiting-dock .waiting-practice-btn:hover:not(:disabled),
-.waiting-dock .tool-pill:hover:not(:disabled),
-.waiting-dock .waiting-role-pref-btn:hover:not(:disabled),
-.waiting-dock .waiting-friends-pill-btn:hover:not(:disabled) {
-  background: linear-gradient(180deg, #254d7b 0%, #133252 100%) !important;
-  border-color: #ffe082 !important;
-  color: #ffffff !important;
-  box-shadow: 0 5px 16px rgba(10, 25, 45, 0.6), inset 0 1px 0 rgba(255, 245, 190, 0.6) !important;
+.waiting-dock .waiting-ready-btn {
+  background: linear-gradient(180deg, #14b8a6 0%, #0d9488 60%, #115e59 100%) !important;
+  border: 1.6px solid #99f6e4 !important;
+  color: #f0fdfa !important;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
 }
-.waiting-dock .waiting-practice-btn .waiting-btn-text,
-.waiting-dock .tool-pill .waiting-btn-text {
-  white-space: nowrap !important;
-  text-overflow: ellipsis !important;
-  overflow: hidden !important;
+.waiting-dock .waiting-ready-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #2dd4bf 0%, #0f766e 60%, #134e4a 100%) !important;
+  border-color: #ccfbf1 !important;
+}
+.waiting-dock .waiting-ready-btn.is-ready-state {
+  background: linear-gradient(180deg, #f43f5e 0%, #e11d48 60%, #9f1239 100%) !important;
+  border: 1.6px solid #fecdd3 !important;
+  color: #fff1f2 !important;
+  box-shadow: 0 4px 12px rgba(225, 29, 72, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+}
+.waiting-dock .waiting-role-pref-btn {
+  background: linear-gradient(180deg, #a855f7 0%, #7e22ce 60%, #4c1d95 100%) !important;
+  border: 1.6px solid #e9d5ff !important;
+  color: #faf5ff !important;
+  box-shadow: 0 4px 12px rgba(126, 34, 206, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+}
+.waiting-dock .waiting-role-pref-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #c084fc 0%, #9333ea 60%, #581c87 100%) !important;
+  border-color: #f3e8ff !important;
+}
+.waiting-dock .waiting-practice-btn {
+  background: linear-gradient(180deg, #0ea5e9 0%, #0284c7 60%, #075985 100%) !important;
+  border: 1.6px solid #bae6fd !important;
+  color: #f0f9ff !important;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+}
+.waiting-dock .waiting-practice-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #38bdf8 0%, #0369a1 60%, #0c4a6e 100%) !important;
+  border-color: #e0f2fe !important;
 }
 .waiting-dock .waiting-start-btn {
   flex: 1 1 calc(50% - 4px) !important;
@@ -3308,6 +3325,31 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
   align-items: center !important;
   justify-content: center !important;
   box-sizing: border-box !important;
+  background: linear-gradient(180deg, #f59e0b 0%, #b45309 60%, #92400e 100%) !important;
+  border: 1.6px solid #fde68a !important;
+  color: #fffbeb !important;
+  box-shadow: 0 4px 12px rgba(180, 83, 9, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+}
+.waiting-dock .waiting-start-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #fbbf24 0%, #d97706 60%, #b45309 100%) !important;
+  border-color: #fef08a !important;
+}
+.waiting-mission-preview.is-direct-display {
+  background: linear-gradient(135deg, rgba(255, 252, 243, 0.96) 0%, rgba(247, 238, 218, 0.94) 100%) !important;
+  border: 1.3px solid #d4af37 !important;
+  border-radius: 10px !important;
+  padding: 6px 8px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  margin: 4px 0 !important;
+}
+.waiting-mission-summary-bar {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #831843;
+  margin-bottom: 6px;
+  padding: 2px 4px;
+  text-align: left;
 }
 .waiting-dock-controls:has(.waiting-role-pref-btn) .waiting-start-btn,
 .waiting-dock-controls:has(.waiting-role-pref-btn) .waiting-practice-btn {

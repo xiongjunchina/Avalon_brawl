@@ -253,7 +253,7 @@ main.app-shell.is-live-table { --table-gap: 8px; }
 .vote-flow-sheet .vote-history-heading { margin: 0 0 6px; color: #ffd875; font: 600 12px/1.4 var(--sans); }
 .vote-flow-sheet .imperial-expedition-panel { box-shadow: none !important; }
 .vote-flow-sheet .imperial-slots-section { padding: 8px 10px 10px !important; }
-.vote-flow-sheet .vote-member-card.imperial-ruyi-card { aspect-ratio: auto !important; height: 92px !important; }
+.vote-flow-sheet .vote-member-card { aspect-ratio: auto !important; height: auto !important; }
 .game-play-priority .game-result-actions { margin: 0; padding: 12px; border-radius: 18px; background: #280e0df5; border: 1px solid #d4a359; }
 .game-result-actions .result-summary-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
 .game-result-actions h3 { font: 700 18px/1.4 var(--display); margin: 0 0 4px; }

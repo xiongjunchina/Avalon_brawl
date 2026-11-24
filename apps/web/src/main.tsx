@@ -1,4 +1,4 @@
-import { deployment } from './deployment';
+import { deployment, assetUrl } from './deployment';
 import { QuestMedallion } from './QuestMedallion';
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -1343,7 +1343,7 @@ function App() {
                       西游仙魔大乱斗 · 阵营与神魔盲盒（{setupSettings.playerCount} 人局）
                     </h2>
                     <p className="brawl-setup-desc">
-                      30 位全明星神魔池 · 4 位领军必出 · 其余席位天机盲盒随机降临 · 局局阵容不重样
+                      30 位全明星神魔池 · {setupSettings.playerCount >= 9 ? '6 位领军必出' : '4 位领军必出'} · 其余席位天机盲盒随机降临 · 局局阵容不重样
                     </p>
                   </div>
 
@@ -1371,6 +1371,29 @@ function App() {
                           </div>
                         </div>
 
+                        {setupSettings.playerCount >= 9 && (
+                          <div className="mp-portrait-card is-blue">
+                            <div className="mp-portrait-img">
+                              <span className="role-portrait portrait-tile allegiance-blue" role="img" aria-label="观音菩萨角色图案">
+                                <img
+                                  src={assetUrl('/art/roles/brawl-guanyin-160.webp?v=brawl-art-v2')}
+                                  srcSet={`${assetUrl('/art/roles/brawl-guanyin-160.webp?v=brawl-art-v2')} 160w, ${assetUrl('/art/roles/brawl-guanyin-640.webp?v=brawl-art-v2')} 640w`}
+                                  sizes="(max-width: 440px) 132px, 180px"
+                                  width={160}
+                                  height={160}
+                                  alt=""
+                                  loading="lazy"
+                                  decoding="async"
+                                />
+                              </span>
+                            </div>
+                            <div className="mp-portrait-label">
+                              <strong>观音菩萨</strong>
+                              <small>慈航大士 · 必出</small>
+                            </div>
+                          </div>
+                        )}
+
                         <div className="mp-portrait-card is-blue is-blindbox">
                           <div className="mp-portrait-img blindbox-visual">
                             <span className="blindbox-icon" aria-hidden="true">🎴</span>
@@ -1383,7 +1406,7 @@ function App() {
                                 <span className="mp-count-tag">x{brawlConfig.blueDrawCount}</span>
                               )}
                             </strong>
-                            <small>13位仙佛随机抽取</small>
+                            <small>{setupSettings.playerCount >= 9 ? '12位仙佛随机抽取' : '13位仙佛随机抽取'}</small>
                           </div>
                         </div>
                       </div>
@@ -1412,6 +1435,29 @@ function App() {
                           </div>
                         </div>
 
+                        {setupSettings.playerCount >= 9 && (
+                          <div className="mp-portrait-card is-red">
+                            <div className="mp-portrait-img">
+                              <span className="role-portrait portrait-tile allegiance-red" role="img" aria-label="黄眉老怪角色图案">
+                                <img
+                                  src={assetUrl('/art/roles/brawl-huangmei-160.webp?v=brawl-art-v2')}
+                                  srcSet={`${assetUrl('/art/roles/brawl-huangmei-160.webp?v=brawl-art-v2')} 160w, ${assetUrl('/art/roles/brawl-huangmei-640.webp?v=brawl-art-v2')} 640w`}
+                                  sizes="(max-width: 440px) 132px, 180px"
+                                  width={160}
+                                  height={160}
+                                  alt=""
+                                  loading="lazy"
+                                  decoding="async"
+                                />
+                              </span>
+                            </div>
+                            <div className="mp-portrait-label">
+                              <strong>黄眉老怪</strong>
+                              <small>小雷音佛祖 · 必出</small>
+                            </div>
+                          </div>
+                        )}
+
                         {brawlConfig.redDrawCount > 0 ? (
                           <div className="mp-portrait-card is-red is-blindbox">
                             <div className="mp-portrait-img blindbox-visual">
@@ -1425,7 +1471,7 @@ function App() {
                                   <span className="mp-count-tag">x{brawlConfig.redDrawCount}</span>
                                 )}
                               </strong>
-                              <small>13位妖王随机抽取</small>
+                              <small>{setupSettings.playerCount >= 9 ? '12位妖王随机抽取' : '13位妖王随机抽取'}</small>
                             </div>
                           </div>
                         ) : (

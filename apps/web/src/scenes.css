@@ -714,9 +714,14 @@ select option { background: #26100e; }
   box-shadow: 0 4px 12px rgba(225, 29, 72, 0.15) !important;
 }
 .mp-faction-panel.is-red h3 { color: #9f1239 !important; }
-.mp-role-card-row { gap: 10px; }
-.mp-portrait-card { width: clamp(80px, 20.5vw, 110px); border-radius: 12px; box-shadow: 0 4px 10px rgba(60, 25, 8, 0.15); }
-.mp-role-card-row:has(> :nth-child(5)) .mp-portrait-card { width: clamp(66px, 16.8vw, 94px); }
+.mp-role-card-row { gap: 8px; }
+.mp-portrait-card { width: clamp(74px, 19.5vw, 104px); border-radius: 12px; box-shadow: 0 4px 10px rgba(60, 25, 8, 0.15); }
+.mp-role-card-row:has(> :nth-child(4)) { gap: 6px; }
+.mp-role-card-row:has(> :nth-child(4)) .mp-portrait-card { width: clamp(66px, 17.5vw, 92px); }
+.mp-role-card-row:has(> :nth-child(4)) .mp-portrait-label { padding: 5px 2px; }
+.mp-role-card-row:has(> :nth-child(4)) .mp-portrait-label strong { font-size: 12px; }
+.mp-role-card-row:has(> :nth-child(4)) .mp-portrait-label small { font-size: 9.5px; }
+.mp-role-card-row:has(> :nth-child(5)) .mp-portrait-card { width: clamp(60px, 15.5vw, 84px); }
 .mp-portrait-label { padding: 7px 4px; gap: 3px; }
 .mp-portrait-label strong { font-size: 13.5px; color: #241208; }
 .mp-portrait-label small { font-size: 10px; color: #5c2406; }

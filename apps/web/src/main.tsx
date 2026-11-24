@@ -1241,7 +1241,9 @@ function App() {
                 aria-label="返回首页"
                 onClick={() => setSetupOpen(false)}
               >
-                ‹
+                <svg viewBox="0 0 24 24" className="mp-back-arrow-svg" aria-hidden="true">
+                  <path d="M15 18l-6-6 6-6" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               </button>
               <span className="mp-setup-title">
                 {setupSettings.voiceChatEnabled ? '🎙️ 开启语音房' : '🏛️ 开启常规房'}

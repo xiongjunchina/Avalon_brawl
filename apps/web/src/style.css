@@ -680,16 +680,17 @@ main.app-shell.is-table-viewport {
 }
 
 .mp-back-chevron {
-  width: 38px;
-  height: 38px;
-  min-height: 38px;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
   margin: 0;
   padding: 0;
   background: transparent;
   border: 0;
-  color: #b89558;
-  font-size: 34px;
-  line-height: 1;
+  color: #78350f;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .mp-setup-title {

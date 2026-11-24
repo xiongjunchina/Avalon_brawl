@@ -1,5 +1,6 @@
 import { PrivateExtensions, ExtensionHistory } from './Extensions';
 import { useEffect, useRef, useState } from 'react';
+import { assetUrl } from './deployment';
 import type { Command, GameView, Player, RoomView, RoundView } from '@avalon/contracts';
 import { uuidToRtcUid } from '@avalon/contracts';
 import { ROLE_CONFIG, assignFemaleDemons, assignLoyalGuardians, failuresRequiredFor, BRAWL_ROLE_REGISTRY, BRAWL_PLAYER_CONFIG } from '@avalon/game-core';
@@ -927,10 +928,10 @@ export function GamePanel({
               {/* Central Pantao Feast Table: 420px pure feathered ellipse with zero rectangular corners and 100% complete platters */}
               <div className="pantao-celestial-table-bg" aria-hidden="true">
                 <picture className="pantao-celestial-table-picture">
-                  <source srcSet="/art/scenes/pantao_table_ellipse.webp" type="image/webp" />
+                  <source srcSet={assetUrl('/art/scenes/pantao_table_ellipse.webp')} type="image/webp" />
                   <img
-                    src="/art/scenes/pantao_table_ellipse.png"
-                    alt="瑶池八宝蟠桃仙案"
+                    src={assetUrl('/art/scenes/pantao_table_ellipse.png')}
+                    alt=""
                     className="pantao-celestial-table-img"
                     loading="eager"
                     decoding="async"

@@ -246,15 +246,15 @@ main.app-shell.is-live-table { --table-gap: 8px; }
 .game-play-priority .mission-submit-btn { margin-top: 0 !important; }
 /* Recover phone viewport space through spacing, preserving text and avatar sizes. */
 @media (max-width: 600px) {
-  main.app-shell.is-live-table { --table-gap: 4px; padding-top: 4px !important; }
-  .is-live-table .waiting-play-priority .scheme3-ink-ribbon { min-height: 36px !important; }
-  .is-live-table .waiting-play-priority .table-seats-grid { margin: 0 !important; row-gap: 12px !important; }
-  .is-live-table .waiting-play-priority .waiting-dock { padding: 6px 8px !important; }
-  .is-live-table .game-play-priority .slim-game-status-bar { min-height: 36px !important; padding: 4px 10px !important; }
-  .is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena { padding: 14px 8px 8px !important; }
-  .is-live-table .game-play-priority .scheme-a-flank { gap: 10px !important; }
-  .is-live-table .game-play-priority .table-action-dock,
-  .is-live-table .game-play-priority .table-action-dock .dock-panel { padding: 6px 8px !important; }
+  main.app-shell.is-live-table { --table-gap: 2px !important; padding: 2px 6px max(10px, env(safe-area-inset-bottom)) !important; }
+  .is-live-table .waiting-play-priority .scheme3-ink-ribbon { min-height: 32px !important; }
+  .is-live-table .waiting-play-priority .table-seats-grid { margin: 0 !important; row-gap: 8px !important; }
+  .is-live-table .waiting-play-priority .waiting-dock { padding: 4px 6px !important; }
+  .is-live-table .game-play-priority .slim-game-status-bar { min-height: 34px !important; padding: 3px 8px !important; }
+  .is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena { padding: 0 !important; }
+  .is-live-table .game-play-priority .scheme-a-flank { gap: 6px !important; }
+  .is-live-table .game-play-priority .table-action-dock { padding: 0 4px !important; gap: 2px !important; }
+  .is-live-table .game-play-priority .table-action-dock .dock-panel { padding: 4px 8px !important; gap: 2px !important; }
 }
 /* Account actions share the existing button typography and a compact header. */
 .account-flow .profile-bar { padding: 12px; margin-bottom: 10px; gap: 10px; }

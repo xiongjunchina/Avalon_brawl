@@ -47,7 +47,7 @@ export function BrawlPanel({
   );
 
   return (
-    <div className="brawl-container" style={{ margin: '6px 0' }}>
+    <div className="brawl-container" style={{ margin: privacyMode ? 0 : '6px 0' }}>
       {/* 隐私防偷看模式（用于对局大盘公屏）：隐藏敏感神魔底牌、阵营色与技能，仅提供不泄密的中性提示，在「真身」私密面板内操作 */}
       {privacyMode ? (
         hasPendingAction ? (

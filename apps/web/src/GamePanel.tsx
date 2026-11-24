@@ -491,7 +491,7 @@ export function GamePanel({
                 {room.hostId === userId ? (
                   <button
                     disabled={disabled}
-                    className="btn-replay-restart mp-cyan-pill"
+                    className="btn-replay-restart"
                     onClick={() => send({ type: 'returnToLobby', payload: {} })}
                   >
                     回到仙境等待区，再开一局
@@ -820,36 +820,36 @@ export function GamePanel({
                   {self?.role === 'percival' && jinguAllyId === p.id && (
                     <span className="seat-badge badge-jingu-ally" title="取经护法同修（紧箍佛印自证，百分百纯正蓝方！）">📿 护法</span>
                   )}
+                  {g.humanBagBannedPlayerId === p.id && (
+                    <span className="seat-badge badge-banned" title="被收入后天人种袋，本轮禁选上车">
+                      🎒 禁选
+                    </span>
+                  )}
+                  {g.brawl?.zhizhuBannedTargetId === p.id && (
+                    <span className="seat-badge badge-banned" title="被蜘蛛精盘丝结茧，当轮禁止入选车队">
+                      🕸️ 结茧
+                    </span>
+                  )}
+                  {g.brawl?.imprisonedTargetId === p.id && (
+                    <span className="seat-badge badge-banned" title="被如来佛祖压入五行山，当轮禁选禁投">
+                      ⛰️ 镇压
+                    </span>
+                  )}
+                  {g.phase === 'assassination' && g.selfBrawl?.dapengExcludedPlayerId === p.id && (
+                    <span className="seat-badge badge-banned" title="金翅大鹏雕已侦破此人非齐天大圣">
+                      ❌ 排除
+                    </span>
+                  )}
+                  {isTargeted && (
+                    <span className="seat-badge badge-assassinated">🎯 锁定</span>
+                  )}
+                  {ended && isWinnerSeat && (
+                    <span className="seat-badge badge-winner">🏆 胜</span>
+                  )}
+                  {ended && isAssassinatedTarget && (
+                    <span className="seat-badge badge-assassinated">🎯 被刺</span>
+                  )}
                 </div>
-                {g.humanBagBannedPlayerId === p.id && (
-                  <span className="seat-badge badge-banned" title="被收入后天人种袋，本轮禁选上车">
-                    🎒 禁选
-                  </span>
-                )}
-                {g.brawl?.zhizhuBannedTargetId === p.id && (
-                  <span className="seat-badge badge-banned" title="被蜘蛛精盘丝结茧，当轮禁止入选车队">
-                    🕸️ 结茧
-                  </span>
-                )}
-                {g.brawl?.imprisonedTargetId === p.id && (
-                  <span className="seat-badge badge-banned" title="被如来佛祖压入五行山，当轮禁选禁投">
-                    ⛰️ 镇压
-                  </span>
-                )}
-                {g.phase === 'assassination' && g.selfBrawl?.dapengExcludedPlayerId === p.id && (
-                  <span className="seat-badge badge-banned" title="金翅大鹏雕已侦破此人非齐天大圣">
-                    ❌ 排除
-                  </span>
-                )}
-                {isTargeted && (
-                  <span className="seat-badge badge-assassinated">🎯 锁定</span>
-                )}
-                {ended && isWinnerSeat && (
-                  <span className="seat-badge badge-winner">🏆 胜</span>
-                )}
-                {ended && isAssassinatedTarget && (
-                  <span className="seat-badge badge-assassinated">🎯 被刺</span>
-                )}
                 {seatVoteChip && (
                   <span className={`seat-card-vote-badge ${seatVoteChip.className} flank-vote-chip`} title={seatVoteChip.text}>
                     {seatVoteChip.icon}

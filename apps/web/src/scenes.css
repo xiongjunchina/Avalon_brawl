@@ -977,17 +977,17 @@ select option { background: #26100e; }
 .table-action-dock .dock-panel, .table-action-dock .team-summary { background: transparent; }
 .table-action-dock p, .table-action-dock legend { font-size: 14px; color: #fff2d5; }
 /* Captain is visually distinct, but is counted only when explicitly selected. */
-.party-banner { width: 100%; display: grid; grid-template-columns: minmax(96px, 28%) 1fr; align-items: center; gap: 12px; border: 1.5px solid #d4a359; border-radius: 16px; background: linear-gradient(165deg, rgba(52, 18, 16, 0.94), rgba(26, 8, 8, 0.97)); padding: 14px 10px; box-shadow: inset 0 1px 0 rgba(255, 220, 140, 0.35), 0 6px 18px rgba(0, 0, 0, 0.6); }
+.party-banner { width: 100%; display: grid; grid-template-columns: minmax(96px, 28%) 1fr; align-items: center; gap: 12px; border: 1.5px solid #d4af37; border-radius: 16px; background: linear-gradient(180deg, #ffffff 0%, #fefcf5 100%); padding: 14px 10px; box-shadow: 0 4px 14px rgba(212, 175, 55, 0.25); }
 .player-token { display: flex; flex-direction: column; align-items: center; margin: 0; min-width: 0; gap: 7px; text-align: center; }
-.token-portrait { position: relative; display: grid; place-items: center; width: 66px; aspect-ratio: 1; border-radius: 50%; padding: 3px; border: 2px solid #ffd875; background: radial-gradient(circle at 50% 35%, #3a1614 0%, #1a0808 100%); box-shadow: 0 4px 10px rgba(0, 0, 0, 0.65), inset 0 0 0 1px #d4a359; }
-.token-portrait > .emblem { width: 60%; height: 60%; color: #ffd875; }
-.token-caption { font-size: 13.5px; line-height: 1.4; color: #fff2d5; overflow-wrap: anywhere; background: linear-gradient(180deg, #381210, #1c0908); border: 1px solid #d4a35988; border-radius: 10px; padding: 1px 6px; }
-.token-seat { white-space: nowrap; color: #ffd875; font-weight: 700; }
-.token-crown { position: absolute; top: -20px; left: calc(50% - 14px); width: 28px; color: #ffd875; }
+.token-portrait { position: relative; display: grid; place-items: center; width: 66px; aspect-ratio: 1; border-radius: 50%; padding: 3px; border: 2px solid #d4af37; background: #ffffff; box-shadow: 0 3px 8px rgba(212, 175, 55, 0.3); }
+.token-portrait > .emblem { width: 60%; height: 60%; color: #d4af37; }
+.token-caption { font-size: 13px; line-height: 1.4; color: #241208; overflow-wrap: anywhere; background: #ffffff; border: 1.2px solid rgba(212, 175, 55, 0.5); border-radius: 10px; padding: 2px 8px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05); }
+.token-seat { white-space: nowrap; color: #78350f; font-weight: 700; }
+.token-crown { position: absolute; top: -20px; left: calc(50% - 14px); width: 28px; color: #d4af37; }
 .token-crown .emblem { width: 28px; height: 28px; filter: drop-shadow(0 0 6px #f5a623); }
 .party-captain { position: relative; text-align: center; min-width: 0; }
-.party-captain .token-portrait { width: min(100%, 120px); border: 3px solid #ffd875; outline: 1.5px solid #ffe8a9; outline-offset: 4px; box-shadow: 0 0 20px rgba(255, 216, 117, 0.75); }
-.party-captain .token-caption { background: linear-gradient(180deg, #451513, #220b0a); border: 1px solid #d4a359; border-radius: 16px; padding: 2px 8px; color: #fff4df; }
+.party-captain .token-portrait { width: min(100%, 120px); border: 3px solid #d4af37; outline: 1.5px solid #fef3c7; outline-offset: 4px; box-shadow: 0 0 20px rgba(212, 175, 55, 0.45); }
+.party-captain .token-caption { background: linear-gradient(135deg, #fefcf5 0%, #fef3c7 100%); border: 1.5px solid #d4af37; border-radius: 16px; padding: 3px 10px; color: #831843; font-weight: 700; }
 .party-captain strong { display: block; font: 25px var(--display); color: #ffd875; margin-top: 4px; text-shadow: 0 0 8px rgba(255, 216, 117, 0.5); }
 .party-captain > small { font-size: 12px; }
 .party-formation { min-width: 0; }
@@ -3693,21 +3693,21 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
    Dedicated Team Vote Modal Window (专属组队表决弹窗)
    =================================================================== */
 .dedicated-vote-sheet {
-  background: linear-gradient(180deg, #240a09 0%, #170505 50%, #0d0202 100%) !important;
-  border: 2px solid #e0aa3e !important;
-  border-radius: 18px !important;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 230, 150, 0.45) !important;
+  background: linear-gradient(180deg, #fefcf5 0%, #fbf4e2 50%, #f5ebd2 100%) !important;
+  border: 1.5px solid #d4af37 !important;
+  border-radius: 20px !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4), 0 0 24px rgba(212, 175, 55, 0.25) !important;
   max-width: 520px !important;
   width: min(100%, 520px) !important;
   padding: 16px 14px !important;
-  color: #fff2d5 !important;
+  color: #241208 !important;
 }
 .dedicated-vote-head {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
   gap: 8px !important;
-  border-bottom: 1.5px solid rgba(224, 170, 62, 0.5) !important;
+  border-bottom: 1.5px solid rgba(212, 175, 55, 0.35) !important;
   padding-bottom: 10px !important;
   margin-bottom: 8px !important;
 }
@@ -3720,15 +3720,16 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
 }
 .vote-head-kicker {
   font-size: 11px !important;
-  color: #ffd875 !important;
+  color: #78350f !important;
   letter-spacing: 1px !important;
   font-family: var(--display) !important;
   white-space: nowrap !important;
+  font-weight: 700 !important;
 }
 .vote-head-main-title {
   font-size: clamp(14px, 4.3vw, 19px) !important;
   font-family: var(--calligraphy) !important;
-  color: #fff4d0 !important;
+  color: #831843 !important;
   letter-spacing: 0.5px !important;
   white-space: nowrap !important;
   overflow: hidden !important;
@@ -3741,6 +3742,16 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
   white-space: nowrap !important;
   padding: 5px 12px !important;
   font-size: 13px !important;
+  background: #ffffff !important;
+  border: 1px solid #d4af37 !important;
+  color: #78350f !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+}
+.dedicated-vote-head .a2-lacquer-pill:hover {
+  background: #fef3c7 !important;
+  color: #831843 !important;
+  border-color: #831843 !important;
 }
 .vote-rule-prompt {
   text-align: center !important;
@@ -3984,6 +3995,31 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
   color: #ffffff !important;
   border-radius: 12px !important;
   box-shadow: 0 4px 12px rgba(180, 83, 9, 0.35) !important;
+  cursor: pointer !important;
+}
+.dedicated-submit-btn:hover:not(:disabled) {
+  filter: brightness(1.08) !important;
+  box-shadow: 0 6px 18px rgba(180, 83, 9, 0.5) !important;
+}
+.dedicated-submit-btn:disabled,
+.is-live-table .dedicated-submit-btn:disabled {
+  background: #f1f5f9 !important;
+  border: 1.5px dashed #cbd5e1 !important;
+  color: #94a3b8 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  cursor: not-allowed !important;
+  opacity: 0.8 !important;
+}
+.dedicated-submit-btn:disabled .btn-cta-text,
+.is-live-table .dedicated-submit-btn:disabled .btn-cta-text {
+  color: #94a3b8 !important;
+  text-shadow: none !important;
+}
+.dedicated-submit-btn:disabled .btn-cloud-flourish,
+.is-live-table .dedicated-submit-btn:disabled .btn-cloud-flourish {
+  color: #cbd5e1 !important;
+  opacity: 0.5 !important;
 }
 
 /* 3. 投票进度区 (Progress Panel) */
@@ -4241,26 +4277,41 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
 /* Floating Badges above Avatar */
 .flank-avatar-wrap .seat-status-badges {
   position: absolute !important;
-  top: -10px !important;
+  top: -12px !important;
   left: 50% !important;
   transform: translateX(-50%) !important;
   display: flex !important;
   align-items: center !important;
+  justify-content: center !important;
   gap: 2px !important;
-  z-index: 6 !important;
+  z-index: 8 !important;
   white-space: nowrap !important;
+  pointer-events: none !important;
 }
 
-.flank-avatar-wrap .seat-status-badges .seat-badge,
-.flank-avatar-wrap .seat-badge {
+.flank-avatar-wrap .seat-status-badges .seat-badge {
   position: static !important;
   transform: none !important;
-  font: 700 9.5px/1 var(--sans) !important;
+  font: 800 9.5px/1 var(--sans) !important;
   white-space: nowrap !important;
   padding: 1.5px 5px !important;
   border-radius: 999px !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.7) !important;
-  z-index: 5 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+  z-index: 8 !important;
+}
+
+.flank-avatar-wrap > .seat-badge {
+  position: absolute !important;
+  top: -12px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  font: 800 9.5px/1 var(--sans) !important;
+  white-space: nowrap !important;
+  padding: 1.5px 5px !important;
+  border-radius: 999px !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+  z-index: 8 !important;
+  pointer-events: none !important;
 }
 
 .flank-avatar-wrap .seat-badge.badge-captain {
@@ -4685,13 +4736,31 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
 }
 
 /* ===================================================================
-   3. Historical Missions Accordion in TeamVoteDialog (往难功过簿)
+   3. Historical Missions in TeamVoteDialog (往难功过簿)
    =================================================================== */
+.vote-history-section {
+  background: #ffffff !important;
+  border: 1.5px solid rgba(212, 175, 55, 0.45) !important;
+  border-radius: 12px !important;
+  padding: 8px 10px !important;
+  margin: 8px 0 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+.vote-history-heading,
+.vote-flow-sheet .vote-history-heading {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #831843 !important;
+  margin: 0 0 6px !important;
+}
+
 .vote-history-accordion {
   margin-bottom: 10px !important;
-  border: 1px solid rgba(212, 163, 89, 0.35) !important;
-  border-radius: 10px !important;
-  background: rgba(26, 8, 8, 0.8) !important;
+  border: 1.5px solid rgba(212, 175, 55, 0.45) !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05) !important;
   overflow: hidden !important;
 }
 
@@ -4732,8 +4801,8 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
 }
 
 .vote-history-empty {
-  font-size: 11px !important;
-  color: #64748b !important;
+  font-size: 11.5px !important;
+  color: #78350f !important;
   text-align: center !important;
   margin: 4px 0 !important;
 }
@@ -8290,9 +8359,9 @@ button.seat-mic-badge:active {
 .is-live-table .game-play-priority .altar-bagua-disc {
   display: none !important;
 }
-.seat-status-badges { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 2px; z-index: 5; }
+.seat-status-badges { position: absolute; top: -12px !important; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; gap: 2px; z-index: 8 !important; pointer-events: none !important; }
 .flank-seat-right .seat-status-badges { left: 50%; right: auto; transform: translateX(-50%); flex-direction: row; }
-.flank-avatar-wrap .seat-status-badges .seat-badge { position: static !important; transform: none !important; padding: 1px 4px !important; font-size: 9px !important; }
+.flank-avatar-wrap .seat-status-badges .seat-badge { position: static !important; transform: none !important; padding: 1.5px 4.5px !important; font-size: 9px !important; pointer-events: none !important; }
 .flank-avatar-wrap .seat-badge.badge-team { background: #087f78 !important; border: 1px solid #7ef5dc !important; color: #fff !important; }
 .game-play-priority .is-on-team .flank-nameplate { border-color: #0d9488 !important; background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%) !important; color: #0f766e !important; }
 .game-play-priority .is-on-team .flank-nameplate :is(.flank-seat-num, .flank-nickname, .flank-name-sep) { color: #0f766e !important; }

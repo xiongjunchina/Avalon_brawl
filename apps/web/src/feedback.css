@@ -456,11 +456,13 @@
   aspect-ratio: 1 !important;
   position: relative !important;
   padding: 2px !important;
-  border: 2px solid #ffd875 !important;
+  border: 1.5px solid #d4af37 !important;
+  background: #ffffff !important;
   border-radius: 50% !important;
   flex-shrink: 0 !important;
   margin: 0 auto !important;
   box-sizing: border-box !important;
+  box-shadow: 0 2px 6px rgba(212, 175, 55, 0.25) !important;
 }
 .mission-report-sheet .report-voter-item .token-vote {
   position: absolute !important;
@@ -484,17 +486,17 @@
   max-width: 100% !important;
   padding: 3px 2px !important;
   border-radius: 8px !important;
-  background: linear-gradient(180deg, rgba(56, 18, 16, 0.95), rgba(28, 9, 8, 0.98)) !important;
-  border: 1px solid rgba(212, 163, 89, 0.65) !important;
+  background: #ffffff !important;
+  border: 1.5px solid rgba(212, 175, 55, 0.45) !important;
   box-sizing: border-box !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05) !important;
   text-align: center !important;
   min-height: 42px !important;
 }
 .mission-report-sheet .report-voter-item .token-seat {
   font-size: 11px !important;
   font-weight: 700 !important;
-  color: #ffd875 !important;
+  color: #78350f !important;
   white-space: nowrap !important;
   line-height: 1.2 !important;
   display: flex !important;
@@ -505,14 +507,14 @@
 .mission-report-sheet .report-voter-item .token-seat small {
   display: inline !important;
   font-size: 9.5px !important;
-  color: #ffe6a3 !important;
+  color: #b45309 !important;
   font-weight: 600 !important;
   white-space: nowrap !important;
 }
 .mission-report-sheet .report-voter-item .token-name {
   font-size: clamp(10.5px, 2.9vw, 12px) !important;
-  font-weight: 600 !important;
-  color: #fff2d5 !important;
+  font-weight: 700 !important;
+  color: #241208 !important;
   white-space: nowrap !important;
   word-break: keep-all !important;
   line-height: 1.25 !important;
@@ -534,23 +536,23 @@
   border: 1px solid currentColor !important;
 }
 .mission-report-sheet .report-voter-item .token-vote-caption.approve {
-  background: rgba(16, 185, 129, 0.22) !important;
-  color: #34d399 !important;
-  border-color: #059669 !important;
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  border-color: #10b981 !important;
 }
 .mission-report-sheet .report-voter-item .token-vote-caption.reject {
-  background: rgba(239, 68, 68, 0.22) !important;
-  color: #f87171 !important;
-  border-color: #dc2626 !important;
+  background: #fef2f2 !important;
+  color: #b91c1c !important;
+  border-color: #ef4444 !important;
 }
 .mission-report-sheet .report-voter-item .token-vote-caption.abstain {
-  background: rgba(245, 158, 11, 0.22) !important;
-  color: #fbbf24 !important;
-  border-color: #d97706 !important;
+  background: #fffbeb !important;
+  color: #b45309 !important;
+  border-color: #f59e0b !important;
 }
 .mission-report-anon-hint {
   font-size: 12px;
-  color: #eddcc4;
+  color: #78350f;
   margin: 4px 0 0;
   text-align: center;
 }

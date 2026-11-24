@@ -486,9 +486,31 @@ export function GamePanel({
                 </p>
               </div>
 
-              {g.brawl?.replayTimeline && g.brawl.replayTimeline.length > 0 && (
-                <BrawlReplayTimeline actions={g.brawl.replayTimeline} />
-              )}
+              {/* Action buttons: Restart & Replay */}
+              <div className="ended-result-actions-bar">
+                {room.hostId === userId ? (
+                  <button
+                    disabled={disabled}
+                    className="btn-replay-restart mp-cyan-pill"
+                    onClick={() => send({ type: 'returnToLobby', payload: {} })}
+                  >
+                    回到仙境等待区，再开一局
+                  </button>
+                ) : (
+                  <div className="ended-waiting-host-pill">
+                    <span>⏳ 等待房主返回等待区</span>
+                  </div>
+                )}
+                {onOpenReplay && (
+                  <button
+                    type="button"
+                    className="btn-replay-history secondary"
+                    onClick={() => onOpenReplay(g.id)}
+                  >
+                    查看完整复盘
+                  </button>
+                )}
+              </div>
             </section>
           );
         })()
@@ -675,44 +697,6 @@ export function GamePanel({
           <span>🌪️ {g.bananaFanNotice}</span>
         </div>
       )}
-
-        {g.result && (
-          <section className="result-box dock-panel game-result-actions">
-            <div className="result-summary-row">
-              <div>
-                <h3>
-                  {g.result.winner
-                    ? g.result.winner === 'blue'
-                      ? '蓝方获胜'
-                      : '红方获胜'
-                    : '本局不计胜负'}
-                </h3>
-                <p>
-                  {reasons[g.result.reason]}
-                  {g.result.targetId ? `，目标为 ${name(g.result.targetId)}` : ''}。
-                </p>
-              </div>
-              <div className="result-actions">
-                {onOpenReplay && (
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={() => onOpenReplay(g.id)}
-                  >
-                    查看完整复盘
-                  </button>
-                )}
-                {room.hostId === userId ? (
-                  <button disabled={disabled} onClick={() => send({ type: 'returnToLobby', payload: {} })}>
-                    回到仙境等待区，再开一局
-                  </button>
-                ) : (
-                  <span className="hint">等待房主返回等待区</span>
-                )}
-              </div>
-            </div>
-          </section>
-        )}
 
       {/* 3. Celestial Feast Table Arena (Hidden for non-assassins during assassination phase) */}
       {!(g.phase === 'assassination' && self?.role !== 'assassin') && (() => {
@@ -958,6 +942,13 @@ export function GamePanel({
           </div>
         );
       })()}
+
+      {/* 3.5. Post-Game Brawl Replay Timeline (Rendered below table arena per design layout) */}
+      {ended && g.brawl?.replayTimeline && g.brawl.replayTimeline.length > 0 && (
+        <section className="ended-replay-section">
+          <BrawlReplayTimeline actions={g.brawl.replayTimeline} />
+        </section>
+      )}
 
       {/* 4. Bottom Dynamic Action Dock */}
       <div className="table-action-dock">

@@ -28,28 +28,70 @@
 .flow-details[open] > summary { margin-bottom: 10px; }
 .flow-details > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .mp-setup-screen { justify-content: flex-start !important; gap: 12px !important; }
-.mp-setup-screen .room-creation-options { width: 100%; margin: 0; padding: 10px 12px !important; }
-.room-creation-options > summary > span { display: block; color: var(--muted); font-size: 11px; }
-.room-access-editor { display: grid; gap: 6px; }
+.mp-setup-screen .room-creation-options {
+  width: 100%;
+  margin: 0;
+  padding: 10px 14px !important;
+  background: linear-gradient(135deg, rgba(255, 252, 243, 0.94) 0%, rgba(247, 238, 218, 0.94) 100%) !important;
+  border: 1.2px solid #d4af37 !important;
+  border-radius: 12px !important;
+  color: #241208 !important;
+  box-shadow: 0 2px 8px rgba(60, 25, 8, 0.1) !important;
+}
+.room-creation-options > summary {
+  color: #451a03 !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  cursor: pointer !important;
+}
+.room-creation-options > summary > span {
+  display: block;
+  color: #78350f !important;
+  font-size: 11px;
+  font-weight: 600 !important;
+  margin-top: 2px !important;
+}
+.room-access-editor { display: grid; gap: 6px; margin-top: 8px !important; }
+.room-access-editor label { color: #451a03 !important; font-weight: 700 !important; font-size: 12px !important; }
+.room-access-editor select, .room-access-editor input {
+  background: #ffffff !important;
+  border: 1.2px solid #d4af37 !important;
+  color: #241208 !important;
+  border-radius: 8px !important;
+  padding: 6px 10px !important;
+}
+.room-access-editor .hint { color: #78350f !important; font-size: 11px !important; }
 .mp-setup-screen .mp-setup-footer { gap: 6px; padding: 4px 0 !important; background: none; }
-.mp-setup-screen .mp-setup-footer .mp-cyan-pill { width: min(100%,220px); min-height: 44px; padding: 8px 16px; font: 700 15px/1.4 var(--sans); letter-spacing: .5px; }
+.mp-setup-screen .mp-setup-footer .mp-cyan-pill {
+  width: min(100%, 260px) !important;
+  min-height: 44px;
+  padding: 8px 16px;
+  font: 700 15px/1.4 var(--sans);
+  letter-spacing: .5px;
+}
 .mp-setup-screen .mp-setup-footer .mp-subtle-link { min-height: 32px; padding: 4px 8px; font: 500 12px/1.5 var(--sans); }
 .mp-setup-screen .setup-role-preview { width: 100%; }
-.setup-role-preview > h2 { margin: 0; color: #ffd875; font: 600 14px/1.5 var(--sans); }
+.setup-role-preview > h2 { margin: 0; color: #831843; font: 700 14px/1.5 var(--sans); }
 .setup-role-preview .mp-factions-stack { margin-top: 10px; }
 .setup-role-preview .mp-portrait-card { position: relative; }
-.setup-role-preview .mp-portrait-label strong { white-space: nowrap; }
+.setup-role-preview .mp-portrait-label strong { white-space: nowrap; color: #241208 !important; }
+.setup-role-preview .mp-portrait-label small { color: #5c2406 !important; }
 .setup-role-preview .mp-count-tag { position: absolute; top: 6px; right: 6px; }
 
 /* Brawl Setup Preview */
 .brawl-setup-header {
   text-align: center;
   margin-bottom: 8px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, rgba(255, 252, 243, 0.96) 0%, rgba(247, 238, 218, 0.94) 100%);
+  border: 1.3px solid #d4af37;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(60, 25, 8, 0.1);
 }
 
 .brawl-setup-header h2 {
   margin: 0 0 4px;
-  color: #ffd875;
+  color: #831843;
   font: 700 15px/1.4 var(--sans);
   letter-spacing: 0.5px;
 }
@@ -57,20 +99,21 @@
 .brawl-setup-desc {
   margin: 0;
   font-size: 11.5px;
-  color: #cbd5e1;
-  opacity: 0.9;
+  color: #5c2406;
+  opacity: 0.95;
   line-height: 1.4;
+  font-weight: 500;
 }
 
 .mp-portrait-card.is-blindbox {
-  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-  border: 1.5px dashed rgba(255, 216, 117, 0.6);
+  background: linear-gradient(180deg, #fdfbf7 0%, #f5ecd8 100%);
+  border: 1.5px dashed #d4af37;
   position: relative;
 }
 
 .mp-portrait-card.is-blue.is-blindbox {
   border-color: #38bdf8;
-  background: linear-gradient(180deg, #0c2340 0%, #051329 100%);
+  background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%);
 }
 
 .mp-portrait-card.is-red.is-blindbox {

@@ -942,9 +942,13 @@ export function GamePanel({
               {g.players.map((p, idx) => {
                 const angleDeg = -90 + (idx * 360) / g.players.length;
                 const rad = (angleDeg * Math.PI) / 180;
-                const leftPct = 50 + Math.cos(rad) * 40;
-                const topPct = 50 + Math.sin(rad) * 37;
-                const flank = Math.cos(rad) < 0 ? 'left' : 'right';
+                const cosV = Math.cos(rad);
+                const sinV = Math.sin(rad);
+                const archCos = Math.sign(cosV) * Math.pow(Math.abs(cosV), 0.92);
+                const archSin = Math.sign(sinV) * Math.pow(Math.abs(sinV), 0.78);
+                const leftPct = 50 + archCos * 42.2;
+                const topPct = 50 + archSin * 42.5;
+                const flank = cosV < 0 ? 'left' : 'right';
                 return renderSeat(p, flank, {
                   left: `${leftPct.toFixed(1)}%`,
                   top: `${topPct.toFixed(1)}%`,
@@ -1022,6 +1026,7 @@ export function GamePanel({
                     等待领队 <strong>{captainPlayer?.nickname}</strong> 钦点同行人，方案实时同步
                   </p>
                 </div>
+                <span className="dock-waiting-sync-pill" aria-hidden="true">⚡ 方案同步中</span>
               </div>
             </div>
           ))}
@@ -1293,7 +1298,7 @@ export function GamePanel({
           )}
           <button
             type="button"
-            className="secondary tool-pill dock-utility-btn"
+            className="secondary tool-pill dock-utility-btn history-trigger-btn"
             data-sound="page"
             onClick={() => setHistoryOpen(v => !v)}
           >
@@ -1302,7 +1307,7 @@ export function GamePanel({
           {onOpenChat && (
             <button
               type="button"
-              className="secondary tool-pill dock-utility-btn"
+              className="secondary tool-pill dock-utility-btn chat-trigger-btn"
               onClick={onOpenChat}
               aria-label="法坛传音"
               style={{ position: 'relative' }}
@@ -1312,7 +1317,7 @@ export function GamePanel({
             </button>
           )}
           {onOpenGuide && (
-            <button type="button" className="secondary tool-pill dock-utility-btn" onClick={onOpenGuide}>
+            <button type="button" className="secondary tool-pill dock-utility-btn guide-trigger-btn" onClick={onOpenGuide}>
               识妖谱
             </button>
           )}

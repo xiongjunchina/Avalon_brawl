@@ -18,7 +18,7 @@ export function PracticeSeatPicker({ gameId = 'practice', rulesetVersion, player
       <span className="practice-view-seat"><span className="practice-view-label">视角 · </span>{player?.seat}号</span>
       <span className="practice-view-name">{player?.nickname}</span>
       {currentBrawlRole && (
-        <span className="practice-view-brawl-tag" style={{ marginLeft: 4, color: '#fbbf24', fontSize: '13px', fontWeight: 600 }}>
+        <span className="practice-view-brawl-tag" style={{ marginLeft: 2, color: '#78350f', fontSize: '11.5px', fontWeight: 700 }}>
           【{currentBrawlRole.name}】
         </span>
       )}

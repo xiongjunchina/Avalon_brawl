@@ -649,12 +649,15 @@ main.app-shell.is-table-viewport {
   color: #ffe5b0;
 }
 
-.guest-login-card {
+.guest-login-card,
+.table-modal-sheet.guest-login-card {
   width: min(92vw, 420px);
   margin: auto;
-  background: rgba(16, 26, 36, 0.92);
-  border: 1px solid #8c734b;
-  border-radius: 14px;
+  background: linear-gradient(180deg, #fefcf5 0%, #fbf4e2 50%, #f5ebd2 100%) !important;
+  border: 1.5px solid #d4af37 !important;
+  border-radius: 20px !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4), 0 0 24px rgba(212, 175, 55, 0.25) !important;
+  color: #241208 !important;
 }
 
 /* --------------------------------------------------------------------------

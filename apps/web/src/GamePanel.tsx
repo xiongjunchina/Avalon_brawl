@@ -1390,7 +1390,7 @@ export function GamePanel({
       )}
       {!ended && abortConfirm && (
         <Modal label={room.hostId === userId ? '结束游戏' : '申请中止游戏'} scene="sword" onClose={() => setAbortConfirm(false)}>
-          <div className="table-modal-sheet">
+          <div className="table-modal-sheet abort-confirm-sheet">
             <div className="table-modal-head"><strong>{room.hostId === userId ? '结束游戏' : '申请中止游戏'}</strong><button type="button" className="secondary tool-pill" onClick={() => setAbortConfirm(false)}>返回对局</button></div>
             <p>结束后关闭本房间，所有玩家返回大厅；本局不计胜负。</p>
             {room.hostId === userId ? <>

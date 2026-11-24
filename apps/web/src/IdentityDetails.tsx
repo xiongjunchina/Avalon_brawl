@@ -147,15 +147,19 @@ export function IdentityDetails({
         <section
           className="brawl-identity-banner"
           style={{
-            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%)',
-            border: `1.5px solid ${selfBrawl.camp === 'blue' ? '#3b82f6' : '#ef4444'}`,
+            background: selfBrawl.camp === 'blue'
+              ? 'linear-gradient(135deg, #ffffff 0%, #f6faff 50%, #eaf4ff 100%)'
+              : 'linear-gradient(135deg, #ffffff 0%, #fff5f5 50%, #fee2e2 100%)',
+            border: `1.5px solid ${selfBrawl.camp === 'blue' ? '#38bdf8' : '#f43f5e'}`,
             borderRadius: '12px',
-            padding: '10px 12px',
-            marginBottom: '10px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            padding: '8px 10px',
+            marginBottom: '8px',
+            boxShadow: selfBrawl.camp === 'blue'
+              ? '0 4px 12px rgba(14, 165, 233, 0.15), inset 0 1px 0 #ffffff'
+              : '0 4px 12px rgba(244, 63, 94, 0.15), inset 0 1px 0 #ffffff',
             display: 'flex',
             flexDirection: 'column',
-            gap: '8px',
+            gap: '6px',
             width: '100%',
             boxSizing: 'border-box',
           }}
@@ -169,20 +173,20 @@ export function IdentityDetails({
                 onClick={() => setViewingBrawlArt(true)}
                 title="点击放大查看专属法相"
                 style={{
-                  width: '56px',
-                  minWidth: '56px',
-                  maxWidth: '56px',
-                  height: '56px',
-                  flex: '0 0 56px',
+                  width: '52px',
+                  minWidth: '52px',
+                  maxWidth: '52px',
+                  height: '52px',
+                  flex: '0 0 52px',
                   flexShrink: 0,
                   padding: 0,
                   margin: 0,
                   background: 'transparent',
                   border: 'none',
                   cursor: 'pointer',
-                  borderRadius: '8px',
+                  borderRadius: '10px',
                   overflow: 'hidden',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
                   position: 'relative',
                   display: 'block',
                 }}
@@ -190,15 +194,15 @@ export function IdentityDetails({
                 <img
                   src={assetUrl(`/art/roles/${selfBrawl.artPrefix}-160.webp?v=brawl-art-v2`)}
                   alt={selfBrawl.roleName}
-                  width={56}
-                  height={56}
+                  width={52}
+                  height={52}
                   style={{
                     display: 'block',
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: '8px',
+                    width: '52px',
+                    height: '52px',
+                    borderRadius: '10px',
                     objectFit: 'cover',
-                    border: `2px solid ${selfBrawl.camp === 'blue' ? '#60a5fa' : selfBrawl.camp === 'red' ? '#f87171' : '#fbbf24'}`,
+                    border: `2px solid ${selfBrawl.camp === 'blue' ? '#d4af37' : '#f43f5e'}`,
                   }}
                 />
                 <span style={{
@@ -206,7 +210,7 @@ export function IdentityDetails({
                   bottom: 2,
                   right: 2,
                   fontSize: '9px',
-                  background: 'rgba(0,0,0,0.7)',
+                  background: 'rgba(0,0,0,0.6)',
                   color: '#fef08a',
                   padding: '1px 3px',
                   borderRadius: '3px',
@@ -219,39 +223,42 @@ export function IdentityDetails({
             <div style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px', marginBottom: '2px' }}>
                 <span style={{
-                  fontWeight: 700,
-                  fontSize: '15px',
-                  color: selfBrawl.camp === 'blue' ? '#60a5fa' : selfBrawl.camp === 'red' ? '#f87171' : '#fbbf24',
+                  fontWeight: 800,
+                  fontSize: '14.5px',
+                  color: selfBrawl.camp === 'blue' ? '#0369a1' : '#991b1b',
                 }}>
                   【{selfBrawl.roleName}】· {selfBrawl.roleTitle}
                 </span>
                 <span style={{
-                  fontSize: '11px',
-                  padding: '2px 8px',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  padding: '1.5px 7px',
                   borderRadius: '999px',
-                  background: selfBrawl.camp === 'blue' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                  color: selfBrawl.camp === 'blue' ? '#93c5fd' : '#fca5a5',
+                  background: selfBrawl.camp === 'blue' ? 'linear-gradient(180deg, #0ea5e9 0%, #0369a1 100%)' : 'linear-gradient(180deg, #f43f5e 0%, #be123c 100%)',
+                  color: '#ffffff',
+                  border: `1px solid ${selfBrawl.camp === 'blue' ? '#7dd3fc' : '#fecdd3'}`,
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
                   flexShrink: 0,
                 }}>
                   {selfBrawl.camp === 'blue' ? '仙佛阵营' : '妖魔阵营'}
                 </span>
                 {Boolean(selfBrawl.wishRank) && (
                   <span style={{
-                    fontSize: '11px',
-                    padding: '2px 8px',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    padding: '1.5px 7px',
                     borderRadius: '999px',
-                    background: 'rgba(234, 179, 8, 0.2)',
-                    color: '#fde047',
-                    border: '1px solid rgba(234, 179, 8, 0.4)',
+                    background: 'linear-gradient(180deg, #f59e0b 0%, #b45309 100%)',
+                    color: '#fffbeb',
+                    border: '1px solid #fde68a',
                     flexShrink: 0,
-                    fontWeight: 600,
                   }}>
                     ✨ 命中第 {selfBrawl.wishRank} 心愿
                   </span>
                 )}
               </div>
               {selfBrawl.motto && (
-                <div style={{ fontSize: '11.5px', color: '#94a3b8', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   「{selfBrawl.motto}」
                 </div>
               )}
@@ -260,107 +267,107 @@ export function IdentityDetails({
 
           {/* 中部：本命法宝与发动时机（整行 100% 满宽展示，充分利用横向空间，不留空白，控制纵向高度） */}
           <div style={{
-            fontSize: '12px',
-            color: '#e2e8f0',
-            background: 'rgba(15, 23, 42, 0.65)',
-            border: '1px solid rgba(148, 163, 184, 0.2)',
+            fontSize: '11.5px',
+            color: '#241208',
+            background: 'rgba(255, 255, 255, 0.9)',
+            border: '1px solid rgba(212, 175, 55, 0.5)',
             borderRadius: '8px',
-            padding: '7px 10px',
+            padding: '6px 9px',
             display: 'flex',
             flexDirection: 'column',
             gap: '3px',
-            lineHeight: 1.45,
+            lineHeight: 1.4,
             width: '100%',
             boxSizing: 'border-box',
           }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
-              <span style={{ color: '#ffd54f', fontWeight: 700, fontSize: '12.5px' }}>
-                📿 本命法宝 · 绝技 · {selfBrawl.skill.skillName}
+              <span style={{ color: '#92400e', fontWeight: 800, fontSize: '12px' }}>
+                📿 本命绝技 · {selfBrawl.skill.skillName}
               </span>
-              <span style={{ fontSize: '10.5px', color: '#94a3b8', background: 'rgba(51, 65, 85, 0.6)', padding: '1px 6px', borderRadius: '4px' }}>
+              <span style={{ fontSize: '10px', color: '#78350f', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.35)', padding: '1px 5px', borderRadius: '4px' }}>
                 {selfBrawl.skill.maxUses === 1 ? '整局限用 1 次' : '常驻被动'}
               </span>
             </div>
-            <div style={{ fontSize: '11.5px', color: '#cbd5e1' }}>
-              <strong style={{ color: '#38bdf8' }}>⏳ 发动时机：</strong>
+            <div style={{ fontSize: '11px', color: '#0369a1' }}>
+              <strong>⏳ 发动时机：</strong>
               <span>{BRAWL_PHASE_NAMES[selfBrawl.skill.triggerPhase] || selfBrawl.skill.triggerPhase}</span>
             </div>
-            <div style={{ fontSize: '11.5px', color: '#e2e8f0' }}>
-              <strong style={{ color: '#fbbf24' }}>✨ 法宝效果：</strong>
+            <div style={{ fontSize: '11px', color: '#334155' }}>
+              <strong style={{ color: '#92400e' }}>✨ 法宝效果：</strong>
               <span>{selfBrawl.skill.description}</span>
             </div>
           </div>
 
           {/* 私密天机与状态反馈通知（整行满宽） */}
           {selfBrawl.peekedRoles && selfBrawl.peekedRoles.length > 0 && (
-            <div style={{ fontSize: '11px', color: '#fbbf24', background: 'rgba(245, 158, 11, 0.1)', border: '1px dashed rgba(245, 158, 11, 0.3)', borderRadius: '6px', padding: '4px 8px' }}>
+            <div style={{ fontSize: '11px', color: '#78350f', background: 'rgba(245, 158, 11, 0.12)', border: '1px dashed #d4af37', borderRadius: '6px', padding: '4px 8px' }}>
               🔍 <strong>盲盒天机：</strong>侦察到本局潜伏敌手包含【{selfBrawl.peekedRoles.map(r => r.roleName).join('、')}】
             </div>
           )}
           {selfBrawl.zhaoyaoResult !== undefined && (
-            <div style={{ fontSize: '11px', fontWeight: 'bold', color: selfBrawl.zhaoyaoResult ? '#f87171' : '#4ade80' }}>
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: selfBrawl.zhaoyaoResult ? '#991b1b' : '#065f46' }}>
               {selfBrawl.zhaoyaoResult ? '🪞 照妖镜探照天机：当前车队中【有妖魔潜伏！】' : '🪞 照妖镜探照天机：当前车队中【无妖魔，皆是正道仙友！】'}
             </div>
           )}
           {selfBrawl.dapengExcludedPlayerId && (() => {
             const excluded = players.find(p => p.id === selfBrawl.dapengExcludedPlayerId);
             return excluded ? (
-              <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#fb923c' }}>
+              <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#92400e' }}>
                 🦅 云程万里俯瞰天机：已暗中排除【{excluded.seat}号 · {excluded.nickname}】（此人绝非孙悟空）！
               </div>
             ) : null;
           })()}
           {selfBrawl.putiDianhuaNotice && (
-            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#c084fc' }}>
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#6d28d9' }}>
               {selfBrawl.putiDianhuaNotice}
             </div>
           )}
           {selfBrawl.guanyinGanluResult ? (
-            <div style={{ fontSize: '11px', fontWeight: 'bold', color: selfBrawl.guanyinGanluResult.success ? '#4ade80' : '#f87171' }}>
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: selfBrawl.guanyinGanluResult.success ? '#065f46' : '#991b1b' }}>
               🪷 净瓶甘露探照天机：目标【{selfBrawl.guanyinGanluResult.targetSeat}号 · {selfBrawl.guanyinGanluResult.targetNickname}】在方才出征任务中投出了【{selfBrawl.guanyinGanluResult.success ? '成功牌 🟢' : '失败牌 🔴'}】！
             </div>
           ) : selfBrawl.guanyinNotice ? (
-            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#67e8f9' }}>
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#0369a1' }}>
               {selfBrawl.guanyinNotice}
             </div>
           ) : null}
           {selfBrawl.huangfengSecret && (
-            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#fde047' }}>
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#92400e' }}>
               🌪️ {selfBrawl.huangfengSecret}
             </div>
           )}
           {selfBrawl.tieshanSecret && (
-            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#34d399' }}>
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#065f46' }}>
               {selfBrawl.tieshanSecret}
             </div>
           )}
           {selfBrawl.huangmeiNotice && (
-            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#fbbf24' }}>
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#92400e' }}>
               {selfBrawl.huangmeiNotice}
             </div>
           )}
           {selfBrawl.baiguLijianStatus && (
-            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#f43f5e' }}>
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#991b1b' }}>
               {selfBrawl.baiguLijianStatus}
             </div>
           )}
           {selfBrawl.baiyanDuchaStatus && (
-            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#f59e0b' }}>
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#92400e' }}>
               {selfBrawl.baiyanDuchaStatus}
             </div>
           )}
           {selfBrawl.jinjiaoNotice && (
-            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#eab308' }}>
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#78350f' }}>
               {selfBrawl.jinjiaoNotice}
             </div>
           )}
           {selfBrawl.yutuNotice && (
-            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#ec4899' }}>
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#be185d' }}>
               {selfBrawl.yutuNotice}
             </div>
           )}
           {selfBrawl.generalFeedback && (
-            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#38bdf8' }}>
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#0369a1' }}>
               {selfBrawl.generalFeedback}
             </div>
           )}
@@ -372,12 +379,12 @@ export function IdentityDetails({
             style={{
               width: '100%',
               boxSizing: 'border-box',
-              background: 'rgba(255, 216, 117, 0.08)',
-              border: '1px solid rgba(255, 216, 117, 0.3)',
+              background: 'linear-gradient(180deg, #ffffff 0%, #fdf8ee 100%)',
+              border: '1.2px solid #d4af37',
               borderRadius: '8px',
-              color: '#ffd875',
-              fontSize: '12px',
-              fontWeight: 600,
+              color: '#78350f',
+              fontSize: '11.5px',
+              fontWeight: 700,
               padding: '6px 12px',
               cursor: 'pointer',
               display: 'flex',
@@ -385,6 +392,7 @@ export function IdentityDetails({
               justifyContent: 'center',
               gap: '6px',
               textAlign: 'center',
+              boxShadow: '0 1px 3px rgba(212, 175, 55, 0.2)',
             }}
             title="点击赏析高清专属神魔法相与生平典故"
           >
@@ -394,17 +402,18 @@ export function IdentityDetails({
           {/* 技能发动交互区 */}
           {selfBrawl.skillAvailable && !selfBrawl.skillUsed && selfBrawl.skill.actionType !== 'passive' && (
             <div style={{
-              background: 'rgba(15, 23, 42, 0.8)',
-              border: '1px solid rgba(245, 158, 11, 0.5)',
+              background: 'linear-gradient(135deg, #ffffff 0%, #fef3c7 100%)',
+              border: '1.5px solid #d4af37',
               borderRadius: '8px',
-              padding: '8px 10px',
+              padding: '7px 10px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: '8px',
               marginTop: '2px',
+              boxShadow: '0 2px 8px rgba(212, 175, 55, 0.25)',
             }}>
-              <span style={{ fontSize: '12px', color: '#fde68a', fontWeight: 700 }}>
+              <span style={{ fontSize: '12px', color: '#78350f', fontWeight: 800 }}>
                 ✨ 绝技蓄势待发
               </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -469,9 +478,9 @@ export function IdentityDetails({
                       value={brawlTarget}
                       onChange={e => setBrawlTarget(e.target.value)}
                       style={{
-                        background: '#0f172a',
-                        color: '#fff',
-                        border: '1px solid #475569',
+                        background: '#ffffff',
+                        color: '#241208',
+                        border: '1.5px solid #d4af37',
                         borderRadius: '6px',
                         padding: '4px 6px',
                         fontSize: '12px',
@@ -492,15 +501,16 @@ export function IdentityDetails({
                   disabled={disabled || (selfBrawl.skill.actionType === 'target_player' && !brawlTarget)}
                   onClick={() => handleUseSkill(selfBrawl.skill.skillId, brawlTarget || undefined)}
                   style={{
-                    background: '#f59e0b',
-                    color: '#000',
+                    background: 'linear-gradient(135deg, #d97706 0%, #b45309 50%, #78350f 100%)',
+                    color: '#ffffff',
                     fontWeight: 'bold',
-                    border: 'none',
+                    border: '1px solid #fde68a',
                     borderRadius: '6px',
                     padding: '6px 12px',
                     fontSize: '12px',
                     cursor: 'pointer',
                     margin: 0,
+                    boxShadow: '0 2px 6px rgba(180, 83, 9, 0.35)',
                   }}
                 >
                   发动绝技
@@ -513,8 +523,9 @@ export function IdentityDetails({
           {selfBrawl.skillUsed && (
             <div style={{
               fontSize: '11px',
-              color: '#94a3b8',
-              background: 'rgba(15, 23, 42, 0.5)',
+              color: '#64748b',
+              background: 'rgba(255, 255, 255, 0.85)',
+              border: '1px solid #cbd5e1',
               padding: '4px 8px',
               borderRadius: '6px',
               textAlign: 'right',

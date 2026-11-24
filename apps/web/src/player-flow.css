@@ -23,10 +23,22 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
 }
-.flow-details { border: 1px solid rgba(212,163,89,.4); border-radius: 12px; padding: 10px 12px; background: rgba(34,11,10,.85); }
-.flow-details > summary { cursor: pointer; color: #ffd875; font: 600 13px/1.5 var(--sans); }
+.flow-details {
+  border: 1.5px solid rgba(212, 175, 55, 0.45) !important;
+  border-radius: 14px !important;
+  padding: 12px 14px !important;
+  background: linear-gradient(180deg, #fefcf5 0%, #fbf4e2 100%) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+.flow-details > summary {
+  cursor: pointer;
+  color: #831843 !important;
+  font: 700 14px/1.5 var(--sans);
+  font-family: var(--calligraphy);
+  letter-spacing: 0.5px;
+}
 .flow-details[open] > summary { margin-bottom: 10px; }
-.flow-details > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.flow-details > summary:focus-visible { outline: 2px solid #831843; outline-offset: 3px; }
 .mp-setup-screen { justify-content: flex-start !important; gap: 12px !important; }
 .mp-setup-screen .room-creation-options {
   width: 100%;
@@ -117,8 +129,16 @@
 }
 
 .mp-portrait-card.is-red.is-blindbox {
-  border-color: #f87171;
-  background: linear-gradient(180deg, #380d12 0%, #1e0508 100%);
+  border-color: #f87171 !important;
+  background: linear-gradient(180deg, #fff5f5 0%, #fee2e2 100%) !important;
+}
+
+.mp-portrait-card.is-red.is-blindbox .mp-portrait-label strong {
+  color: #991b1b !important;
+}
+
+.mp-portrait-card.is-red.is-blindbox .mp-portrait-label small {
+  color: #7f1d1d !important;
 }
 
 .blindbox-visual {
@@ -153,14 +173,14 @@
 
 .mp-portrait-card.is-blue .blindbox-tag {
   background: rgba(14, 165, 233, 0.28);
-  color: #7dd3fc;
+  color: #0369a1;
   border: 1px solid rgba(56, 189, 248, 0.45);
 }
 
 .mp-portrait-card.is-red .blindbox-tag {
-  background: rgba(239, 68, 68, 0.28);
-  color: #fca5a5;
-  border: 1px solid rgba(239, 68, 68, 0.45);
+  background: #fee2e2 !important;
+  color: #991b1b !important;
+  border: 1px solid #fca5a5 !important;
 }
 
 .mp-portrait-card.is-red .blindbox-visual.is-none {

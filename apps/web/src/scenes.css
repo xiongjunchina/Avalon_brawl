@@ -40,14 +40,15 @@ button:hover:not(:disabled) {
   color: #2b0e01;
 }
 button.secondary {
-  background: linear-gradient(150deg, rgba(62, 22, 20, 0.92), rgba(28, 9, 8, 0.96));
-  color: #fff3d6;
-  border: 1.5px solid #d4a359;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 220, 140, 0.35);
+  background: #ffffff !important;
+  color: #78350f !important;
+  border: 1.5px solid #d4af37 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05) !important;
 }
 button.secondary:hover:not(:disabled) {
-  background: linear-gradient(150deg, rgba(78, 28, 25, 0.95), rgba(38, 12, 11, 0.98));
-  color: #ffffff;
+  background: #fef3c7 !important;
+  color: #831843 !important;
+  border-color: #831843 !important;
 }
 button .emblem { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.7)); }
 button.text-button { background: rgba(30, 10, 9, 0.75); box-shadow: none; }
@@ -2543,13 +2544,13 @@ main.app-shell.is-live-table {
   box-shadow: 0 0 26px rgba(255, 215, 0, 0.95), inset 0 2px 5px #fff !important;
 }
 .is-live-table .btn-dragon-cta:disabled {
-  background: linear-gradient(180deg, #442825 0%, #221210 100%) !important;
-  border-color: #6d4b32 !important;
-  color: #8c7365 !important;
+  background: linear-gradient(180deg, rgba(254, 252, 245, 0.95) 0%, rgba(245, 235, 210, 0.95) 100%) !important;
+  border: 1.5px dashed rgba(212, 175, 55, 0.45) !important;
+  color: #a8a29e !important;
   box-shadow: none !important;
   text-shadow: none !important;
   cursor: not-allowed !important;
-  opacity: 0.75 !important;
+  opacity: 0.85 !important;
 }
 
 .is-live-table .btn-cloud-flourish {
@@ -2742,12 +2743,51 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
   background: #ffffff !important;
   border: 1.5px solid rgba(212, 175, 55, 0.45) !important;
   border-radius: 16px !important;
-  padding: 16px !important;
+  padding: 16px 18px !important;
   margin-bottom: 14px !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
   color: #241208 !important;
 }
-.guide-section h2 { font-family: var(--calligraphy) !important; color: #831843 !important; font-size: 18px !important; margin: 0 0 10px !important; }
+.guide-section .eyebrow {
+  display: inline-block !important;
+  color: #831843 !important;
+  background: rgba(131, 24, 67, 0.08) !important;
+  border: 1px solid rgba(131, 24, 67, 0.25) !important;
+  border-radius: 6px !important;
+  padding: 2px 8px !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1px !important;
+  margin: 0 0 8px !important;
+}
+.guide-section h2 {
+  font-family: var(--calligraphy) !important;
+  color: #831843 !important;
+  font-size: 19px !important;
+  margin: 0 0 10px !important;
+  line-height: 1.35 !important;
+}
+.guide-section p {
+  color: #241208 !important;
+  font-size: 14px !important;
+  line-height: 1.65 !important;
+  margin: 0 0 10px !important;
+}
+.guide-section ul, .guide-section ol {
+  color: #241208 !important;
+  padding-left: 20px !important;
+  margin: 6px 0 10px !important;
+}
+.guide-section li {
+  color: #241208 !important;
+  font-size: 13.5px !important;
+  line-height: 1.65 !important;
+  margin-bottom: 6px !important;
+}
+.guide-section strong {
+  color: #78350f !important;
+  font-weight: 700 !important;
+}
 .guide-victories { display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 12px; }
 .guide-victories > div { background: #f0f9ff !important; border: 1.5px solid #0284c7 !important; border-radius: 12px !important; padding: 10px 12px !important; color: #241208 !important; }
 .guide-victories > .allegiance-red { background: #fef2f2 !important; border-color: #dc2626 !important; }
@@ -5948,17 +5988,19 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
 .my-player-code-card {
   padding: 16px;
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(46, 20, 18, 0.7), rgba(24, 10, 12, 0.8));
-  border: 1px solid rgba(229, 185, 100, 0.35);
+  background: linear-gradient(180deg, #fefcf5 0%, #fbf4e2 100%) !important;
+  border: 1.5px solid rgba(212, 175, 55, 0.45) !important;
   text-align: center;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
 }
 
 .my-player-code-card .card-label {
   font-size: 13px;
-  color: rgba(255, 244, 214, 0.7);
+  color: #78350f !important;
+  font-weight: 700;
 }
 
 .my-player-code-card .code-row {
@@ -5972,23 +6014,31 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
   font-size: 28px;
   font-weight: 900;
   letter-spacing: 3px;
-  color: #ffe082;
+  color: #831843 !important;
   font-family: monospace;
 }
 
 .copy-mini-btn {
-  padding: 4px 10px;
-  border-radius: 8px;
-  font-size: 12px;
-  border: 1px solid rgba(229, 185, 100, 0.4);
-  background: rgba(50, 24, 28, 0.8);
-  color: #fff4d6;
+  padding: 6px 14px !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  border: 1.2px solid #d4af37 !important;
+  background: linear-gradient(135deg, #ffd875 0%, #f5a623 50%, #d97706 100%) !important;
+  color: #2b0e01 !important;
+  box-shadow: 0 2px 6px rgba(245, 166, 35, 0.3) !important;
   cursor: pointer;
+  transition: all 0.15s ease !important;
+}
+
+.copy-mini-btn:hover {
+  background: linear-gradient(135deg, #ffe08a 0%, #fab73d 50%, #e88510 100%) !important;
+  transform: translateY(-1px);
 }
 
 .code-hint {
   font-size: 12px;
-  color: rgba(255, 244, 214, 0.55);
+  color: #78350f !important;
   margin: 0;
 }
 
@@ -6002,7 +6052,7 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
 .add-friend-form .form-label {
   font-size: 13.5px;
   font-weight: 700;
-  color: #ffd54f;
+  color: #831843 !important;
 }
 
 .search-input-row {
@@ -6023,10 +6073,11 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
   max-height: 40px !important;
   padding: 0 12px !important;
   border-radius: 10px !important;
-  background: rgba(24, 10, 12, 0.9) !important;
-  border: 1px solid rgba(229, 185, 100, 0.35) !important;
-  color: #fff !important;
+  background: #ffffff !important;
+  border: 1.5px solid #d4af37 !important;
+  color: #241208 !important;
   font-size: 13.5px !important;
+  font-weight: 600 !important;
   margin: 0 !important;
   margin-top: 0 !important;
   box-sizing: border-box !important;
@@ -6034,8 +6085,12 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
 
 .search-input-row .friend-input:focus {
   outline: none !important;
-  border-color: #ffd54f !important;
-  box-shadow: 0 0 10px rgba(255, 213, 79, 0.3) !important;
+  border-color: #831843 !important;
+  box-shadow: 0 0 10px rgba(131, 24, 67, 0.25) !important;
+}
+
+.search-input-row .friend-input::placeholder {
+  color: #94a3b8 !important;
 }
 
 .search-input-row .friend-submit-btn {
@@ -7096,9 +7151,28 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
 }
 .join-room-input-wrap input {
   width: 100%;
+  height: 46px !important;
+  min-height: 46px !important;
+  padding: 10px 14px !important;
   padding-right: 38px !important;
   font-family: var(--sans);
   font-size: 15px;
+  font-weight: 700 !important;
+  background: #ffffff !important;
+  border: 1.5px solid #d4af37 !important;
+  border-radius: 12px !important;
+  color: #241208 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04), inset 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+  box-sizing: border-box !important;
+}
+.join-room-input-wrap input:focus {
+  outline: none !important;
+  border-color: #831843 !important;
+  box-shadow: 0 0 0 2px rgba(131, 24, 67, 0.15), 0 2px 6px rgba(0, 0, 0, 0.06) !important;
+}
+.join-room-input-wrap input::placeholder {
+  color: #94a3b8 !important;
+  font-weight: 500 !important;
 }
 .join-room-clear-btn {
   position: absolute;
@@ -7109,9 +7183,9 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
   height: 24px;
   min-height: 24px !important;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(212, 175, 55, 0.2) !important;
   border: none;
-  color: #eeddc4;
+  color: #78350f !important;
   font-size: 12px;
   font-weight: 700;
   display: flex;
@@ -7124,8 +7198,8 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
   line-height: 1;
 }
 .join-room-clear-btn:hover {
-  background: rgba(255, 255, 255, 0.32);
-  color: #ffffff;
+  background: rgba(212, 175, 55, 0.4) !important;
+  color: #831843 !important;
 }
 
 /* Real-time Seat Mic Badge (Tencent Meeting style) */
@@ -8371,18 +8445,68 @@ button.seat-mic-badge:active {
 }
 
 /* Room admission uses the existing panel and dialog primitives. */
-.room-access-card { width:100%; padding:12px; margin-block:8px; font:500 13.5px/1.5 var(--sans); }
-.room-access-card > label { margin:0 0 6px; font-size:13.5px; }
-.room-access-card > h3 { margin:0 0 6px; font-size:15px; }
-.room-access-card > .hint { margin:8px 0 0; font-size:12px; line-height:1.5; }
-.room-access-card select { height:40px; min-height:40px; padding:6px 10px; font:500 13.5px/1.5 var(--sans); border-radius:10px; }
-.room-access-field { margin:10px 0; padding:8px 10px; border:1px solid var(--border); border-radius:12px; min-width:0; font:500 13.5px/1.5 var(--sans); }
-.room-access-field legend { color:var(--accent); padding-inline:5px; font-size:13.5px; }
-.room-access-field > label { font-size:13px; margin:6px 0 4px; }
-.room-access-field input[type=password] { display:block; width:min(100%,220px); height:40px; min-height:40px; padding:6px 10px; font:500 16px/1.5 var(--sans); border-radius:10px; }
-.access-options { display:flex; gap:8px 16px; flex-wrap:wrap; }
-.access-options label { display:inline-flex; align-items:center; gap:5px; min-height:32px; margin:0; font-size:13px; font-weight:500; }
-.access-options input { min-height:0; margin:0; }
+.room-access-card {
+  width: 100%;
+  padding: 14px !important;
+  margin-block: 8px;
+  font: 500 13.5px/1.5 var(--sans);
+  background: #ffffff !important;
+  border: 1.5px solid rgba(212, 175, 55, 0.45) !important;
+  border-radius: 14px !important;
+  color: #241208 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+}
+.room-access-card > label { margin: 0 0 6px; font-size: 13.5px; color: #831843 !important; font-weight: 700 !important; }
+.room-access-card > h3 { margin: 0 0 6px; font-size: 16px; color: #831843 !important; font-family: var(--calligraphy) !important; }
+.room-access-card > .hint { margin: 8px 0 0; font-size: 12px; line-height: 1.5; color: #78350f !important; }
+.room-access-card select { height: 40px; min-height: 40px; padding: 6px 10px; font: 500 13.5px/1.5 var(--sans); border-radius: 10px; background: #ffffff !important; border: 1.2px solid #d4af37 !important; color: #241208 !important; }
+.room-access-field {
+  margin: 10px 0;
+  padding: 10px 12px !important;
+  border: 1.2px solid rgba(212, 175, 55, 0.4) !important;
+  border-radius: 12px;
+  min-width: 0;
+  font: 500 13.5px/1.5 var(--sans);
+  background: rgba(254, 252, 245, 0.8) !important;
+}
+.room-access-field legend { color: #831843 !important; font-weight: 700 !important; padding-inline: 5px; font-size: 13.5px; }
+.room-access-field > label { font-size: 13px; margin: 6px 0 4px; color: #78350f !important; }
+.room-access-field input[type=password] {
+  display: block;
+  width: min(100%, 220px);
+  height: 40px;
+  min-height: 40px;
+  padding: 6px 10px;
+  font: 500 16px/1.5 var(--sans);
+  border-radius: 10px;
+  background: #ffffff !important;
+  border: 1.5px solid #d4af37 !important;
+  color: #241208 !important;
+}
+.access-options { display: flex; gap: 8px 16px; flex-wrap: wrap; margin: 8px 0; }
+.access-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #241208 !important;
+  cursor: pointer;
+}
+.access-options input { min-height: 0; margin: 0; accent-color: #d97706; }
+.room-access-card button {
+  background: linear-gradient(135deg, #ffd875 0%, #f5a623 50%, #d97706 100%) !important;
+  border: 1.5px solid #fff2b2 !important;
+  color: #2b0e01 !important;
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  font-family: var(--calligraphy) !important;
+  font-size: 15px !important;
+  box-shadow: 0 4px 12px rgba(245, 166, 35, 0.3) !important;
+  cursor: pointer !important;
+}
 
 /* Active play comes first; full mission history follows the action dock. */
 .is-live-table .table-game-screen.game-play-priority { gap: 2px !important; }

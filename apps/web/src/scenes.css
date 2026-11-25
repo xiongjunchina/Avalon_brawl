@@ -4456,8 +4456,20 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
 .table-seats-grid.altar-dual-flank-arena.is-ended-grid,
 .is-live-table .table-seats-grid.altar-dual-flank-arena.is-ended-grid,
 .is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.is-ended-grid {
-  height: clamp(376px, 49dvh, 418px) !important;
-  min-height: clamp(376px, 49dvh, 418px) !important;
+  height: clamp(322px, 42.5dvh, 368px) !important;
+  min-height: clamp(322px, 42.5dvh, 368px) !important;
+}
+.table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-10,
+.is-live-table .table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-10,
+.is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-10 {
+  height: clamp(344px, 45dvh, 388px) !important;
+  min-height: clamp(344px, 45dvh, 388px) !important;
+}
+.table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-12,
+.is-live-table .table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-12,
+.is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-12 {
+  height: clamp(370px, 48.5dvh, 412px) !important;
+  min-height: clamp(370px, 48.5dvh, 412px) !important;
 }
 
 /* 3-Zone / Circular Ring Arena Container */
@@ -8744,8 +8756,16 @@ button.seat-mic-badge:active {
   min-height: clamp(340px, 44.5dvh, 374px) !important;
 }
 .is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.is-ended-grid {
-  height: clamp(376px, 49dvh, 418px) !important;
-  min-height: clamp(376px, 49dvh, 418px) !important;
+  height: clamp(322px, 42.5dvh, 368px) !important;
+  min-height: clamp(322px, 42.5dvh, 368px) !important;
+}
+.is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-10 {
+  height: clamp(344px, 45dvh, 388px) !important;
+  min-height: clamp(344px, 45dvh, 388px) !important;
+}
+.is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-12 {
+  height: clamp(370px, 48.5dvh, 412px) !important;
+  min-height: clamp(370px, 48.5dvh, 412px) !important;
 }
 .is-live-table .game-play-priority .scheme-a-main-arena,
 .is-live-table .game-play-priority .circular-ring-arena {
@@ -8789,6 +8809,33 @@ button.seat-mic-badge:active {
   color: #241208 !important;
   font-size: 9.5px !important;
 }
+.is-live-table .game-play-priority .is-ended-grid .flank-seat-card {
+  gap: 1px !important;
+}
+.is-live-table .game-play-priority .is-ended-grid .flank-avatar-wrap {
+  width: 32px !important;
+  height: 32px !important;
+}
+.is-live-table .game-play-priority .is-ended-grid .flank-nameplate {
+  height: 16px !important;
+  font-size: 9px !important;
+  padding: 0 4px !important;
+}
+.is-live-table .game-play-priority .is-ended-grid .ended-seat-role-pill {
+  margin-top: 0 !important;
+  height: 15px !important;
+  line-height: 14px !important;
+  padding: 0 5px !important;
+  font-size: 9px !important;
+}
+.is-live-table .game-play-priority .is-ended-grid .seat-status-badges {
+  top: -4px !important;
+}
+.is-live-table .game-play-priority .is-ended-grid .flank-avatar-wrap .seat-status-badges .seat-badge {
+  padding: 0.5px 3.5px !important;
+  font-size: 8px !important;
+  line-height: 1.1 !important;
+}
 @media (max-width: 480px) {
   .is-live-table .game-play-priority .grid-12 .flank-avatar-wrap {
     width: 32px !important;
@@ -8799,6 +8846,27 @@ button.seat-mic-badge:active {
     max-width: 74px !important;
     padding: 0 4px !important;
     font-size: 9px !important;
+  }
+  .is-live-table .game-play-priority .is-ended-grid.grid-12 .flank-seat-card {
+    gap: 1px !important;
+  }
+  .is-live-table .game-play-priority .is-ended-grid.grid-12 .flank-avatar-wrap {
+    width: 28px !important;
+    height: 28px !important;
+  }
+  .is-live-table .game-play-priority .is-ended-grid.grid-12 .flank-nameplate {
+    height: 14px !important;
+    max-width: 74px !important;
+    padding: 0 3.5px !important;
+    font-size: 8.5px !important;
+  }
+  .is-live-table .game-play-priority .is-ended-grid.grid-12 .ended-seat-role-pill {
+    margin-top: 0 !important;
+    height: 13.5px !important;
+    line-height: 12.5px !important;
+    padding: 0 4.5px !important;
+    font-size: 8.5px !important;
+    max-width: 74px !important;
   }
 }
 .brawl-revealed-seat-img {

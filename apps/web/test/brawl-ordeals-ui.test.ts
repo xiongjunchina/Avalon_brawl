@@ -206,6 +206,7 @@ test('GamePanel renders real Brawl portraits & role pills on ended seats, and pl
   assert.ok(endedHtml.includes('brawl-tieshan-160.webp'), 'Ended seat renders real Tieshan Brawl portrait');
   assert.ok(endedHtml.includes('ended-seat-role-pill team-blue') && endedHtml.includes('王母娘娘'), 'Ended seat shows visible Wangmu role pill');
   assert.ok(endedHtml.includes('ended-seat-role-pill team-red') && endedHtml.includes('铁扇公主'), 'Ended seat shows visible Tieshan role pill');
+  assert.ok(endedHtml.includes('ended-outcome-lead') && !endedHtml.includes('ended-outcome-kicker'), 'Ended result banner uses compact single-row headline without tall kicker');
 });
 
 test('ReplayView renders complete Brawl skill timeline, per-round chronicle, and 5-8p bonus roles', () => {

@@ -477,16 +477,9 @@ export function GamePanel({
               aria-live="polite"
             >
               <div className="ended-hero-top">
-                <div className="ended-outcome-emblem" aria-hidden="true">
-                  {isPersonalWin === true ? '🏆' : isPersonalWin === false ? '💔' : '⚖️'}
-                </div>
-                <div className="ended-outcome-titles">
-                  <div className="ended-outcome-kicker">
-                    {isPersonalWin === true
-                      ? 'VICTORY · 你的阵营获胜'
-                      : isPersonalWin === false
-                        ? 'DEFEAT · 你的阵营落败'
-                        : 'MATCH ABORTED · 本局中断'}
+                <div className="ended-outcome-lead">
+                  <div className="ended-outcome-emblem" aria-hidden="true">
+                    {isPersonalWin === true ? '🏆' : isPersonalWin === false ? '💔' : '⚖️'}
                   </div>
                   <h2 className="ended-outcome-headline">
                     {isPersonalWin === true

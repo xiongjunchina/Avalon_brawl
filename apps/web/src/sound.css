@@ -56,9 +56,9 @@ button.sound-button.is-on { color: #b3fff0; border-color: #a6d9ca; }
 .account-sound-settings summary { cursor: pointer; color: #831843; font-size: 16px; font-weight: 700; }
 .account-sound-settings[open] summary { margin-bottom: 6px; }
 @media (max-width: 380px) {
-  .room-top-bar { gap: 4px; }
-  .room-top-right { gap: 3px; }
-  .room-top-bar .tool-pill { padding-inline: 6px; }
-  button.sound-button { flex: 0 0 30px !important; width: 30px !important; height: 30px !important; min-height: 30px !important; }
+  .room-top-bar { gap: 2px; }
+  .room-top-right { gap: 2px; }
+  .room-top-bar .tool-pill { padding: 0 4px !important; }
+  button.sound-button { flex: 0 0 24px !important; width: 24px !important; height: 24px !important; min-height: 24px !important; }
   .sound-dialog { padding: 18px; }
 }

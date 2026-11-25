@@ -57,6 +57,26 @@ export const defaultSettings: Settings = {
   brawlOrdealsEnabled: false,
   brawlPhantomVisionEnabled: false,
 };
+export const defaultBrawlSettings: Settings = {
+  ...defaultSettings,
+  playerCount: 6,
+  captainMode: 'random_order',
+  anonymousTeamVote: true,
+  earlyAssassinationEnabled: true,
+  guardianPerksEnabled: false,
+  treasuresEnabled: false,
+  brawlModeEnabled: true,
+  brawlOrdealsEnabled: true,
+  brawlPhantomVisionEnabled: false,
+};
+export function normalizeBrawlSettings(settings: Settings): Settings {
+  return {
+    ...settings,
+    brawlModeEnabled: true,
+    guardianPerksEnabled: false,
+    treasuresEnabled: false,
+  };
+}
 export const defaultAnonymousTeamVote = (playerCount: number) => playerCount < 8;
 export type TeamBallot = boolean | 'abstain';
 export const nicknameSchema = z.string().trim().min(1).max(20);

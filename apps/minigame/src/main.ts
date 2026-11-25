@@ -14,7 +14,7 @@ import {RolePreferenceDraft} from './screens/role-preferences.js';
 import type {Role} from '@avalon/contracts';
 import {commandId} from './screens/lobby.js';
 import { attachTouchNavigation } from './ui/touch.js';
-import { defaultSettings, defaultAnonymousTeamVote, type RoomView, type Settings, type User, type DedicatedRoom } from '@avalon/contracts';
+import { defaultBrawlSettings, normalizeBrawlSettings, defaultAnonymousTeamVote, type RoomView, type Settings, type User, type DedicatedRoom } from '@avalon/contracts';
 import { WechatPlatform, type WxRuntime } from './platform/wechat.js';
 import { MiniGameApi } from './net/api.js';
 import { MiniGameRoomConnection } from './net/socket.js';
@@ -117,7 +117,7 @@ let reminderDismissed = '';
 let guideReturn: 'entry' | 'lobby' | 'game' | 'practice' | 'settings' = 'entry';
 let freeAccess = true;
 let setupIntent: 'room' | 'practice' = 'room';
-let editableSettings: Settings = { ...defaultSettings, captainMode: 'random_order', anonymousTeamVote: true, earlyAssassinationEnabled: true };
+let editableSettings: Settings = { ...defaultBrawlSettings };
 const serverClock=new ServerClock();
 const gameUi: GameUiState = { privateRoleVisible: false, ballotVisible: false, selectedIds: [], direction: 'clockwise' };
 
@@ -315,7 +315,7 @@ async function select(id: string) {
   if(id==='switch'&&view==='player'){authMode='switch';switchCode='';navigate('entry');auxiliary='switchAccount';render();return;}
   if(id==='roomPassword'&&room&&room.hostId===user?.id&&room.phase==='waiting')return run(async()=>{status='输入新密码（4–8位字符），留空则关闭密码';render();const password=await askText(wx,'',8);if(password===undefined)return;if(password&&(password.length<4||password.length>8))throw Error('密码需为4–8位字符');const r=await api.request<{room:RoomView}>(`/rooms/${room!.id}/password`,{password:password||null,expectedVersion:room!.version});room=r.room;lobby?.setRoom(room);notice='密码已更新，旧邀请链接已失效，请重新分享';});
   if(id==='chooseDedicated')return run(async()=>{dedicatedRooms=(await api.request<{rooms:DedicatedRoom[]}>('/me/dedicated-rooms')).rooms;auxiliary='dedicated';scroll=0;});
-  if(id.startsWith('dedicated:')){const selected=dedicatedRooms.find(r=>r.id===id.slice(10));if(selected?.activeRoomId)return;selectedDedicated=selected;creationAccess=selected?{dedicatedRoomId:selected.id}:{};if(selected)editableSettings={...selected.settings};auxiliary=undefined;render();return;}
+  if(id.startsWith('dedicated:')){const selected=dedicatedRooms.find(r=>r.id===id.slice(10));if(selected?.activeRoomId)return;selectedDedicated=selected;creationAccess=selected?{dedicatedRoomId:selected.id}:{};if(selected)editableSettings=normalizeBrawlSettings(selected.settings);auxiliary=undefined;render();return;}
   if(id==='creationPassword')return run(async()=>{status='输入入房密码（4–8位字符），留空则不设置';render();const password=await askText(wx,'',8);if(password===undefined)return;if(password&&(password.length<4||password.length>8))throw Error('密码需为4–8位字符');creationAccess={...creationAccess,password:password||null};});
   if (id === 'copyCode' && user?.playerCode && wx.setClipboardData) { wx.setClipboardData({ data: user.playerCode, success: () => { notice = '仙友码已复制'; render(); }, fail: () => { error = '复制失败，请重试'; render(); } }); return; }
   sound.activate(); sound.effect('tap'); platform.vibrate('light');
@@ -437,21 +437,21 @@ async function select(id: string) {
     if(id==='setupAccessToggle'){setupAccessExpanded=!setupAccessExpanded;render();return;}
     if (id.startsWith('setupRole:')) { guideReturn='settings'; guideRoleId=id.slice(10); guideSection='roles'; guideArt=false; navigate('guide'); return; }
     if (id === 'cancelSettings') { navigate(setupIntent === 'practice' && practice ? 'practice' : room ? 'lobby' : 'entry'); return; }
-    if (id.startsWith('count:')) { const count = Number(id.slice(6)); if (count >= 5 && count <= 12) editableSettings = { ...editableSettings, playerCount: count, anonymousTeamVote: defaultAnonymousTeamVote(count) }; render(); return; }
-    if (id === 'createRoom' && lobby) return run(async () => { connect(await lobby!.create(editableSettings,creationAccess)); });
-    if (id === 'startPractice') { practice = new PracticeSession(editableSettings, user?.nickname ?? '我',undefined,user); syncGameUi(gameUi, practice.view(), true, practice.user.id); navigate('practice'); return; }
-    if (id === 'apply') { if (room && lobby) lobby.updateSettings(editableSettings); navigate(room?.game ? 'game' : room ? 'lobby' : 'entry'); return; }
+    if (id.startsWith('count:')) { const count = Number(id.slice(6)); if (count >= 5 && count <= 12) editableSettings = normalizeBrawlSettings({ ...editableSettings, playerCount: count, anonymousTeamVote: defaultAnonymousTeamVote(count) }); render(); return; }
+    if (id === 'createRoom' && lobby) return run(async () => { connect(await lobby!.create(normalizeBrawlSettings(editableSettings),creationAccess)); });
+    if (id === 'startPractice') { practice = new PracticeSession(normalizeBrawlSettings(editableSettings), user?.nickname ?? '我',undefined,user); syncGameUi(gameUi, practice.view(), true, practice.user.id); navigate('practice'); return; }
+    if (id === 'apply') { if (room && lobby) lobby.updateSettings(normalizeBrawlSettings(editableSettings)); navigate(room?.game ? 'game' : room ? 'lobby' : 'entry'); return; }
     editableSettings = toggleSetting(editableSettings, id as keyof Settings);
     render(); return;
   }
   if (view === 'lobby' && room && lobby) {
-    if (id === 'practice') { practice = new PracticeSession(room.settings, user?.nickname ?? '我',undefined,user); syncGameUi(gameUi, practice.view(), true, practice.user.id); navigate('practice'); return; }
+    if (id === 'practice') { practice = new PracticeSession(normalizeBrawlSettings(room.settings), user?.nickname ?? '我',undefined,user); syncGameUi(gameUi, practice.view(), true, practice.user.id); navigate('practice'); return; }
     if (id === 'more') { auxiliary = 'roomTools'; scroll = 0; render(); return; }
-    if (id==='waiting:lady'||id==='waiting:early') { if(room.hostId===user?.id) lobby.updateSettings({...room.settings,...(id==='waiting:lady'?{ladyEnabled:!room.settings.ladyEnabled}:{earlyAssassinationEnabled:!room.settings.earlyAssassinationEnabled})}); return; }
+    if (id==='waiting:lady'||id==='waiting:early') { if(room.hostId===user?.id) lobby.updateSettings(normalizeBrawlSettings({...room.settings,...(id==='waiting:lady'?{ladyEnabled:!room.settings.ladyEnabled}:{earlyAssassinationEnabled:!room.settings.earlyAssassinationEnabled})})); return; }
     if (id === 'ready') lobby.ready(!room.members.find(member => member.id === user?.id)?.ready);
     else if (id === 'start') lobby.start();
     else if (id === 'admission') lobby.admission(!room.acceptingNewMembers);
-    else if (id === 'settings') { setupIntent = 'room'; editableSettings = { ...room.settings }; navigate('settings'); }
+    else if (id === 'settings') { setupIntent = 'room'; editableSettings = normalizeBrawlSettings(room.settings); navigate('settings'); }
     else if (id === 'leave') lobby.leave();
     else if (id === 'share') { if (wx.shareAppMessage) wx.shareAppMessage({ title: `来嘻游 · 真假猴王房间 ${room.code} 一起论剑`, query: `invite=${encodeURIComponent(room.inviteKey??room.code)}` }); else { error = `请告知好友房间号 ${room.code}`; render(); } }
     else if (id === 'friends' && playerPanel) return run(async () => { previousView = 'lobby'; await playerPanel!.open('friends', { roomId: room!.id,roomMemberIds:room!.members.map(m=>m.id) }); navigate('player'); });

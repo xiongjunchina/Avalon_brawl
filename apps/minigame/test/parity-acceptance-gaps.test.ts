@@ -136,7 +136,7 @@ test('settings selects require an explicit option and closing or reselecting nev
 });
 
 test('settings option overlay stays reachable above the modal footer on a small screen',()=>{
- const {room}=parityFixture();const model:any={title:'预设',rows:[],scroll:10000,web:{page:'sheet',document:{kind:'presets',modal:true,presetEditing:true,settings:room.settings,settingChoice:{id:'preset:rejectionScope',key:'rejectionScope',value:'game'}}}};
+ const {room}=parityFixture();const model:any={title:'预设',rows:[],scroll:10000,web:{page:'sheet',document:{kind:'presets',modal:true,presetEditing:true,settings:room.settings,settingChoice:{id:'preset:captainMode',key:'captainMode',value:'seat_order'}}}};
  const nodes=layoutWebScreen(model,{width:320,height:568,top:44,bottom:34}).nodes;
  const options=nodes.filter(n=>n.id.startsWith('settingChoice:value:'));assert.equal(options.length,2);
  for(const n of options){assert.ok(n.fixed);assert.ok(n.y>=44&&n.y+n.height<=534);}

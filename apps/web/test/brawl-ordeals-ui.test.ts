@@ -2,13 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { defaultSettings, type RoomView } from '@avalon/contracts';
+import { defaultSettings, defaultBrawlSettings, normalizeBrawlSettings, type RoomView } from '@avalon/contracts';
 import { createGame, projectGame, transition, BRAWL_ROLE_REGISTRY } from '@avalon/game-core';
 import { BrawlPanel } from '../src/BrawlPanel.js';
 import { MissionReportDialog } from '../src/MissionReportDialog.js';
 import { GamePanel } from '../src/GamePanel.js';
 import { GuideRules, GuideRoles } from '../src/GuidePanel.js';
 import { ReplayView, StatisticsView } from '../src/AccountPanel.js';
+import { SettingsFields, settingsText } from '../src/PresetsPanel.js';
 
 const makePlayers = (n: number) =>
   Array.from({ length: n }, (_, i) => ({ id: `u${i + 1}`, nickname: `仙友${i + 1}`, seat: i + 1 }));
@@ -326,4 +327,51 @@ test('StatisticsView renders 30 Brawl role stats with real portraits instead of 
   assert.ok(html.includes('托塔李天王') && html.includes('如来佛祖'), 'Includes other 30 Brawl roles');
   assert.ok(!html.includes('经典模式历史角色战绩'), 'Hides classic collapse section when user has no classic games');
   assert.ok(!html.includes('取经护法战绩') && !html.includes('女妖精战绩'), 'Does not render classic loyal/minion cards for pure Brawl user');
+});
+
+test('Brawl-only room settings remove classic options, normalize presets/dedicated defaults, and sync rules & role guides', () => {
+  assert.equal(defaultBrawlSettings.brawlModeEnabled, true);
+  assert.equal(defaultBrawlSettings.brawlOrdealsEnabled, true);
+  assert.equal(defaultBrawlSettings.guardianPerksEnabled, false);
+  assert.equal(defaultBrawlSettings.treasuresEnabled, false);
+
+  const normalized = normalizeBrawlSettings({
+    ...defaultSettings,
+    brawlModeEnabled: false,
+    guardianPerksEnabled: true,
+    treasuresEnabled: true,
+  });
+  assert.equal(normalized.brawlModeEnabled, true);
+  assert.equal(normalized.guardianPerksEnabled, false);
+  assert.equal(normalized.treasuresEnabled, false);
+
+  const fieldsHtml = renderToStaticMarkup(createElement(SettingsFields, {
+    settings: defaultBrawlSettings,
+    onChange: () => {},
+  }));
+  assert.ok(!fieldsHtml.includes('护法天机'), 'Removed guardianPerksEnabled from SettingsFields');
+  assert.ok(!fieldsHtml.includes('专属法宝'), 'Removed treasuresEnabled from SettingsFields');
+  assert.ok(!fieldsHtml.includes('流局计数') && !fieldsHtml.includes('5 次判负'), 'Removed classic 5-rejection scope from SettingsFields');
+  assert.ok(!fieldsHtml.includes('room-brawlModeEnabled'), 'Removed classic/brawl mode switch from SettingsFields');
+  for (const label of ['匿名组队投票', '提前刺杀', '倒计时后亮明真身', '心仪选角', '八十一难奇劫', '画皮惑眼']) {
+    assert.ok(fieldsHtml.includes(label), `Keeps active Brawl option: ${label}`);
+  }
+
+  const summary = settingsText({
+    ...defaultBrawlSettings,
+    guardianPerksEnabled: true,
+    treasuresEnabled: true,
+    rolePreferenceEnabled: true,
+    brawlPhantomVisionEnabled: true,
+  });
+  assert.ok(summary.includes('两流必发') && summary.includes('八十一难奇劫') && summary.includes('画皮惑眼') && summary.includes('心仪选角'));
+  assert.ok(!summary.includes('护法天机') && !summary.includes('专属法宝') && !summary.includes('全局流局') && !summary.includes('任务流局'));
+
+  const rulesHtml = renderToStaticMarkup(createElement(GuideRules, { mode: 'brawl' }));
+  const rolesHtml = renderToStaticMarkup(createElement(GuideRoles, { mode: 'brawl' }));
+  assert.ok(rulesHtml.includes('流局自动退还') && rulesHtml.includes('永久保留在【真身】底牌'), 'Rules guide documents refund & persistent private receipts');
+  assert.ok(rulesHtml.includes('30 位神魔独立建档战绩') && rulesHtml.includes('仙妖斗法实录'), 'Rules guide documents 30-role stats and per-round skill replay');
+  assert.ok(rulesHtml.includes('传统经典版的“护法天机”“8–12 人经典法宝”“五次流局判负”均已移除'), 'Rules guide reflects cleaned Brawl room settings');
+  assert.ok(rolesHtml.includes('队伍为空时触发不扣次数') && rolesHtml.includes('结果永久保留在真身底牌'), 'Role guide documents updated Li Tianwang behavior');
+  assert.ok(rolesHtml.includes('流局自动退还'), 'Role guide documents mission-skill refund on rejected votes');
 });

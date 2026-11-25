@@ -4,7 +4,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import * as Label from '@radix-ui/react-label';
 import {
-  defaultSettings,
+  defaultBrawlSettings,
+  normalizeBrawlSettings,
   defaultAnonymousTeamVote,
   type Command,
   type Member,
@@ -120,14 +121,7 @@ function App() {
   const [joinOpen, setJoinOpen] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   const [setupSettings, setSetupSettings] = useState<Settings>(() => ({
-    ...defaultSettings,
-    brawlModeEnabled: true,
-    brawlOrdealsEnabled: true,
-    brawlPhantomVisionEnabled: false,
-    playerCount: 6,
-    captainMode: 'random_order',
-    anonymousTeamVote: true,
-    earlyAssassinationEnabled: true,
+    ...defaultBrawlSettings,
   }));
   const pendingSettingsRef = useRef<Settings | null>(null);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
@@ -580,17 +574,20 @@ function App() {
       room.hostId === user?.id &&
       pendingSettingsRef.current
     ) {
-      const target = pendingSettingsRef.current;
+      const target = normalizeBrawlSettings(pendingSettingsRef.current);
       pendingSettingsRef.current = null;
       const needsSync =
         room.settings.playerCount !== target.playerCount ||
         room.settings.earlyAssassinationEnabled !== target.earlyAssassinationEnabled ||
-        room.settings.guardianPerksEnabled !== target.guardianPerksEnabled ||
         room.settings.autoRevealRoleEnabled !== target.autoRevealRoleEnabled ||
-        room.settings.treasuresEnabled !== target.treasuresEnabled ||
         room.settings.anonymousTeamVote !== target.anonymousTeamVote ||
         room.settings.captainMode !== target.captainMode ||
-        room.settings.rejectionScope !== target.rejectionScope;
+        room.settings.rolePreferenceEnabled !== target.rolePreferenceEnabled ||
+        room.settings.brawlModeEnabled !== target.brawlModeEnabled ||
+        room.settings.brawlOrdealsEnabled !== target.brawlOrdealsEnabled ||
+        room.settings.brawlPhantomVisionEnabled !== target.brawlPhantomVisionEnabled ||
+        room.settings.guardianPerksEnabled !== target.guardianPerksEnabled ||
+        room.settings.treasuresEnabled !== target.treasuresEnabled;
       if (needsSync) {
         transportRef.current?.send({
           type: 'updateSettings',
@@ -1075,7 +1072,7 @@ function App() {
   const settings = room?.settings;
 
   function updateSettings(patch: Partial<Settings>) {
-    if (settings) command({ type: 'updateSettings', payload: { ...settings, ...patch } });
+    if (settings) command({ type: 'updateSettings', payload: normalizeBrawlSettings({ ...settings, ...patch }) });
   }
 
   const setupRoles = ROLE_CONFIG[setupSettings.playerCount] ?? ROLE_CONFIG[6];
@@ -1347,7 +1344,7 @@ function App() {
               </button>
             </footer>
 
-            <RoomCreationAccess onChange={setCreationAccess} onSettings={setSetupSettings}/>
+            <RoomCreationAccess onChange={setCreationAccess} onSettings={next => setSetupSettings(normalizeBrawlSettings(next))}/>
             <section className="setup-role-preview" aria-labelledby="setup-role-heading">
               {isSetupBrawl ? (
                 <>
@@ -2246,7 +2243,7 @@ function App() {
                         currentSettings={settings!}
                         disabled={disabled}
                         canApply={!!host}
-                        onApply={s => command({ type: 'updateSettings', payload: s })}
+                        onApply={s => command({ type: 'updateSettings', payload: normalizeBrawlSettings(s) })}
                       />
                     </details>
                   )}

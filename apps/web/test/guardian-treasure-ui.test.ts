@@ -60,17 +60,19 @@ test('saved legacy games keep projected blue treasures even with both settings e
   assert.equal(identityTreasure(view.self!, players.length, settings.treasuresEnabled, view).enabled, true);
 });
 
-test('settings and public guides explain the new blue treasure exclusion without changing the switches', () => {
+test('settings UI is Brawl-only while legacy classic replay summaries and classic guides remain backwards-compatible', () => {
   const { settings } = fixture();
-  const render = (guardianPerksEnabled: boolean) => renderToStaticMarkup(createElement(SettingsFields, {
-    settings: { ...settings, guardianPerksEnabled }, onChange: () => {},
+  const renderedFields = renderToStaticMarkup(createElement(SettingsFields, {
+    settings: { ...settings, brawlModeEnabled: true }, onChange: () => {},
   }));
-  assert.match(render(true), /蓝方法宝禁用，仅红方法宝生效/);
-  assert.match(render(false), /双方按角色保留专属法宝/);
+  assert.doesNotMatch(renderedFields, /护法天机|专属法宝|5 次判负|仙魔大乱斗（30位全明星/);
+  assert.match(renderedFields, /八十一难奇劫/);
+  assert.match(renderedFields, /画皮惑眼/);
   assert.match(settingsText(settings), /专属法宝（仅红方）/);
   assert.match(settingsText(settings, 'standard-no-lancelot-v6'), /专属法宝（仅红方）/);
   assert.doesNotMatch(settingsText(settings, 'standard-no-lancelot-v5'), /仅红方/);
   assert.doesNotMatch(settingsText({ ...settings, guardianPerksEnabled: false }), /仅红方/);
+  assert.doesNotMatch(settingsText({ ...settings, brawlModeEnabled: true }), /护法天机|专属法宝|全局流局|任务流局/);
   const rules = renderToStaticMarkup(createElement(GuideRules));
   assert.match(rules, /若已开启护法天机，则蓝方法宝禁用，仅红方法宝生效/);
   assert.match(rules, /也不会出现观音法宝等待期/);

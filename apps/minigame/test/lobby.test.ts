@@ -33,12 +33,15 @@ test('host and member actions create versioned commands', () => {
   assert.ok(sent.every((command: any) => command.expectedVersion === 3 && /^[0-9a-f-]{36}$/.test(command.commandId)));
 });
 
-test('all web room settings are offered and toggleable', () => {
-  const keys = ['playerCount', 'captainMode', 'rejectionScope', 'anonymousTeamVote', 'ladyEnabled', 'earlyAssassinationEnabled', 'guardianPerksEnabled', 'voiceChatEnabled', 'autoRevealRoleEnabled', 'treasuresEnabled'] as const;
+test('all brawl room settings are offered and toggleable without classic leftovers', () => {
+  const keys = ['playerCount', 'captainMode', 'anonymousTeamVote', 'earlyAssassinationEnabled', 'voiceChatEnabled', 'autoRevealRoleEnabled', 'rolePreferenceEnabled', 'brawlOrdealsEnabled', 'brawlPhantomVisionEnabled'] as const;
   const rows = settingsScreen(defaultSettings).rows;
   for (const key of keys) {
     assert.ok(rows.some(row => row.id === key), key);
     assert.notDeepEqual(toggleSetting(defaultSettings, key), defaultSettings, key);
+  }
+  for (const removed of ['rejectionScope', 'ladyEnabled', 'guardianPerksEnabled', 'treasuresEnabled']) {
+    assert.ok(!rows.some(row => row.id === removed), `${removed} should be removed in Brawl settings`);
   }
 });
 

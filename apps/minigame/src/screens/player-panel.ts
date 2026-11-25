@@ -1,4 +1,4 @@
-import { defaultSettings, defaultAnonymousTeamVote } from '@avalon/contracts';
+import { defaultBrawlSettings, normalizeBrawlSettings, defaultAnonymousTeamVote } from '@avalon/contracts';
 import { BRAWL_ROLE_REGISTRY } from '@avalon/game-core';
 import { toggleSetting } from './settings.js';
 import {BUILTIN_AVATARS} from '../../../web/src/avatar-catalog.js';
@@ -21,7 +21,7 @@ export class PlayerPanel {
   private chatDraft = '';
   private chatSending=false;
   private quickExpanded = false;
-  private presetSettings: Settings = {...defaultSettings};
+  private presetSettings: Settings = {...defaultBrawlSettings};
   private expanded=new Set<string>();
   private presetEditing=false;
   private presetName = '';
@@ -202,11 +202,11 @@ export class PlayerPanel {
     if(id==='chat:input'){const text=await input('写下你要说的话',this.page==='direct'?300:100);if(text!==undefined)this.chatDraft=text;return;}
     if(id==='chat:send'&&this.selectedFriend){if(!this.chatDraft.trim()||this.chatSending)return;this.chatSending=true;const friendId=this.selectedFriend.id;try{await this.api.sendDirect(friendId,this.chatDraft.trim());this.chatDraft='';const result=await this.api.directChat(friendId);if(this.selectedFriend?.id===friendId)this.direct=result.messages;}finally{this.chatSending=false;}return;}
     if(id==='chat:sendroom'&&this.chatRoomId){if(!this.chatDraft.trim()||this.chatSending)return;this.chatSending=true;try{await this.api.roomChat(this.chatRoomId,this.chatDraft.trim());this.chatDraft='';return 'back';}finally{this.chatSending=false;}}
-    if(id==='preset:new'){this.presetEditing=true;this.presetName='';this.presetSettings={...defaultSettings};return;}
+    if(id==='preset:new'){this.presetEditing=true;this.presetName='';this.presetSettings={...defaultBrawlSettings};return;}
     if(id==='preset:cancel'){this.presetEditing=false;return;}
     if(id==='preset:name'){const text=await input('预设名称',24);if(text!==undefined)this.presetName=text;return;}
-    if(id.startsWith('preset:count:')){const count=Number(id.slice(13));if(count>=5&&count<=12)this.presetSettings={...this.presetSettings,playerCount:count,anonymousTeamVote:defaultAnonymousTeamVote(count)};return;}
-    if(id==='preset:save'){if(!this.presetName.trim())return;await this.api.savePreset(this.presetName.trim(),this.roomSettings??this.presetSettings);this.presetName='';this.presets=(await this.api.presets()).presets;this.feedback='预设已保存';this.presetEditing=false;return;}
+    if(id.startsWith('preset:count:')){const count=Number(id.slice(13));if(count>=5&&count<=12)this.presetSettings=normalizeBrawlSettings({...this.presetSettings,playerCount:count,anonymousTeamVote:defaultAnonymousTeamVote(count)});return;}
+    if(id==='preset:save'){if(!this.presetName.trim())return;await this.api.savePreset(this.presetName.trim(),normalizeBrawlSettings(this.roomSettings??this.presetSettings));this.presetName='';this.presets=(await this.api.presets()).presets;this.feedback='预设已保存';this.presetEditing=false;return;}
     if(id.startsWith('preset:')){this.presetSettings=toggleSetting(this.presetSettings,id.slice(7) as keyof Settings);return;}
     if (id === 'page:favorites') { this.favoritesOnly = true; await this.open('history'); return; }
     if (id === 'page:history') this.favoritesOnly = false;

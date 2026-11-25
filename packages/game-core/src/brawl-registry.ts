@@ -97,7 +97,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
       actionType: 'single_button',
       maxUses: 1,
       awakeningChance: 0.6,
-      description: '任务失败时降旨赦免：1败60%概率逆转为胜，2败30%概率逆转！',
+      description: '出征前降旨蓄力：本轮失败时1败60%/2败30%逆转为胜（流局自动退还）！',
     },
   },
   wangmu_niangniang: {
@@ -116,7 +116,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
       actionType: 'single_button',
       maxUses: 1,
       awakeningChance: 0.5,
-      description: '出征前赐仙桃护体：本轮任务50%概率当场化解赦免1张失败牌！',
+      description: '出征前赐桃护体：若出现失败牌50%概率化解1败（流局自动退还）！',
     },
   },
   taishang_laojun: {
@@ -171,7 +171,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
       triggerPhase: 'team_building',
       actionType: 'target_player',
       maxUses: 1,
-      description: '选定队员洒甘露：若其随队出征，结算后100%私密探查其投了成功或失败。',
+      description: '选定队员洒甘露：随队结算后100%私密查其成败牌（流局自动退还）。',
     },
   },
   zhenyuan_daxian: {
@@ -243,7 +243,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
       triggerPhase: 'team_building',
       actionType: 'single_button',
       maxUses: 1,
-      description: '队伍敲定后举镜探查，私密得知当前队伍是否包含妖魔（反馈 是/否）。',
+      description: '领队选出队员后举镜，私密查车队是否含妖（结果永久保留在真身底牌）。',
     },
   },
   zhu_bajie: {
@@ -354,7 +354,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
       triggerPhase: 'team_building',
       actionType: 'single_button',
       maxUses: 1,
-      description: '本轮出征若失败，静默虚增1张失败牌引车内好人自相残杀！',
+      description: '出征前暗埋离间：本轮若失败，静默虚增1张失败牌（流局自动退还）！',
     },
   },
   zhizhu_jing: {
@@ -391,7 +391,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
       actionType: 'target_player',
       maxUses: 1,
       awakeningChance: BRAWL_SKILL_PROBS.YUTU_DISCARD,
-      description: `队伍敲定后暗中迷魂车上 1 名好人，其出征时 ${Math.round(BRAWL_SKILL_PROBS.YUTU_DISCARD * 100)}% 概率成功牌被封印弃权。`,
+      description: `选定车上1名队员迷魂，随队投成功${Math.round(BRAWL_SKILL_PROBS.YUTU_DISCARD * 100)}%概率被封印弃权（流局自动退还）。`,
     },
   },
   laoshu_jing: {
@@ -446,7 +446,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
       actionType: 'single_button',
       maxUses: 1,
       awakeningChance: 0.5,
-      description: '刺探蓝方底细：探明是大能还是散仙，50%概率觉醒具体仙号！',
+      description: '刺探蓝方底细：100% 探明是大能还是散仙，50%概率觉醒 1 位具体仙号！',
     },
   },
   huangmei_laoguai: {
@@ -483,7 +483,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
       actionType: 'target_player',
       maxUses: 1,
       awakeningChance: BRAWL_SKILL_PROBS.JINJIAO_ABSORB,
-      description: `手机私密选定出征队员 1 人，若其投成功，${Math.round(BRAWL_SKILL_PROBS.JINJIAO_ABSORB * 100)}% 概率被葫芦化解吸收。`,
+      description: `选定1名出征队员，随队投成功${Math.round(BRAWL_SKILL_PROBS.JINJIAO_ABSORB * 100)}%概率被紫金葫芦吸收（流局自动退还）。`,
     },
   },
   yinjiao_dawang: {
@@ -538,7 +538,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
       triggerPhase: 'team_building',
       actionType: 'target_player',
       maxUses: 1,
-      description: `出征前暗下毒茶：若目标投成功，大车${Math.round(BRAWL_SKILL_PROBS.BAIYAN_BIG_TEAM * 100)}%/小车${Math.round(BRAWL_SKILL_PROBS.BAIYAN_SMALL_TEAM * 100)}%概率毒化为失败！`,
+      description: `开局窥1仙；暗下毒茶，目标随队投成功大车${Math.round(BRAWL_SKILL_PROBS.BAIYAN_BIG_TEAM * 100)}%/小车${Math.round(BRAWL_SKILL_PROBS.BAIYAN_SMALL_TEAM * 100)}%毒化为败（流局退还）！`,
     },
   },
   qingmao_shizi: {
@@ -574,7 +574,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
       triggerPhase: 'assassination',
       actionType: 'single_button',
       maxUses: 1,
-      description: '终局刺杀阶段大鹏展翅俯瞰，为红孩儿直接排除 1 个绝对不是孙悟空的席位。',
+      description: '可提前蓄力展翅俯瞰，终局刺杀为红孩儿排除1个非孙悟空席位。',
     },
   },
 };

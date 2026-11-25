@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { defaultSettings, type AdminUserSummary, type DedicatedRoom, type PlayerCodeAvailability, type PlayerCodeReservation, type PlayerCodeAllocation, type PlayerCodeHistoryPage, type Settings } from '@avalon/contracts';
+import { defaultBrawlSettings, normalizeBrawlSettings, type AdminUserSummary, type DedicatedRoom, type PlayerCodeAvailability, type PlayerCodeReservation, type PlayerCodeAllocation, type PlayerCodeHistoryPage, type Settings } from '@avalon/contracts';
 import { Modal } from './Modal';
 import { PasswordChoice } from './RoomAccess';
 import { SettingsFields } from './PresetsPanel';
@@ -22,12 +22,12 @@ export function DedicatedRoomCard({room:r,busy,onEdit,onEnd}:{room:DedicatedRoom
 export function SpecialAdmin({request,refreshToken=0,onRoomsChanged}:{request:AdminApi;refreshToken?:number;onRoomsChanged?:()=>Promise<void>|void}) {
   const [rooms,setRooms]=useState<DedicatedRoom[]>([]),[codes,setCodes]=useState<PlayerCodeReservation[]>([]),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false);
   const [allocations,setAllocations]=useState<PlayerCodeAllocation[]>([]),[nextCursor,setNextCursor]=useState<string|null>(null);
-  const [editing,setEditing]=useState<DedicatedRoom|null|undefined>(),[code,setCode]=useState(''),[name,setName]=useState(''),[managerCode,setManagerCode]=useState(''),[settings,setSettings]=useState<Settings>({...defaultSettings}),[password,setPassword]=useState<string|null|undefined>();
+  const [editing,setEditing]=useState<DedicatedRoom|null|undefined>(),[code,setCode]=useState(''),[name,setName]=useState(''),[managerCode,setManagerCode]=useState(''),[settings,setSettings]=useState<Settings>({...defaultBrawlSettings}),[password,setPassword]=useState<string|null|undefined>();
   const [reserve,setReserve]=useState(''),[note,setNote]=useState('');
   async function load(){const [r,c,h]=await Promise.all([request<{rooms:DedicatedRoom[]}>('/dedicated-rooms'),request<{codes:PlayerCodeReservation[]}>('/player-codes'),request<PlayerCodeHistoryPage>('/player-codes/history')]);setRooms(r.rooms);setCodes(c.codes);setAllocations(h.history);setNextCursor(h.nextCursor);setError('');}
   useEffect(()=>{void load().catch(e=>setError(message(e)));},[refreshToken]);
   async function run(action:()=>Promise<void>){setBusy(true);setError('');setNotice('');try{await action();await load();}catch(e){setError(message(e));}finally{setBusy(false);}}
-  function edit(r:DedicatedRoom|null){setError('');setEditing(r);setCode(r?.code??'');setName(r?.name??'');setManagerCode(r?.managerCode??'');setSettings(r?.settings??{...defaultSettings});setPassword(undefined);}
+  function edit(r:DedicatedRoom|null){setError('');setEditing(r);setCode(r?.code??'');setName(r?.name??'');setManagerCode(r?.managerCode??'');setSettings(r?normalizeBrawlSettings(r.settings):{...defaultBrawlSettings});setPassword(undefined);}
   return <div className="special-admin">
     <section className="admin-panel"><div className="admin-panel-title"><h3 className="admin-panel-title">专属房管理</h3><button type="button" className="admin-primary-btn" onClick={()=>edit(null)}>新建专属房</button></div>
       <p className="hint">专属房长期保留房号与默认配置。只指定房主管理者，朋友无需提前登记。</p>
@@ -61,14 +61,14 @@ export function SpecialAdmin({request,refreshToken=0,onRoomsChanged}:{request:Ad
         <form onSubmit={e=>{e.preventDefault();void run(async()=>{
           const result=await request<{users:AdminUserSummary[]}>(`/users?query=${encodeURIComponent(managerCode)}&limit=10`);
           const manager=result.users.find(u=>u.playerCode===managerCode);if(!manager)throw Error('请填写已注册房主管理者的仙友码。');
-          await request(`/dedicated-rooms${editing?'/'+editing.id:''}`,{code,name,managerId:manager.id,settings,...(password!==undefined?{password}:{})},editing?'PUT':'POST');
+          await request(`/dedicated-rooms${editing?'/'+editing.id:''}`,{code,name,managerId:manager.id,settings:normalizeBrawlSettings(settings),...(password!==undefined?{password}:{})},editing?'PUT':'POST');
           setEditing(undefined);setNotice('专属房配置已保存，房主可在建房页选择开桌。');
         });}}>
           <label className="admin-input-label">固定房号<input value={code} className="admin-input" required readOnly={!!editing} pattern="[1-9][0-9]{5}" maxLength={6} inputMode="numeric" onChange={e=>setCode(e.target.value.replace(/\D/g,''))}/></label>
           <label className="admin-input-label">房间名称<input value={name} className="admin-input" required maxLength={30} onChange={e=>setName(e.target.value)}/></label>
           <label className="admin-input-label">房主管理者仙友码<input value={managerCode} className="admin-input" required pattern="[1-9][0-9]{5}" maxLength={6} inputMode="numeric" onChange={e=>setManagerCode(e.target.value.replace(/\D/g,''))}/></label>
           <PasswordChoice key={editing?.id??'new'} hasSaved={!!editing} onChange={setPassword}/>
-          <fieldset disabled={busy}><SettingsFields settings={settings} onChange={patch=>setSettings(s=>({...s,...patch}))}/></fieldset>
+          <fieldset disabled={busy}><SettingsFields settings={settings} onChange={patch=>setSettings(s=>normalizeBrawlSettings({...s,...patch}))}/></fieldset>
           {error&&<p className="error" role="alert">{error}</p>}
           <button disabled={busy||(typeof password==='string'&&(password.length<4||password.length>8))} className="admin-primary-btn">{busy?'正在保存…':'保存专属房'}</button>
         </form>

@@ -36,10 +36,11 @@ test('mini game locks blue treasure entry from private projection while legacy e
   assert.equal(legacy?.disabled, false);
 });
 
-test('mini game settings and both guide representations explain red-only treasures', () => {
+test('mini game settings omit classic guardian/treasure switches while legacy guide snapshots remain intact', () => {
   const { settings } = fixture();
-  assert.match(settingsScreen(settings).rows.find(r => r.id === 'treasureRule')!.text, /蓝方禁用、红方保留/);
-  assert.match(settingsScreen({ ...settings, guardianPerksEnabled: false }).rows.find(r => r.id === 'treasureRule')!.text, /双方按角色保留/);
+  const ids = settingsScreen(settings).rows.map(r => r.id);
+  assert.ok(!ids.includes('guardianPerksEnabled') && !ids.includes('treasuresEnabled') && !ids.includes('treasureRule') && !ids.includes('rejectionScope'));
+  assert.ok(ids.includes('brawlOrdealsEnabled') && ids.includes('brawlPhantomVisionEnabled'));
   assert.match(guideScreen().rows.find(r => r.id === 'guide:treasureBalance')!.text, /蓝方法宝禁用，红方法宝保留/);
   assert.match(webGuideRules.map(r => r.text).join(''), /若已开启护法天机，则蓝方法宝禁用，仅红方法宝生效/);
 });

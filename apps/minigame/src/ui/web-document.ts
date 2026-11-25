@@ -3,7 +3,7 @@ import type { RoleGalleryItem } from '../../../web/src/roles.js';
 
 export interface WebDocument {
   adminReplay?:boolean;
-  settingChoice?:{id:string;key:"captainMode"|"rejectionScope"|"voiceChatEnabled";value:string};
+  settingChoice?:{id:string;key:"captainMode"|"voiceChatEnabled";value:string};
   noticeKind?:'mirror'|'bell'|'jingu';
   remainingSeconds?:number;
   kind: 'join' | 'abort-confirm' | 'guanyin-window' | 'private-notice' | 'admin-friends' | 'code-editor' | 'auth' | 'special-editor' | 'sound' | 'preferences' | 'identity' | 'vote' | 'treasures' | 'report' | 'history' | 'art' | 'confirm' | 'tools' | 'account' | 'presets' | 'friends' | 'chat' | 'guide' | 'guide-role' | 'admin' | 'replay' | 'settings';

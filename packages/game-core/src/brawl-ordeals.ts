@@ -115,6 +115,7 @@ export function collectMissionBannedPlayerIds(params: {
   humanBagBanned?: { activeBannedMission?: number; targetId?: string };
   imprisonedTargetId?: string;
   zhizhuBannedTargetId?: string;
+  qingshiTuntianTargetId?: string;
   ordeals?: BrawlOrdealState;
   wager?: BrawlWagerState;
 }): Set<string> {
@@ -127,6 +128,9 @@ export function collectMissionBannedPlayerIds(params: {
   }
   if (params.zhizhuBannedTargetId) {
     banned.add(params.zhizhuBannedTargetId);
+  }
+  if (params.qingshiTuntianTargetId) {
+    banned.add(params.qingshiTuntianTargetId);
   }
   if (params.ordeals?.quicksandBannedPlayerId) {
     banned.add(params.ordeals.quicksandBannedPlayerId);

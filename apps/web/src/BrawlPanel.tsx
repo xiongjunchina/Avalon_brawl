@@ -132,8 +132,8 @@ export function BrawlPanel({
                 </div>
               )}
 
-              {/* 金翅大鹏雕专属：云程万里排除反馈 */}
-              {selfBrawl.roleId === 'jinchi_dapeng' && selfBrawl.dapengExcludedPlayerId && (() => {
+              {/* 金翅大鹏雕/红孩儿专属：云程万里排除反馈（兼容 5~8 人局附带副法宝） */}
+              {selfBrawl.dapengExcludedPlayerId && (() => {
                 const excluded = players.find(p => p.id === selfBrawl.dapengExcludedPlayerId);
                 return excluded ? (
                   <div style={{ marginTop: '6px', fontSize: '12px', fontWeight: 'bold', color: '#fb923c' }}>

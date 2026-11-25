@@ -52,6 +52,7 @@ export const errors: Record<string, string> = {
   PLAYER_BANNED_BY_HUMAN_BAG: '该玩家已被收入后天人种袋，本轮禁止上车。',
   PLAYER_IMPRISONED_BY_WUXINGSHAN: '该玩家已被压入五行山，本轮禁止上车与表决。',
   PLAYER_BANNED_BY_ZHIZHU_JING: '该玩家已被盘丝结茧缠缚，本轮禁止上车。',
+  PLAYER_BANNED_BY_QINGMAO_SHIZI: '该玩家已被青毛狮子怪大口吞天剔除，本轮禁止上车。',
   PLAYER_BANNED_BY_QUICKSAND: '该玩家本难陷入【弱水流沙】，禁止入选出征阵容。',
   PLAYER_BANNED_BY_WAGER: '该玩家因上一难军令状翻车受罚，本难全程禁止上车。',
   CAPTAIN_CANNOT_PICK_SELF_SELFLESS: '本难触发【舍己为公】，队长不可将自己编入出征阵容。',

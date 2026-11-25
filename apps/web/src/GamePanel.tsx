@@ -390,6 +390,7 @@ export function GamePanel({
     g.humanBagBannedPlayerId === playerId ||
     g.brawl?.imprisonedTargetId === playerId ||
     g.brawl?.zhizhuBannedTargetId === playerId ||
+    g.brawl?.qingshiTuntianTargetId === playerId ||
     g.brawl?.ordeals?.quicksandBannedPlayerId === playerId ||
     (g.brawl?.wager?.bannedMission === g.mission && g.brawl.wager.bannedPlayerId === playerId) ||
     (activeOrdealId === 'selfless_captain' && playerId === g.captainId);
@@ -834,7 +835,7 @@ export function GamePanel({
                 <div className={`seat-card-avatar ${isSpeaking ? 'speaking-avatar' : ''}`}>
                   {revealedBrawlRole ? (
                     <img
-                      src={assetUrl(`/art/roles/${revealedBrawlRole.artPrefix}-160.webp?v=brawl-art-v2`)}
+                      src={assetUrl(`/art/roles/${revealedBrawlRole.artPrefix}-160.webp?v=brawl-art-v3`)}
                       alt={revealedBrawlRole.name}
                       className="brawl-revealed-seat-img"
                       width={160}
@@ -880,6 +881,11 @@ export function GamePanel({
                   {g.brawl?.zhizhuBannedTargetId === p.id && (
                     <span className="seat-badge badge-banned" title="被蜘蛛精盘丝结茧，当轮禁止入选车队">
                       🕸️ 结茧
+                    </span>
+                  )}
+                  {g.brawl?.qingshiTuntianTargetId === p.id && (
+                    <span className="seat-badge badge-banned" title="被青毛狮子怪大口吞天剔除，本难禁止入选车队">
+                      🦁 吞天
                     </span>
                   )}
                   {g.brawl?.imprisonedTargetId === p.id && (
@@ -954,8 +960,8 @@ export function GamePanel({
                   </span>
                 )}
                 {revealedRole ? (
-                  <span className={`revealed-role allegiance-${roleTeam(revealedRole)}`}>
-                    {roleTeam(revealedRole) === 'blue' ? '🛡️ ' : '🗡️ '}
+                  <span className={`revealed-role allegiance-${revealedTeam ?? roleTeam(revealedRole)}`}>
+                    {(revealedTeam ?? roleTeam(revealedRole)) === 'blue' ? '🛡️ ' : '🗡️ '}
                     {g.revealedBrawlRoles?.[p.id] && BRAWL_ROLE_REGISTRY[g.revealedBrawlRoles[p.id]]
                       ? BRAWL_ROLE_REGISTRY[g.revealedBrawlRoles[p.id]].name
                       : formatRoleName(revealedRole, revealedLoyalGuardians[p.id], revealedFemaleDemons[p.id])}

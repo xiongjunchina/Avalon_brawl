@@ -289,7 +289,7 @@ export function BrawlGuideRoles({ onSelectRole }: { onSelectRole?: (role: BrawlR
         >
           <span className={`role-portrait portrait-tile ${factionClass}`} role="img" aria-label={`${role.fullName}法相图案`}>
             <img
-              src={assetUrl(`/art/roles/${role.artPrefix}-160.webp?v=brawl-art-v2`)}
+              src={assetUrl(`/art/roles/${role.artPrefix}-160.webp?v=brawl-art-v3`)}
               alt={role.name}
               width={160}
               height={160}

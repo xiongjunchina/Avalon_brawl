@@ -95,6 +95,7 @@ export function gameScreen(room: RoomView, user: User, ui: GameUiState, now = Da
     ...(game.phase === 'team_vote' ? [{ id: 'teamVoteProgress', text: `组队表决 ${game.progress.teamVotes}/${game.players.length}` }] : []),
     ...(game.phase === 'mission' ? [{ id: 'missionProgress', text: `任务投票 ${game.progress.missionVotes}/${round?.team.length ?? 0}` }] : []),
     ...(game.humanBagBannedPlayerId ? [{ id: 'treasure:banNotice', text: `本轮人种袋禁选：${playerLabel(game.humanBagBannedPlayerId)}` }] : []),
+    ...(game.brawl?.qingshiTuntianTargetId ? [{ id: 'brawl:qingshiBanNotice', text: `本轮大口吞天禁选：${playerLabel(game.brawl.qingshiTuntianTargetId)}` }] : []),
     ...(game.bananaFanNotice ? [{ id: 'treasure:fanNotice', text: game.bananaFanNotice }] : []),
     ...game.players.map(player => ({ id: `player:${player.id}`, text: `${player.seat}号 ${player.nickname}${player.id === game.captainId ? ' · 队长' : ''}${ui.selectedIds?.includes(player.id) ? ' · 已选队员' : ''}${ui.targetId === player.id ? ' · 已选目标' : ''}` })),
     { id: 'role', text: ui.privateRoleVisible && self ? `你的身份：${game.selfBrawl ? game.selfBrawl.roleName : formatRoleName(self.role, self.loyalGuardian, self.femaleDemon)} · ${self.team === 'blue' ? '取经阵营' : '妖魔阵营'}` : '点此查看自己的身份' },

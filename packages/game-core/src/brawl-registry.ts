@@ -97,7 +97,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
       actionType: 'single_button',
       maxUses: 1,
       awakeningChance: 0.6,
-      description: '出征前降旨蓄力：本轮失败时1败60%/2败30%逆转为胜（流局自动退还）！',
+      description: '出征前降旨蓄力：出征失败时1败60%/2败30%逆转为胜（流局退还）！',
     },
   },
   wangmu_niangniang: {

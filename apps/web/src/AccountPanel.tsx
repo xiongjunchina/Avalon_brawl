@@ -36,7 +36,7 @@ export function HistoryRoster({replay:g}:{replay:Replay}) {
     const roleCampClass = brawlRoleDef ? (brawlRoleDef.camp === 'blue' ? 'team-blue' : 'team-red') : `team-${team}`;
     return <li key={p.id} className={self?'is-self':undefined}>
       {brawlRoleDef ? (
-        <img src={assetUrl(`/art/roles/${brawlRoleDef.artPrefix}-160.webp?v=brawl-art-v2`)} alt={brawlRoleDef.name} className="role-portrait portrait-mini" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+        <img src={assetUrl(`/art/roles/${brawlRoleDef.artPrefix}-160.webp?v=brawl-art-v3`)} alt={brawlRoleDef.name} className="role-portrait portrait-mini" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
       ) : (
         <RolePortrait role={role} loyalGuardian={guardians[p.id]} femaleDemon={demons[p.id]} size="mini"/>
       )}
@@ -139,7 +139,7 @@ export function StatisticsView({stats}:{stats:Statistics}) {
             return <article key={def.id} className={`role-card allegiance-${team}`} aria-label={`${def.name}战绩`}>
               <span className="role-team">{team==='blue'?'蓝方':'红方'}</span>
               <span className={`role-portrait portrait-tile allegiance-${team}`} role="img" aria-label={`${def.name}法相图案`}>
-                <img src={assetUrl(`/art/roles/${def.artPrefix}-160.webp?v=brawl-art-v2`)} alt={def.name} width={160} height={160} loading="lazy" />
+                <img src={assetUrl(`/art/roles/${def.artPrefix}-160.webp?v=brawl-art-v3`)} alt={def.name} width={160} height={160} loading="lazy" />
               </span>
               <h3>{def.name}</h3>
               <p className="role-rate"><strong>{rate(s)}</strong><span>胜率</span></p>

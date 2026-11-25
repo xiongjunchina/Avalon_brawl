@@ -427,9 +427,10 @@ test('brawl: Qingmao Shizi [dakou_tuntian] ejects drafted team member and bans c
   assert.ok(!nextGame.draftTeam?.playerIds.includes(targetId), 'Target should be ejected from draftTeam');
   assert.deepEqual(nextGame.draftTeam?.playerIds, [otherId], 'Only other member remains');
 
-  // 2. 验证前端投影包含禁选状态
+  // 2. 验证前端投影包含青毛狮子怪专属禁选状态（且绝不误写成经典模式后天人种袋）
   const view = projectGame(nextGame, captainId);
-  assert.equal(view.humanBagBannedPlayerId, targetId, 'View marks target as banned by human bag');
+  assert.equal(view.brawl?.qingshiTuntianTargetId, targetId, 'View marks target as banned by Qingmao Shizi');
+  assert.equal(view.humanBagBannedPlayerId, undefined, 'Brawl Qingmao Shizi must NOT piggyback classic humanBag');
 
   // 3. 验证队长若再次尝试把被吸走的目标加入队伍，会被系统规则拦截
   assert.throws(
@@ -439,7 +440,7 @@ test('brawl: Qingmao Shizi [dakou_tuntian] ejects drafted team member and bans c
         payload: { playerIds: [targetId, otherId], direction: 'clockwise' },
       }, [captainId]);
     },
-    /PLAYER_BANNED_BY_HUMAN_BAG/,
+    /PLAYER_BANNED_BY_QINGMAO_SHIZI/,
     'Captain cannot draft the banned target',
   );
 });
@@ -503,6 +504,7 @@ test('brawl: Taishang Laojun [jingang_zhuo] intercepts Qingmao Shizi [dakou_tunt
 
   // 5. 验证青狮怪法宝被收缴作废，targetId 未被剔除，依然在队伍中！
   assert.ok(state.draftTeam?.playerIds.includes(targetId), 'Target should remain in team because skill was confiscated');
+  assert.equal(state.brawl?.qingshiTuntianTargetId, undefined, 'No Qingmao Shizi ban should be active');
   assert.equal(state.treasuresState?.humanBag?.targetId, undefined, 'No human bag ban should be active');
 });
 
@@ -1688,10 +1690,11 @@ test('brawl: Qingmao Shizi [dakou_tuntian] ejects team member during discussion/
     payload: { action: 'useSkill', skillId: 'dakou_tuntian', targetPlayerId: targetPlayer.id },
   }, [qingshiPlayer.id]);
 
-  // 验证 targetPlayer 被剔除出队伍，且投票重置回 proposing
+  // 验证 targetPlayer 被剔除出队伍，且投票重置回 proposing，并记在乱斗原生字段而非后天人种袋
   assert.equal(game.rounds[0].team.includes(targetPlayer.id), false, 'targetPlayer was ejected from team');
   assert.equal(game.phase, 'proposing', 'Phase rolled back to proposing');
-  assert.equal(game.treasuresState?.humanBag?.targetId, targetPlayer.id, 'Human bag bans targetPlayer');
+  assert.equal(game.brawl?.qingshiTuntianTargetId, targetPlayer.id, 'Qingmao Shizi bans targetPlayer natively');
+  assert.equal(game.treasuresState?.humanBag?.targetId, undefined, 'Does not pollute classic humanBag');
 
   const qingshiView = projectGame(game, qingshiPlayer.id);
   assert.ok(qingshiView.selfBrawl?.generalFeedback?.includes('大口吞天'), 'Qingmao Shizi receives generalFeedback confirmation');

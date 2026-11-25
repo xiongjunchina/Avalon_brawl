@@ -2358,8 +2358,8 @@ button.quest-medallion-wrap:hover:not(:disabled) { background: #e5c98b12; filter
 }
 
 .table-seat-card.is-ended-card.is-assassinated-seat {
-  border-color: #ff5252;
-  box-shadow: 0 0 14px rgba(255, 82, 82, 0.45);
+  outline: 2px dashed rgba(168, 85, 247, 0.85);
+  outline-offset: 2px;
 }
 
 .seat-badge.badge-winner {
@@ -2370,9 +2370,9 @@ button.quest-medallion-wrap:hover:not(:disabled) { background: #e5c98b12; filter
 }
 
 .seat-badge.badge-assassinated {
-  background: linear-gradient(135deg, #d62828, #8a1117);
-  color: #fff5f5;
-  border: 1px solid #ff9999;
+  background: linear-gradient(135deg, #7e22ce, #581c87);
+  color: #faf5ff;
+  border: 1px solid #e9d5ff;
   font-weight: 800;
 }
 

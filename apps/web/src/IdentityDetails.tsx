@@ -39,20 +39,39 @@ export function IdentityDetails({
   const selfBrawl = game?.selfBrawl;
   const effectiveSkillRoleId = selfBrawl?.bonusRoleId ?? selfBrawl?.roleId;
   const isForcedLaunchTurn = Boolean(game?.brawl && (game.rejectionCount ?? 0) >= 2);
+  const activeSkillId = selfBrawl?.skill.skillId ?? '';
   const isVoteOnlyBrawlSkill = Boolean(
-    selfBrawl && ['santou_liubi', 'pingtian_handi', 'yishan_yading', 'xiangyao_baozhang', 'daoda_yipa'].includes(selfBrawl.skill.skillId)
+    selfBrawl && ['santou_liubi', 'pingtian_handi', 'yishan_yading', 'xiangyao_baozhang', 'daoda_yipa'].includes(activeSkillId)
   );
+  const isTeamBuildControlSkill = Boolean(
+    selfBrawl && ['wuxingshan_zhang', 'pansi_jiejian', 'dakou_tuntian', 'xiuli_qiankun'].includes(activeSkillId)
+  );
+  const isExtraSeatSkill = activeSkillId === 'longma_fuzhong';
   const currentMissionLiveTeam = game
     ? (['proposing', 'role_reveal'].includes(game.phase)
         ? (game.draftTeam?.playerIds ?? [])
         : (game.rounds?.at(-1)?.mission === game.mission ? (game.rounds?.at(-1)?.team ?? []) : []))
     : [];
   const isLiTianwangWaitingTeam = Boolean(
-    selfBrawl?.skill.skillId === 'zhaoyao_baojing' && currentMissionLiveTeam.length === 0
+    activeSkillId === 'zhaoyao_baojing' && currentMissionLiveTeam.length === 0
   );
   const isPutiWaitingMission2 = Boolean(
-    selfBrawl?.skill.skillId === 'daofa_dianhua' && (game?.mission ?? 1) < 2
+    activeSkillId === 'daofa_dianhua' && (game?.mission ?? 1) < 2
   );
+  const phaseBlockedReason =
+    game?.phase === 'assassination' && activeSkillId !== 'yuncheng_wanli'
+      ? '⏳ 终局刺杀阶段不可施展此法宝'
+      : isForcedLaunchTurn && isVoteOnlyBrawlSkill
+        ? '🔥 强发轮跳过表决 · 表决技暂留'
+        : game?.phase === 'mission' && (isVoteOnlyBrawlSkill || isTeamBuildControlSkill || isExtraSeatSkill)
+          ? '⏳ 本难已发车出征 · 该法宝将于下难组队时恢复可用'
+          : game?.phase === 'team_vote' && isExtraSeatSkill
+            ? '⏳ 阵容已锁定表决中 · 龙马负重须在挑人或论道阶段施展'
+            : isLiTianwangWaitingTeam
+              ? '⏳ 待领队选好队员后再祭出照妖宝镜'
+              : isPutiWaitingMission2
+                ? '⏳ 第 2 难起解锁道法点化'
+                : null;
   const isClickableBrawlSkill = Boolean(
     selfBrawl && selfBrawl.skill.actionType !== 'passive'
   );
@@ -212,7 +231,7 @@ export function IdentityDetails({
                 }}
               >
                 <img
-                  src={assetUrl(`/art/roles/${selfBrawl.artPrefix}-160.webp?v=brawl-art-v2`)}
+                  src={assetUrl(`/art/roles/${selfBrawl.artPrefix}-160.webp?v=brawl-art-v3`)}
                   alt={selfBrawl.roleName}
                   width={52}
                   height={52}
@@ -369,7 +388,7 @@ export function IdentityDetails({
             </div>
           )}
           {selfBrawl.putiDianhuaNotice && (
-            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#6d28d9' }}>
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#6d28d9', whiteSpace: 'pre-line' }}>
               {selfBrawl.putiDianhuaNotice}
             </div>
           )}
@@ -536,13 +555,7 @@ export function IdentityDetails({
               flexWrap: 'wrap',
             }}>
               <span style={{ fontSize: '12px', color: '#78350f', fontWeight: 800 }}>
-                {isForcedLaunchTurn && isVoteOnlyBrawlSkill
-                  ? '🔥 强发轮跳过表决 · 表决技暂留'
-                  : isLiTianwangWaitingTeam
-                    ? '⏳ 待领队选好队员后再祭出照妖宝镜'
-                    : isPutiWaitingMission2
-                      ? '⏳ 第 2 难起解锁道法点化'
-                      : '✨ 绝技蓄势待发'}
+                {phaseBlockedReason || '✨ 绝技蓄势待发'}
               </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 {selfBrawl.skill.actionType === 'target_player' && (() => {
@@ -630,7 +643,7 @@ export function IdentityDetails({
                 })()}
                 <button
                   type="button"
-                  disabled={disabled || isLiTianwangWaitingTeam || isPutiWaitingMission2 || (isForcedLaunchTurn && isVoteOnlyBrawlSkill) || (selfBrawl.skill.actionType === 'target_player' && !brawlTarget)}
+                  disabled={disabled || Boolean(phaseBlockedReason) || (selfBrawl.skill.actionType === 'target_player' && !brawlTarget)}
                   onClick={() => handleUseSkill(selfBrawl.skill.skillId, brawlTarget || undefined)}
                   style={{
                     background: 'linear-gradient(135deg, #d97706 0%, #b45309 50%, #78350f 100%)',

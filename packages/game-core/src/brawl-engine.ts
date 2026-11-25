@@ -232,8 +232,10 @@ export function projectBrawlGameState(
   }
 
   // 对局中清理私密目标，防止通过客户端全局状态窥探暗中施法
+  // 注意：imprisonedTargetId（五行山）、zhizhuBannedTargetId（盘丝结茧）、qingshiTuntianTargetId（大口吞天）属公屏显性禁选，需保留供棋盘展示禁选徽章
   delete sanitized.baiyanDuchaTargetId;
   delete sanitized.baiyanDuchaResult;
+  delete sanitized.baiyanDuchaNotOnTeam;
   delete sanitized.huangmeiDianhuaNotice;
   delete sanitized.guanyinGanluTargetId;
   delete sanitized.guanyinGanluResult;
@@ -243,7 +245,6 @@ export function projectBrawlGameState(
   delete sanitized.jinjiaoResult;
   delete sanitized.yutuMihunTargetId;
   delete sanitized.yutuResult;
-  delete sanitized.qingshiTuntianTargetId;
   delete sanitized.baiguLijianArmed;
   delete sanitized.baiguLijianResult;
   delete sanitized.tieshanSecret;
@@ -354,12 +355,14 @@ export function projectSelfBrawlView(
     }
   }
 
-  let dianhuaNoticeText: string | undefined;
+  const dianhuaNotices: string[] = [];
   if (state.putiDianhuaNotice?.targetBlueUserId === userId) {
-    dianhuaNoticeText = `🔮 菩提祖师道法点化真传：天机暗授，场上潜伏群妖之一的真名为【${state.putiDianhuaNotice.redRoleName}】！`;
-  } else if (state.huangmeiDianhuaNotice?.targetBlueUserId === userId) {
-    dianhuaNoticeText = `🔮 菩提祖师道法点化真传：天机暗授，暗查【${state.huangmeiDianhuaNotice.targetSeat}号 · ${state.huangmeiDianhuaNotice.targetNickname}】身上妖氛缠绕！`;
+    dianhuaNotices.push(`🔮 菩提祖师道法点化真传：天机暗授，场上潜伏群妖之一的真名为【${state.putiDianhuaNotice.redRoleName}】！`);
   }
+  if (state.huangmeiDianhuaNotice?.targetBlueUserId === userId) {
+    dianhuaNotices.push(`🔮 菩提祖师道法点化真传：天机暗授，暗查【${state.huangmeiDianhuaNotice.targetSeat}号 · ${state.huangmeiDianhuaNotice.targetNickname}】身上妖氛缠绕！`);
+  }
+  const dianhuaNoticeText: string | undefined = dianhuaNotices.length > 0 ? dianhuaNotices.join('\n') : undefined;
 
   let huangmeiNotice: string | undefined;
   if (hasBrawlSkillRole(playerState, 'huangmei_laoguai') && state.huangmeiDianhuaNotice) {

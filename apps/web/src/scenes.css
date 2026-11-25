@@ -4766,9 +4766,10 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
   box-shadow: 0 0 10px rgba(234, 179, 8, 0.5), inset 0 1px 0 rgba(254, 240, 138, 0.6) !important;
 }
 
+/* 被刺杀目标使用阵营中性的紫金外虚线环标注，绝不覆盖蓝/红阵营头像框颜色 */
 .altar-dual-flank-arena .table-seat-card.is-ended-card.is-assassinated-seat .flank-avatar-wrap .seat-card-avatar {
-  border-color: #ef4444 !important;
-  box-shadow: 0 0 14px rgba(239, 68, 68, 0.8) !important;
+  outline: 2px dashed #a855f7 !important;
+  outline-offset: 2px !important;
 }
 
 .flank-seat-num,

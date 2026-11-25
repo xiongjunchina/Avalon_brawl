@@ -31,8 +31,8 @@ export function RolePortrait({
       <Emblem kind={role} />
       {failedRole !== artKey && (
         <img
-          src={assetUrl(`/art/roles/${artKey}-160.webp?v=brawl-art-v2`)}
-          srcSet={`${assetUrl(`/art/roles/${artKey}-160.webp?v=brawl-art-v2`)} 160w, ${assetUrl(`/art/roles/${artKey}-640.webp?v=brawl-art-v2`)} 640w`}
+          src={assetUrl(`/art/roles/${artKey}-160.webp?v=brawl-art-v3`)}
+          srcSet={`${assetUrl(`/art/roles/${artKey}-160.webp?v=brawl-art-v3`)} 160w, ${assetUrl(`/art/roles/${artKey}-640.webp?v=brawl-art-v3`)} 640w`}
           sizes={
             size === 'mini'
               ? '48px'

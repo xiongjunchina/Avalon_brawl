@@ -925,6 +925,7 @@ function refundArmedMissionSkillsOnProposalAbort(g: GameState, reasonLabel: stri
   if (g.brawl.yutuMihunTargetId) refundOne('yutu_jing', () => { g.brawl!.yutuMihunTargetId = undefined; });
   if (g.brawl.baiyanDuchaTargetId) refundOne('baiyan_mojun', () => { g.brawl!.baiyanDuchaTargetId = undefined; });
   if (g.brawl.taoshouActive) refundOne('wangmu_niangniang', () => { g.brawl!.taoshouActive = false; });
+  if (g.brawl.yuhuangYuzhiArmed) refundOne('yuhuang_dadi', () => { g.brawl!.yuhuangYuzhiArmed = false; });
   if (g.brawl.baiguLijianArmed) refundOne('bai_gujing', () => { g.brawl!.baiguLijianArmed = false; });
 }
 
@@ -938,6 +939,9 @@ function validateTeamMemberBans(g: GameState, playerIds: string[]) {
   if (g.brawl?.zhizhuBannedTargetId) {
     requireRule(!playerIds.includes(g.brawl.zhizhuBannedTargetId), 'PLAYER_BANNED_BY_ZHIZHU_JING');
   }
+  if (g.brawl?.qingshiTuntianTargetId) {
+    requireRule(!playerIds.includes(g.brawl.qingshiTuntianTargetId), 'PLAYER_BANNED_BY_QINGMAO_SHIZI');
+  }
   if (g.brawl?.ordeals?.quicksandBannedPlayerId) {
     requireRule(!playerIds.includes(g.brawl.ordeals.quicksandBannedPlayerId), 'PLAYER_BANNED_BY_QUICKSAND');
   }
@@ -950,6 +954,168 @@ function validateTeamMemberBans(g: GameState, playerIds: string[]) {
 }
 function openEarlyWindowOrPropose(g: GameState) {
   g.phase = 'proposing';
+}
+function resolveTeamVoteIfComplete(g: GameState, context: { hostId: string; now: number }) {
+  if (g.phase !== 'team_vote' || Object.keys(g.teamVotes).length !== g.players.length) return;
+  let approvals = 0;
+  let rejections = 0;
+  let abstentions = 0;
+  for (const [pId, ballot] of Object.entries(g.teamVotes)) {
+    const weight = g.brawl?.doubleVoteUserId === pId ? 2 : 1;
+    if (ballot === true) approvals += weight;
+    else if (ballot === false) rejections += weight;
+    else if (ballot === 'abstain') abstentions += weight;
+  }
+  let passed = approvals > rejections;
+
+  // 沙悟净【降妖宝杖】：任意一轮组队表决未通过流局时，沙僧祭起降妖宝杖定风波，50% 概率将流局强行镇压反转为发车通过！
+  if (!passed && g.brawl?.shawujingBaozhangArmed) {
+    g.brawl.shawujingBaozhangArmed = false;
+    const shaPassed = Math.random() < BRAWL_SKILL_PROBS.SHA_PASS;
+    const shaPlayer = g.players.find(p => hasBrawlSkillRole(g.brawl?.playerStates[p.id], 'sha_wujing'));
+    if (shaPassed) {
+      passed = true;
+      appendBattleEvent(
+        g.brawl,
+        'sha_wujing',
+        `【沙悟净】降妖宝杖定海神威！队伍表决本已流局，沙僧祭起降妖宝杖定风波，神威显圣强行判定队伍通过发车！`,
+        '任意一轮组队表决未通过流局时，沙僧祭起降妖宝杖定风波，50% 概率将流局强行镇压反转为发车通过！',
+      );
+    } else {
+      appendBattleEvent(
+        g.brawl,
+        'sha_wujing',
+        `【沙悟净】降妖宝杖定海，风波势大未能平息，仍旧流局。`,
+        '任意一轮组队表决未通过流局时，沙僧祭起降妖宝杖定风波，50% 概率将流局强行镇压反转为发车通过！',
+      );
+    }
+    setBrawlPrivateReceipt(
+      g.brawl,
+      shaPlayer?.id,
+      shaPassed
+        ? `🌊 第 ${g.mission} 难降妖宝杖定海显圣（50% 命中）：已强行将流局反转为发车通过！`
+        : `🌊 第 ${g.mission} 难降妖宝杖定海触发（50% 未命中）：风波势大未能平息，仍旧流局。`,
+    );
+    recordBrawlReplayAction(g.brawl, {
+      roundNumber: g.rounds.at(-1)?.number ?? g.rounds.length,
+      mission: g.mission,
+      phase: 'team_voting',
+      actorId: shaPlayer?.id ?? '',
+      actorSeat: shaPlayer?.seat ?? 0,
+      actorNickname: shaPlayer?.nickname ?? '沙悟净',
+      roleId: 'sha_wujing',
+      roleName: '沙悟净',
+      skillName: '降妖宝杖',
+      outcome: shaPassed ? 'success' : 'miss',
+      detail: shaPassed
+        ? '表决流局时祭起降妖宝杖定海神威（50% 概率命中）：强行镇压反转为发车通过！'
+        : '表决流局时祭起降妖宝杖定海（50% 概率未命中）：未能逆转流局。',
+    });
+  }
+
+  // 猪八戒【倒打一耙】：组队表决未通过时倒打一耙，强制将全场最后 1 张反对票反转为赞成票！
+  if (!passed && rejections > 0 && g.brawl?.zhubajieDaodaArmed) {
+    g.brawl.zhubajieDaodaArmed = false;
+    rejections -= 1;
+    approvals += 1;
+    const zhuPlayer = g.players.find(p => hasBrawlSkillRole(g.brawl?.playerStates[p.id], 'zhu_bajie'));
+    if (approvals > rejections) {
+      passed = true;
+      appendBattleEvent(
+        g.brawl,
+        'zhu_bajie',
+        `【猪八戒】倒打一耙逆风翻盘！强行将 1 张反对票反转为赞成票（反转后赞成 ${approvals} / 反对 ${rejections}），队伍惊险发车！`,
+        '组队表决未通过时倒打一耙，强制将全场最后 1 张反对票反转为赞成票！',
+      );
+    } else {
+      appendBattleEvent(
+        g.brawl,
+        'zhu_bajie',
+        `【猪八戒】倒打一耙发力！反转 1 张反对票为赞成票（赞成 ${approvals} / 反对 ${rejections}），仍未能扭转局势。`,
+        '组队表决未通过时倒打一耙，强制将全场最后 1 张反对票反转为赞成票！',
+      );
+    }
+    setBrawlPrivateReceipt(
+      g.brawl,
+      zhuPlayer?.id,
+      passed
+        ? `🌾 第 ${g.mission} 难倒打一耙逆风翻盘：已反转 1 张反对票为赞成票（${approvals}:${rejections}），护送车队发车！`
+        : `🌾 第 ${g.mission} 难倒打一耙已触发：反转 1 张反对票后票数为 ${approvals}:${rejections}，赞成仍未过半维持流局。`,
+    );
+    recordBrawlReplayAction(g.brawl, {
+      roundNumber: g.rounds.at(-1)?.number ?? g.rounds.length,
+      mission: g.mission,
+      phase: 'team_voting',
+      actorId: zhuPlayer?.id ?? '',
+      actorSeat: zhuPlayer?.seat ?? 0,
+      actorNickname: zhuPlayer?.nickname ?? '猪八戒',
+      roleId: 'zhu_bajie',
+      roleName: '猪八戒',
+      skillName: '倒打一耙',
+      outcome: 'success',
+      detail: `组队表决未通过时倒打一耙，强制将 1 张反对票反转为赞成票（反转后赞成 ${approvals} / 反对 ${rejections}）！最终结果：${passed ? '逆风翻盘组队通过！' : '赞成仍未过半，维持流局。'}`,
+    });
+  }
+
+  g.rounds.at(-1)!.vote = { approvals, rejections, abstentions, passed,
+    ...(!g.settings.anonymousTeamVote ? { ballots: { ...g.teamVotes } } : {}) };
+  if (g.brawl) {
+    if (g.brawl.doubleVoteUserId) {
+      const dvId = g.brawl.doubleVoteUserId;
+      const dvP = g.players.find(p => p.id === dvId);
+      const dvBallot = g.teamVotes[dvId];
+      const dvLabel = dvBallot === true ? '赞成 ×2' : dvBallot === false ? '反对 ×2' : '弃权 ×2';
+      const dvRole = getEffectiveSkillRole(g.brawl.playerStates[dvId]);
+      setBrawlPrivateReceipt(
+        g.brawl,
+        dvId,
+        `🔥 第 ${g.mission} 难双倍表决已结算：你投出【${dvLabel}】，最终票型赞成 ${approvals} / 反对 ${rejections}（${passed ? '组队通过' : '表决流局'}）。`,
+      );
+      recordBrawlReplayAction(g.brawl, {
+        roundNumber: g.rounds.at(-1)?.number ?? g.rounds.length,
+        mission: g.mission,
+        phase: 'team_voting',
+        actorId: dvId,
+        actorSeat: dvP?.seat ?? 0,
+        actorNickname: dvP?.nickname ?? dvRole?.name ?? '神魔',
+        roleId: dvRole?.id ?? 'nezha',
+        roleName: dvRole?.name ?? '双票神通',
+        skillName: dvRole?.skill.skillName ?? '双倍表决',
+        outcome: 'success',
+        detail: `双倍表决权生效：投出【${dvLabel}】，本轮表决最终赞成 ${approvals} / 反对 ${rejections}（${passed ? '组队通过' : '表决流局'}）。`,
+      });
+    }
+    g.brawl.doubleVoteUserId = undefined;
+    g.brawl.yishanTargetId = undefined;
+  }
+  g.teamVotes = {};
+  if (passed) {
+    if (g.treasuresState?.bananaFan?.armed) {
+      g.treasuresState.bananaFan.used = true;
+      g.treasuresState.bananaFan.armed = false;
+      g.bananaFanNotice = `第 ${g.rounds.at(-1)!.number} 轮组队投票通过，但牛魔王祭起【芭蕉神扇】狂风呼啸！本次发车被强行吹散，由下一任队长重新组队！`;
+      rotate(g);
+      openEarlyWindowOrPropose(g);
+    } else {
+      delete g.bananaFanNotice;
+      if (hasUnusedGuanyin(g)) {
+        g.phase = 'guanyin_window';
+        g.guanyinEndsAt = new Date(context.now + GUANYIN_WINDOW_MS).toISOString();
+      } else {
+        g.phase = 'mission';
+      }
+    }
+  } else {
+    delete g.bananaFanNotice;
+    if (g.brawl?.wager && g.brawl.wager.activeRoundNumber === g.rounds.at(-1)?.number) {
+      g.brawl.wager.activeRoundNumber = undefined;
+      g.brawl.wager.activeCaptainId = undefined;
+    }
+    refundArmedMissionSkillsOnProposalAbort(g, '组队表决流局');
+    g.rejectionCount++;
+    if (!g.brawl && g.rejectionCount >= 5) finish(g, { winner: 'red', reason: 'five_rejections' });
+    else { rotate(g); openEarlyWindowOrPropose(g); }
+  }
 }
 // Room ownership, not presence or unanimous voting, controls interruption.
 export function transition(state: GameState, userId: string, action: Pick<Command, 'type' | 'payload'>, onlineIds: string[], context = { hostId: state.players[0].id, now: Date.now() }): GameState {
@@ -1022,6 +1188,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           humanBagBanned: g.treasuresState?.humanBag,
           imprisonedTargetId: g.brawl.imprisonedTargetId,
           zhizhuBannedTargetId: g.brawl.zhizhuBannedTargetId,
+          qingshiTuntianTargetId: g.brawl.qingshiTuntianTargetId,
           ordeals: g.brawl.ordeals,
           wager: g.brawl.wager,
         });
@@ -1151,167 +1318,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
       }
       requireRule(!(userId in g.teamVotes), 'ALREADY_SUBMITTED');
       g.teamVotes[userId] = (action.payload as { approve: TeamBallot }).approve;
-      if (Object.keys(g.teamVotes).length === g.players.length) {
-        let approvals = 0;
-        let rejections = 0;
-        let abstentions = 0;
-        for (const [pId, ballot] of Object.entries(g.teamVotes)) {
-          const weight = g.brawl?.doubleVoteUserId === pId ? 2 : 1;
-          if (ballot === true) approvals += weight;
-          else if (ballot === false) rejections += weight;
-          else if (ballot === 'abstain') abstentions += weight;
-        }
-        let passed = approvals > rejections;
-
-        // 沙悟净【降妖宝杖】：任意一轮组队表决未通过流局时，沙僧祭起降妖宝杖定风波，50% 概率将流局强行镇压反转为发车通过！
-        if (!passed && g.brawl?.shawujingBaozhangArmed) {
-          g.brawl.shawujingBaozhangArmed = false;
-          const shaPassed = Math.random() < BRAWL_SKILL_PROBS.SHA_PASS;
-          const shaPlayer = g.players.find(p => hasBrawlSkillRole(g.brawl?.playerStates[p.id], 'sha_wujing'));
-          if (shaPassed) {
-            passed = true;
-            appendBattleEvent(
-              g.brawl,
-              'sha_wujing',
-              `【沙悟净】降妖宝杖定海神威！队伍表决本已流局，沙僧祭起降妖宝杖定风波，神威显圣强行判定队伍通过发车！`,
-              '任意一轮组队表决未通过流局时，沙僧祭起降妖宝杖定风波，50% 概率将流局强行镇压反转为发车通过！',
-            );
-          } else {
-            appendBattleEvent(
-              g.brawl,
-              'sha_wujing',
-              `【沙悟净】降妖宝杖定海，风波势大未能平息，仍旧流局。`,
-              '任意一轮组队表决未通过流局时，沙僧祭起降妖宝杖定风波，50% 概率将流局强行镇压反转为发车通过！',
-            );
-          }
-          setBrawlPrivateReceipt(
-            g.brawl,
-            shaPlayer?.id,
-            shaPassed
-              ? `🌊 第 ${g.mission} 难降妖宝杖定海显圣（50% 命中）：已强行将流局反转为发车通过！`
-              : `🌊 第 ${g.mission} 难降妖宝杖定海触发（50% 未命中）：风波势大未能平息，仍旧流局。`,
-          );
-          recordBrawlReplayAction(g.brawl, {
-            roundNumber: g.rounds.at(-1)?.number ?? g.rounds.length,
-            mission: g.mission,
-            phase: 'team_voting',
-            actorId: shaPlayer?.id ?? '',
-            actorSeat: shaPlayer?.seat ?? 0,
-            actorNickname: shaPlayer?.nickname ?? '沙悟净',
-            roleId: 'sha_wujing',
-            roleName: '沙悟净',
-            skillName: '降妖宝杖',
-            outcome: shaPassed ? 'success' : 'miss',
-            detail: shaPassed
-              ? '表决流局时祭起降妖宝杖定海神威（50% 概率命中）：强行镇压反转为发车通过！'
-              : '表决流局时祭起降妖宝杖定海（50% 概率未命中）：未能逆转流局。',
-          });
-        }
-
-        // 猪八戒【倒打一耙】：组队表决未通过时倒打一耙，强制将全场最后 1 张反对票反转为赞成票！
-        if (!passed && rejections > 0 && g.brawl?.zhubajieDaodaArmed) {
-          g.brawl.zhubajieDaodaArmed = false;
-          rejections -= 1;
-          approvals += 1;
-          const zhuPlayer = g.players.find(p => hasBrawlSkillRole(g.brawl?.playerStates[p.id], 'zhu_bajie'));
-          if (approvals > rejections) {
-            passed = true;
-            appendBattleEvent(
-              g.brawl,
-              'zhu_bajie',
-              `【猪八戒】倒打一耙逆风翻盘！强行将 1 张反对票反转为赞成票（反转后赞成 ${approvals} / 反对 ${rejections}），队伍惊险发车！`,
-              '组队表决未通过时倒打一耙，强制将全场最后 1 张反对票反转为赞成票！',
-            );
-          } else {
-            appendBattleEvent(
-              g.brawl,
-              'zhu_bajie',
-              `【猪八戒】倒打一耙发力！反转 1 张反对票为赞成票（赞成 ${approvals} / 反对 ${rejections}），仍未能扭转局势。`,
-              '组队表决未通过时倒打一耙，强制将全场最后 1 张反对票反转为赞成票！',
-            );
-          }
-          setBrawlPrivateReceipt(
-            g.brawl,
-            zhuPlayer?.id,
-            passed
-              ? `🌾 第 ${g.mission} 难倒打一耙逆风翻盘：已反转 1 张反对票为赞成票（${approvals}:${rejections}），护送车队发车！`
-              : `🌾 第 ${g.mission} 难倒打一耙已触发：反转 1 张反对票后票数为 ${approvals}:${rejections}，赞成仍未过半维持流局。`,
-          );
-          recordBrawlReplayAction(g.brawl, {
-            roundNumber: g.rounds.at(-1)?.number ?? g.rounds.length,
-            mission: g.mission,
-            phase: 'team_voting',
-            actorId: zhuPlayer?.id ?? '',
-            actorSeat: zhuPlayer?.seat ?? 0,
-            actorNickname: zhuPlayer?.nickname ?? '猪八戒',
-            roleId: 'zhu_bajie',
-            roleName: '猪八戒',
-            skillName: '倒打一耙',
-            outcome: 'success',
-            detail: `组队表决未通过时倒打一耙，强制将 1 张反对票反转为赞成票（反转后赞成 ${approvals} / 反对 ${rejections}）！最终结果：${passed ? '逆风翻盘组队通过！' : '赞成仍未过半，维持流局。'}`,
-          });
-        }
-
-        g.rounds.at(-1)!.vote = { approvals, rejections, abstentions, passed,
-          ...(!g.settings.anonymousTeamVote ? { ballots: { ...g.teamVotes } } : {}) };
-        if (g.brawl) {
-          if (g.brawl.doubleVoteUserId) {
-            const dvId = g.brawl.doubleVoteUserId;
-            const dvP = g.players.find(p => p.id === dvId);
-            const dvBallot = g.teamVotes[dvId];
-            const dvLabel = dvBallot === true ? '赞成 ×2' : dvBallot === false ? '反对 ×2' : '弃权 ×2';
-            const dvRole = getEffectiveSkillRole(g.brawl.playerStates[dvId]);
-            setBrawlPrivateReceipt(
-              g.brawl,
-              dvId,
-              `🔥 第 ${g.mission} 难双倍表决已结算：你投出【${dvLabel}】，最终票型赞成 ${approvals} / 反对 ${rejections}（${passed ? '组队通过' : '表决流局'}）。`,
-            );
-            recordBrawlReplayAction(g.brawl, {
-              roundNumber: g.rounds.at(-1)?.number ?? g.rounds.length,
-              mission: g.mission,
-              phase: 'team_voting',
-              actorId: dvId,
-              actorSeat: dvP?.seat ?? 0,
-              actorNickname: dvP?.nickname ?? dvRole?.name ?? '神魔',
-              roleId: dvRole?.id ?? 'nezha',
-              roleName: dvRole?.name ?? '双票神通',
-              skillName: dvRole?.skill.skillName ?? '双倍表决',
-              outcome: 'success',
-              detail: `双倍表决权生效：投出【${dvLabel}】，本轮表决最终赞成 ${approvals} / 反对 ${rejections}（${passed ? '组队通过' : '表决流局'}）。`,
-            });
-          }
-          g.brawl.doubleVoteUserId = undefined;
-          g.brawl.yishanTargetId = undefined;
-        }
-        g.teamVotes = {};
-        if (passed) {
-          if (g.treasuresState?.bananaFan?.armed) {
-            g.treasuresState.bananaFan.used = true;
-            g.treasuresState.bananaFan.armed = false;
-            g.bananaFanNotice = `第 ${g.rounds.at(-1)!.number} 轮组队投票通过，但牛魔王祭起【芭蕉神扇】狂风呼啸！本次发车被强行吹散，由下一任队长重新组队！`;
-            rotate(g);
-            openEarlyWindowOrPropose(g);
-          } else {
-            delete g.bananaFanNotice;
-            if (hasUnusedGuanyin(g)) {
-              g.phase = 'guanyin_window';
-              g.guanyinEndsAt = new Date(context.now + GUANYIN_WINDOW_MS).toISOString();
-            } else {
-              g.phase = 'mission';
-            }
-          }
-        } else {
-          delete g.bananaFanNotice;
-          if (g.brawl?.wager && g.brawl.wager.activeRoundNumber === g.rounds.at(-1)?.number) {
-            g.brawl.wager.activeRoundNumber = undefined;
-            g.brawl.wager.activeCaptainId = undefined;
-          }
-          refundArmedMissionSkillsOnProposalAbort(g, '组队表决流局');
-          g.rejectionCount++;
-          if (!g.brawl && g.rejectionCount >= 5) finish(g, { winner: 'red', reason: 'five_rejections' });
-          else { rotate(g); openEarlyWindowOrPropose(g); }
-        }
-      }
+      resolveTeamVoteIfComplete(g, context);
       break;
     }
     case 'missionVote': {
@@ -2145,12 +2152,18 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         requireRule(role, 'ROLE_NOT_FOUND');
         requireRule(payload.skillId === role.skill.skillId, 'INVALID_SKILL');
 
-        // 阶段校验护栏：禁止在刺杀阶段释放非刺杀技能；禁止在强制发车轮浪费纯表决类技能
-        const isVoteOnlySkill = ['santou_liubi', 'pingtian_handi', 'yishan_yading', 'xiangyao_baozhang', 'daoda_yipa'].includes(role.skill.skillId);
+        // 阶段校验护栏（全部在老君金刚琢拦截之前校验，避免非法点击误消耗金刚琢或技能次数）
+        const skillId = role.skill.skillId;
+        const isVoteOnlySkill = ['santou_liubi', 'pingtian_handi', 'yishan_yading', 'xiangyao_baozhang', 'daoda_yipa'].includes(skillId);
+        const isTeamBuildControlSkill = ['wuxingshan_zhang', 'pansi_jiejian', 'dakou_tuntian', 'xiuli_qiankun'].includes(skillId);
         if (isVoteOnlySkill) {
           requireRule(!['mission', 'assassination'].includes(g.phase), 'WRONG_PHASE');
           requireRule(g.rejectionCount < BRAWL_MAX_REJECTIONS_BEFORE_FORCE, 'FORCED_LAUNCH_NO_VOTE');
-        } else if (role.skill.skillId !== 'yuncheng_wanli') {
+        } else if (skillId === 'longma_fuzhong') {
+          requireRule(['role_reveal', 'proposing', 'discussion'].includes(g.phase), 'WRONG_PHASE');
+        } else if (isTeamBuildControlSkill) {
+          requireRule(['role_reveal', 'proposing', 'discussion', 'team_vote'].includes(g.phase), 'WRONG_PHASE');
+        } else if (skillId !== 'yuncheng_wanli') {
           requireRule(g.phase !== 'assassination', 'WRONG_PHASE');
         }
 
@@ -2167,22 +2180,26 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
             targetText = `对【${targetPlayer.seat}号 · ${targetPlayer.nickname}】`;
           }
         }
-        if (role.skill.actionType === 'target_player' && role.skill.skillId !== 'sanmei_zhenhuo') {
+        if (role.skill.actionType === 'target_player' && skillId !== 'sanmei_zhenhuo') {
           requireRule(targetPlayer, 'TARGET_REQUIRED');
         }
-        if (role.skill.skillId === 'wuxingshan_zhang' && targetPlayer) {
+        if (['wuxingshan_zhang', 'yishan_yading'].includes(skillId) && targetPlayer) {
           requireRule(targetPlayer.id !== userId, 'CANNOT_TARGET_SELF');
         }
-        if (role.skill.skillId === 'zhaoyao_baojing') {
+        if (['dakou_tuntian', 'pansi_jiejian'].includes(skillId) && targetPlayer) {
+          requireRule(targetPlayer.id !== captain(g), 'CANNOT_BAN_CAPTAIN');
+          requireRule(targetPlayer.id !== userId, 'CANNOT_BAN_SELF');
+        }
+        if (skillId === 'zhaoyao_baojing') {
           const liveTeam = ['proposing', 'role_reveal'].includes(g.phase)
             ? (g.draftTeam?.playerIds ?? [])
             : (g.rounds.at(-1)?.mission === g.mission ? (g.rounds.at(-1)?.team ?? []) : []);
           requireRule(liveTeam.length > 0, 'TEAM_NOT_READY');
         }
-        if (role.skill.skillId === 'daofa_dianhua') {
+        if (skillId === 'daofa_dianhua') {
           requireRule(g.mission >= 2, 'MISSION_NOT_REACHED');
         }
-        if (['wuxingshan_zhang', 'pansi_jiejian', 'dakou_tuntian'].includes(role.skill.skillId) && targetPlayer) {
+        if (['wuxingshan_zhang', 'pansi_jiejian', 'dakou_tuntian'].includes(skillId) && targetPlayer) {
           const baseSize = missionSizesFor(g.players.length, true)[g.mission - 1];
           const curBanned = collectMissionBannedPlayerIds({
             mission: g.mission,
@@ -2190,6 +2207,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
             humanBagBanned: g.treasuresState?.humanBag,
             imprisonedTargetId: g.brawl.imprisonedTargetId,
             zhizhuBannedTargetId: g.brawl.zhizhuBannedTargetId,
+            qingshiTuntianTargetId: g.brawl.qingshiTuntianTargetId,
             ordeals: g.brawl.ordeals,
             wager: g.brawl.wager,
           });
@@ -2249,24 +2267,15 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         playerState.skillUsed = true;
 
         let customSummary: string | undefined;
+        let shouldCheckTeamVoteComplete = false;
 
         if (role.skill.skillId === 'jingang_zhuo') {
           // 太上老君【金刚琢】
           g.brawl.laojunZhuoActive = true;
+          setBrawlPrivateReceipt(g.brawl, userId, `⭕ 第 ${g.mission} 难金刚琢已悬空待命：下一次任意妖魔发动主动法宝时，将当场凌空套走收缴！`);
         } else if (role.skill.skillId === 'dakou_tuntian') {
-          // 青毛狮子怪【大口吞天】
+          // 青毛狮子怪【大口吞天】（使用乱斗独立字段 qingshiTuntianTargetId，绝不借用经典后天人种袋）
           requireRule(targetPlayer, 'TARGET_REQUIRED');
-          requireRule(targetPlayer.id !== captain(g), 'CANNOT_BAN_CAPTAIN');
-          requireRule(targetPlayer.id !== userId, 'CANNOT_BAN_SELF');
-
-          if (!g.treasuresState) {
-            g.treasuresState = {};
-          }
-          g.treasuresState.humanBag = {
-            used: true,
-            targetId: targetPlayer.id,
-            activeBannedMission: g.mission,
-          };
           g.brawl.qingshiTuntianTargetId = targetPlayer.id;
 
           // 强制将目标从当前挑人队伍中吸走剔除
@@ -2274,13 +2283,20 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
             g.draftTeam.playerIds = g.draftTeam.playerIds.filter(id => id !== targetPlayer.id);
           }
           const currentRound = g.rounds.at(-1);
-          if (currentRound && currentRound.team.includes(targetPlayer.id)) {
+          if (currentRound && currentRound.mission === g.mission && currentRound.team.includes(targetPlayer.id) && (g.phase === 'discussion' || g.phase === 'team_vote')) {
             currentRound.team = currentRound.team.filter(id => id !== targetPlayer.id);
-            if (g.phase === 'discussion' || g.phase === 'team_vote') {
-              g.phase = 'proposing';
-              g.teamVotes = {};
+            if (g.brawl.wager && g.brawl.wager.activeRoundNumber === currentRound.number) {
+              g.brawl.wager.activeRoundNumber = undefined;
+              g.brawl.wager.activeCaptainId = undefined;
             }
+            g.phase = 'proposing';
+            g.teamVotes = {};
           }
+          setBrawlPrivateReceipt(
+            g.brawl,
+            userId,
+            `🦁 第 ${g.mission} 难大口吞天已生效：已将【${targetPlayer.seat}号 · ${targetPlayer.nickname}】吞走剔除出队，本难禁止其入队！`,
+          );
         } else if (role.skill.skillId === 'jiashe_leiyin') {
           // 黄眉老怪【假设雷音】（假传佛旨：私密点化 1 名随机蓝方）
           let detail = '施展假设雷音佛音暗传';
@@ -2370,36 +2386,62 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
               g.draftTeam.playerIds = g.draftTeam.playerIds.filter(id => id !== targetPlayer.id);
             }
             const currentRound = g.rounds.at(-1);
-            if (currentRound && g.phase === 'discussion' && currentRound.team.includes(targetPlayer.id)) {
+            if (currentRound && currentRound.mission === g.mission && (g.phase === 'discussion' || g.phase === 'team_vote') && currentRound.team.includes(targetPlayer.id)) {
               currentRound.team = currentRound.team.filter(id => id !== targetPlayer.id);
+              if (g.brawl.wager && g.brawl.wager.activeRoundNumber === currentRound.number) {
+                g.brawl.wager.activeRoundNumber = undefined;
+                g.brawl.wager.activeCaptainId = undefined;
+              }
               g.phase = 'proposing';
+              g.teamVotes = {};
+            } else if (g.phase === 'team_vote') {
+              g.teamVotes[targetPlayer.id] = 'abstain';
+              shouldCheckTeamVoteComplete = true;
             }
+            setBrawlPrivateReceipt(
+              g.brawl,
+              userId,
+              `🪷 第 ${g.mission} 难五行山掌已生效：已将【${targetPlayer.seat}号 · ${targetPlayer.nickname}】镇压于五行山下，本难禁止入队与表决！`,
+            );
           }
         } else if (role.skill.skillId === 'jiuzhuan_xiantao') {
           // 王母娘娘【九转仙桃】
           g.brawl.taoshouActive = true;
+          setBrawlPrivateReceipt(
+            g.brawl,
+            userId,
+            `🍑 第 ${g.mission} 难九转仙桃已赐下护体：本难若出现失败牌，将有 ${Math.round(BRAWL_SKILL_PROBS.WANGMU_PARDON * 100)}% 概率化解 1 败（流局自动退还）！`,
+          );
         } else if (role.skill.skillId === 'longma_fuzhong') {
           // 白龙马【龙马负重】
           g.brawl.extraSeatLimit = 1;
+          setBrawlPrivateReceipt(g.brawl, userId, `🐴 第 ${g.mission} 难龙马负重已生效：本难出征车队席位上限临时 +1！`);
         } else if (role.skill.skillId === 'pansi_jiejian') {
           // 蜘蛛精【盘丝结茧】
           if (targetPlayer) {
-            requireRule(targetPlayer.id !== captain(g), 'CANNOT_BAN_CAPTAIN');
-            requireRule(targetPlayer.id !== userId, 'CANNOT_BAN_SELF');
             g.brawl.zhizhuBannedTargetId = targetPlayer.id;
 
             if (g.draftTeam?.playerIds.includes(targetPlayer.id)) {
               g.draftTeam.playerIds = g.draftTeam.playerIds.filter(id => id !== targetPlayer.id);
             }
             const currentRound = g.rounds.at(-1);
-            if (currentRound && g.phase === 'discussion' && currentRound.team.includes(targetPlayer.id)) {
+            if (currentRound && currentRound.mission === g.mission && (g.phase === 'discussion' || g.phase === 'team_vote') && currentRound.team.includes(targetPlayer.id)) {
               currentRound.team = currentRound.team.filter(id => id !== targetPlayer.id);
+              if (g.brawl.wager && g.brawl.wager.activeRoundNumber === currentRound.number) {
+                g.brawl.wager.activeRoundNumber = undefined;
+                g.brawl.wager.activeCaptainId = undefined;
+              }
               g.phase = 'proposing';
+              g.teamVotes = {};
             }
+            setBrawlPrivateReceipt(
+              g.brawl,
+              userId,
+              `🕸️ 第 ${g.mission} 难盘丝结茧已生效：已将【${targetPlayer.seat}号 · ${targetPlayer.nickname}】结茧缠缚，本难禁止其入队出征！`,
+            );
           }
         } else if (role.skill.skillId === 'xiuli_qiankun') {
           // 镇元大仙【袖里乾坤】
-          requireRule(['proposing', 'discussion', 'team_vote'].includes(g.phase), 'WRONG_PHASE');
           delete g.draftTeam;
           g.teamVotes = {};
           g.missionVotes = {};
@@ -2450,17 +2492,15 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           }
         } else if (role.skill.skillId === 'santou_liubi' || role.skill.skillId === 'pingtian_handi') {
           // 哪吒三太子【三头六臂】/ 牛魔王【平天撼地】
-          requireRule(['proposing', 'discussion', 'team_vote'].includes(g.phase), 'WRONG_PHASE');
           g.brawl.doubleVoteUserId = userId;
           setBrawlPrivateReceipt(g.brawl, userId, `🔥 第 ${g.mission} 难双倍表决权已激活：本次组队表决你的选票将计为 2 票！`);
         } else if (role.skill.skillId === 'yishan_yading') {
           // 银角大王【移山压顶】
           if (targetPlayer) {
-            requireRule(targetPlayer.id !== userId, 'CANNOT_TARGET_SELF');
-            requireRule(['proposing', 'discussion', 'team_vote'].includes(g.phase), 'WRONG_PHASE');
             g.brawl.yishanTargetId = targetPlayer.id;
             if (g.phase === 'team_vote') {
               g.teamVotes[targetPlayer.id] = 'abstain';
+              shouldCheckTeamVoteComplete = true;
             }
             setBrawlPrivateReceipt(g.brawl, userId, `⛰️ 第 ${g.mission} 难移山压顶已生效：已将【${targetPlayer.seat}号 · ${targetPlayer.nickname}】本次表决票强制压制为弃权！`);
           }
@@ -2514,6 +2554,11 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           // 观音菩萨【净瓶甘露】
           if (targetPlayer) {
             g.brawl.guanyinGanluTargetId = targetPlayer.id;
+            setBrawlPrivateReceipt(
+              g.brawl,
+              userId,
+              `🪷 第 ${g.mission} 难净瓶甘露已洒向【${targetPlayer.seat}号 · ${targetPlayer.nickname}】：待其随队出征结算后将私密验其票底（流局自动退还）！`,
+            );
           }
         } else if (role.skill.skillId === 'daofa_dianhua') {
           // 菩提祖师【道法点化】
@@ -2607,6 +2652,9 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           outcome: replayOutcome,
           detail: replayDetail,
         });
+        if (shouldCheckTeamVoteComplete) {
+          resolveTeamVoteIfComplete(g, context);
+        }
       }
       break;
     }

@@ -262,3 +262,39 @@ test('ReplayView renders complete Brawl skill timeline, per-round chronicle, and
   assert.ok(html.includes('附带仙宝：如来佛祖·五行山掌'), 'Shows 5-8p bonus role in HistoryRoster');
   assert.ok(html.includes('复盘已还原真实成功/失败牌数'), 'Notes chaotic fog revealed counts in replay');
 });
+
+test('GamePanel 12-player oval seat coordinates maintain zero overlap on mobile (366x390) viewport', () => {
+  const players = makePlayers(12);
+  const settings = { ...defaultSettings, playerCount: 12, brawlModeEnabled: true, brawlOrdealsEnabled: true };
+  const game = createGame('ui-12p-no-overlap', players, settings, a => a);
+  const html = renderToStaticMarkup(createElement(GamePanel, {
+    room: {
+      id: 'r-12p',
+      code: '121212',
+      hostId: 'u1',
+      version: 1,
+      settings,
+      members: players.map(p => ({ ...p, ready: true, online: true })),
+      phase: 'playing',
+      acceptingNewMembers: false,
+      game: projectGame(game, 'u1'),
+    },
+    userId: 'u1',
+    disabled: false,
+    connected: true,
+    send: () => {},
+  }));
+  const coords = Array.from(html.matchAll(/style="left:([0-9.]+)%;top:([0-9.]+)%"/g)).map(m => ({
+    x: (parseFloat(m[1]) / 100) * 366,
+    y: (parseFloat(m[2]) / 100) * 390,
+  }));
+  assert.equal(coords.length, 12, 'Renders all 12 seat coordinates');
+  for (let i = 0; i < coords.length; i++) {
+    for (let j = i + 1; j < coords.length; j++) {
+      const dx = Math.abs(coords[i].x - coords[j].x);
+      const dy = Math.abs(coords[i].y - coords[j].y);
+      // Either horizontally clear (>= 84px nameplate width) or vertically clear (>= 60px avatar+nameplate+badge)
+      assert.ok(dx >= 84 || dy >= 60, `Seat ${i + 1} and Seat ${j + 1} overlap on 366x390 mobile (dx=${dx.toFixed(1)}, dy=${dy.toFixed(1)})`);
+    }
+  }
+});

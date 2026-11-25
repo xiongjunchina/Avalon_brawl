@@ -1036,6 +1036,7 @@ test('brawl: Guanyin Pusa [jingping_ganlu] inspects team member vote privately w
   const game = createGame('brawl-guanyin', players, { ...defaultSettings, playerCount: 6, brawlModeEnabled: true }, a => a);
   const guanyinId = 'p4';
   game.brawl!.playerStates[guanyinId] = { userId: guanyinId, seat: 4, roleId: 'guanyin_pusa', camp: 'blue', skillUsed: false };
+  game.brawl!.playerStates.p2 = { userId: 'p2', seat: 2, roleId: 'sun_wukong', camp: 'blue', skillUsed: false };
 
   // 队伍敲定包含 p1, p2
   game.phase = 'proposing';

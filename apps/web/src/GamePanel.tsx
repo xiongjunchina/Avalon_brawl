@@ -1003,17 +1003,78 @@ export function GamePanel({
               </div>
 
               {g.players.map((p, idx) => {
-                const angleDeg = -90 + (idx * 360) / g.players.length;
-                const rad = (angleDeg * Math.PI) / 180;
-                const cosV = Math.cos(rad);
-                const sinV = Math.sin(rad);
-                const leftRadius = g.players.length > 10 ? 39.2 : 40.2;
-                const topRadius = ended ? 41.0 : 39.5;
-                const archCos = Math.sign(cosV) * Math.pow(Math.abs(cosV), 0.94);
-                const archSin = Math.sign(sinV) * Math.pow(Math.abs(sinV), 0.86);
-                const leftPct = 50 + archCos * leftRadius;
-                const topPct = 50 + archSin * topRadius;
-                const flank = cosV < 0 ? 'left' : 'right';
+                const n = g.players.length;
+                // 9~12 人局采用等纵距椭圆围桌坐标，避免圆周均匀角在上下肩部挤压导致 12 人局昵称与头像/角标重叠
+                const ovalPresets: Record<number, Array<[number, number]>> = {
+                  12: [
+                    [50.0, 7.5],
+                    [81.0, 17.5],
+                    [88.5, 34.2],
+                    [88.5, 51.2],
+                    [88.5, 68.4],
+                    [81.0, 84.6],
+                    [50.0, 93.0],
+                    [19.0, 84.6],
+                    [11.5, 68.4],
+                    [11.5, 51.2],
+                    [11.5, 34.2],
+                    [19.0, 17.5],
+                  ],
+                  11: [
+                    [50.0, 7.5],
+                    [81.0, 18.5],
+                    [88.5, 36.0],
+                    [88.5, 54.0],
+                    [86.5, 72.5],
+                    [69.0, 90.0],
+                    [31.0, 90.0],
+                    [13.5, 72.5],
+                    [11.5, 54.0],
+                    [11.5, 36.0],
+                    [19.0, 18.5],
+                  ],
+                  10: [
+                    [50.0, 8.5],
+                    [81.5, 20.5],
+                    [88.5, 40.5],
+                    [88.5, 61.0],
+                    [81.5, 81.0],
+                    [50.0, 92.0],
+                    [18.5, 81.0],
+                    [11.5, 61.0],
+                    [11.5, 40.5],
+                    [18.5, 20.5],
+                  ],
+                  9: [
+                    [50.0, 8.5],
+                    [81.5, 21.5],
+                    [88.5, 43.0],
+                    [86.5, 66.0],
+                    [69.0, 89.0],
+                    [31.0, 89.0],
+                    [13.5, 66.0],
+                    [11.5, 43.0],
+                    [18.5, 21.5],
+                  ],
+                };
+                const preset = ovalPresets[n]?.[idx];
+                let leftPct: number;
+                let topPct: number;
+                let flank: 'left' | 'right';
+                if (preset) {
+                  [leftPct, topPct] = preset;
+                  flank = leftPct < 50 ? 'left' : 'right';
+                } else {
+                  const angleDeg = -90 + (idx * 360) / n;
+                  const rad = (angleDeg * Math.PI) / 180;
+                  const cosV = Math.cos(rad);
+                  const sinV = Math.sin(rad);
+                  const archCos = Math.sign(cosV) * Math.pow(Math.abs(cosV), 0.94);
+                  const archSin = Math.sign(sinV) * Math.pow(Math.abs(sinV), 0.88);
+                  leftPct = 50 + archCos * 39.5;
+                  topPct = 50 + archSin * 40.0;
+                  flank = cosV < 0 ? 'left' : 'right';
+                }
                 return renderSeat(p, flank, {
                   left: `${leftPct.toFixed(1)}%`,
                   top: `${topPct.toFixed(1)}%`,

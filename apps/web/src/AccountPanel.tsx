@@ -1,5 +1,6 @@
 import { assetUrl } from './deployment';
 import { BattleHistory } from './BattleRound';
+import { BrawlReplayTimeline } from './BrawlReplayTimeline';
 import { Modal } from './Modal';
 import { useEffect, useRef, useState } from 'react';
 import type { Avatar, User, Statistics, Score, HistoryPage, GameSummary, Replay, GameResult } from '@avalon/contracts';
@@ -27,6 +28,8 @@ export function HistoryRoster({replay:g}:{replay:Replay}) {
     const role=g.roles[p.id],team=roleTeam(role),self=p.seat===g.self.seat;
     const brawlRoleId = g.brawlRoles?.[p.id];
     const brawlRoleDef = brawlRoleId ? BRAWL_ROLE_REGISTRY[brawlRoleId] : undefined;
+    const bonusRoleId = g.brawlBonusRoles?.[p.id];
+    const bonusRoleDef = bonusRoleId ? BRAWL_ROLE_REGISTRY[bonusRoleId] : undefined;
     const roleTitle = brawlRoleDef ? brawlRoleDef.name : formatRoleName(role,guardians[p.id],demons[p.id]);
     const roleDisplayName = brawlRoleDef ? brawlRoleDef.name : getRoleGalleryItem(role,guardians[p.id],demons[p.id]).name;
     const roleCamp = brawlRoleDef ? (brawlRoleDef.camp === 'blue' ? '蓝方' : '红方') : (team==='blue'?'蓝方':'红方');
@@ -38,7 +41,8 @@ export function HistoryRoster({replay:g}:{replay:Replay}) {
         <RolePortrait role={role} loyalGuardian={guardians[p.id]} femaleDemon={demons[p.id]} size="mini"/>
       )}
       <div><span className="roster-player"><b>{p.seat}</b><span title={p.nickname}>{p.nickname}</span>{self&&<small>我</small>}</span>
-        <strong className={`roster-role ${roleCampClass}`} title={roleTitle}>{roleDisplayName}<span> · {roleCamp}</span></strong></div>
+        <strong className={`roster-role ${roleCampClass}`} title={roleTitle}>{roleDisplayName}<span> · {roleCamp}</span></strong>
+        {bonusRoleDef && <small style={{ display: 'block', fontSize: 11, color: '#92400e', marginTop: 1 }}>附带仙宝：{bonusRoleDef.name}·{bonusRoleDef.skill.skillName}</small>}</div>
     </li>;
   })}</ul>;
 }
@@ -302,13 +306,18 @@ export function ReplayView({replay:g}:{replay:Replay}) {
   const selfRoleName = g.self.brawlRoleName || (selfBrawlRoleId && BRAWL_ROLE_REGISTRY[selfBrawlRoleId]?.name) || roleNames[g.self.role];
   return <>
     <div className={`replay-result result-${outcomeKind(g)}`}><div className="replay-result-heading"><h2>{outcome(g)}</h2><span>{g.playerCount} 人局 · {g.result.winner===null?'本局中断':`${g.result.winner==='blue'?'蓝方':'红方'}获胜`}</span><time dateTime={g.endedAt}>{date(g.endedAt)}</time></div><p><strong>{selfRoleName}</strong> · {g.self.team==='blue'?'蓝方':'红方'} · {g.self.seat} 号位</p><p className="replay-result-reason">{reasons[g.result.reason]}{g.result.targetId?` · 刺杀目标：${name(g.result.targetId)}`:''}</p></div>
-    <details className="replay-identities chronicle-details"><summary>全员最终身份 <span>{g.players.length} 人</span></summary><HistoryRoster replay={g}/></details>
+    <details className="replay-identities chronicle-details" open><summary>全员最终身份 <span>{g.players.length} 人</span></summary><HistoryRoster replay={g}/></details>
+    {g.brawlReplayTimeline && g.brawlReplayTimeline.length > 0 && (
+      <div className="replay-brawl-timeline-wrap" style={{ margin: '12px 0' }}>
+        <BrawlReplayTimeline actions={g.brawlReplayTimeline} />
+      </div>
+    )}
     <details className="replay-metadata chronicle-details"><summary>时间、编号与规则配置</summary><p className="hint">开始 {date(g.startedAt)}<br/>结束 {date(g.endedAt)} · 你的结果：{outcome(g)}</p><p className="hint game-uid-line">对局编号 ID：<span>{g.id}</span></p>
     <p className="hint">{settingsText(g.settings,g.rulesetVersion)}<br/>规则版本：{g.rulesetVersion}</p>
     <p className="notice">仅本局参与者可看。{g.settings.anonymousTeamVote?'组队投票仅展示总数。':'组队投票展示当时公开的个人赞反。'}任务出牌始终不对应个人。</p>
 </details>
     <div className="chronicle-section-heading"><h3>逐轮记录</h3><span>{g.rounds.length} 次提案</span></div>{!g.rounds.length&&<p className="muted">本局在第一次组队前结束。</p>}
-    <BattleHistory rounds={g.rounds} players={g.players} anonymous={g.settings.anonymousTeamVote} userId={selfId}/>
+    <BattleHistory rounds={g.rounds} players={g.players} anonymous={g.settings.anonymousTeamVote} userId={selfId} brawlActions={g.brawlReplayTimeline}/>
     {!!g.inspections?.length&&<details className="chronicle-details"><summary>宝镜查验记录</summary>{g.inspections.map(i=><p key={i.afterMission} className="hint">第{i.afterMission}难：{name(i.inspectorId)} 查验 {name(i.targetId)}，随后交接给被查验者。</p>)}</details>}
     {!!g.earlyWindows.length&&<details className="chronicle-details"><summary>轮间确认记录</summary>{g.earlyWindows.map((w,i)=><p key={i} className="hint">第{w.afterProposal}次提案后：{w.decision==='skip'?'跳过提前刺杀':'发起提前刺杀'}（完成任务 {w.afterMission} 后）</p>)}</details>}
   </>;

@@ -42,6 +42,17 @@ export function IdentityDetails({
   const isVoteOnlyBrawlSkill = Boolean(
     selfBrawl && ['santou_liubi', 'pingtian_handi', 'yishan_yading', 'xiangyao_baozhang', 'daoda_yipa'].includes(selfBrawl.skill.skillId)
   );
+  const currentMissionLiveTeam = game
+    ? (['proposing', 'role_reveal'].includes(game.phase)
+        ? (game.draftTeam?.playerIds ?? [])
+        : (game.rounds?.at(-1)?.mission === game.mission ? (game.rounds?.at(-1)?.team ?? []) : []))
+    : [];
+  const isLiTianwangWaitingTeam = Boolean(
+    selfBrawl?.skill.skillId === 'zhaoyao_baojing' && currentMissionLiveTeam.length === 0
+  );
+  const isPutiWaitingMission2 = Boolean(
+    selfBrawl?.skill.skillId === 'daofa_dianhua' && (game?.mission ?? 1) < 2
+  );
   const isClickableBrawlSkill = Boolean(
     selfBrawl && selfBrawl.skill.actionType !== 'passive'
   );
@@ -314,8 +325,18 @@ export function IdentityDetails({
             </div>
           )}
           {selfBrawl.zhaoyaoResult !== undefined && (
-            <div style={{ fontSize: '11px', fontWeight: 'bold', color: selfBrawl.zhaoyaoResult ? '#991b1b' : '#065f46' }}>
-              {selfBrawl.zhaoyaoResult ? '🪞 照妖镜探照天机：当前车队中【有妖魔潜伏！】' : '🪞 照妖镜探照天机：当前车队中【无妖魔，皆是正道仙友！】'}
+            <div style={{
+              fontSize: '11.5px',
+              fontWeight: 'bold',
+              color: selfBrawl.zhaoyaoResult ? '#991b1b' : '#065f46',
+              background: selfBrawl.zhaoyaoResult ? '#fef2f2' : '#ecfdf5',
+              border: `1px solid ${selfBrawl.zhaoyaoResult ? '#ef4444' : '#10b981'}`,
+              borderRadius: '6px',
+              padding: '5px 8px',
+            }}>
+              {selfBrawl.zhaoyaoDetail || (selfBrawl.zhaoyaoResult
+                ? '🪞 照妖镜探照天机：当前车队中【有妖魔潜伏！】'
+                : '🪞 照妖镜探照天机：当前车队中【无妖魔，皆是正道仙友！】')}
             </div>
           )}
           {selfBrawl.dapengExcludedPlayerId && (() => {
@@ -396,8 +417,16 @@ export function IdentityDetails({
               {selfBrawl.yutuNotice}
             </div>
           )}
-          {selfBrawl.generalFeedback && (
-            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#0369a1' }}>
+          {selfBrawl.generalFeedback && !(selfBrawl.zhaoyaoResult !== undefined && selfBrawl.zhaoyaoDetail) && (
+            <div style={{
+              fontSize: '11.5px',
+              fontWeight: 'bold',
+              color: '#0369a1',
+              background: '#f0f9ff',
+              border: '1px solid #7dd3fc',
+              borderRadius: '6px',
+              padding: '5px 8px',
+            }}>
               {selfBrawl.generalFeedback}
             </div>
           )}
@@ -509,15 +538,20 @@ export function IdentityDetails({
               <span style={{ fontSize: '12px', color: '#78350f', fontWeight: 800 }}>
                 {isForcedLaunchTurn && isVoteOnlyBrawlSkill
                   ? '🔥 强发轮跳过表决 · 表决技暂留'
-                  : '✨ 绝技蓄势待发'}
+                  : isLiTianwangWaitingTeam
+                    ? '⏳ 待领队选好队员后再祭出照妖宝镜'
+                    : isPutiWaitingMission2
+                      ? '⏳ 第 2 难起解锁道法点化'
+                      : '✨ 绝技蓄势待发'}
               </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 {selfBrawl.skill.actionType === 'target_player' && (() => {
-                  const currentTeam = game?.draftTeam?.playerIds ?? game?.rounds.at(-1)?.team ?? [];
+                  const currentTeam = currentMissionLiveTeam;
                   const captainId = game?.captainId;
                   const isQingshi = effectiveSkillRoleId === 'qingmao_shizi';
                   const isZhizhu = effectiveSkillRoleId === 'zhizhu_jing';
                   const isGuanyin = effectiveSkillRoleId === 'guanyin_pusa';
+                  const isTeamTargetSkill = ['guanyin_pusa', 'jinjiao_dawang', 'yutu_jing', 'baiyan_mojun'].includes(effectiveSkillRoleId ?? '');
                   const isRulai = effectiveSkillRoleId === 'rulai_fozu';
                   const isYinjiao = effectiveSkillRoleId === 'yinjiao_dawang';
 
@@ -541,9 +575,11 @@ export function IdentityDetails({
                       } else {
                         label = `[未入队] ${label}`;
                       }
-                    } else if (isGuanyin) {
+                    } else if (isTeamTargetSkill) {
                       if (isOnTeam) {
                         label = `[出征队员] ${label}`;
+                      } else if (currentTeam.length > 0) {
+                        label = `[未入队] ${label}`;
                       }
                     } else if (isZhizhu) {
                       if (isSelf) {
@@ -562,7 +598,7 @@ export function IdentityDetails({
                   });
 
                   candidateOptions.sort((a, b) => {
-                    if (isQingshi || isGuanyin) {
+                    if (isQingshi || isGuanyin || isTeamTargetSkill) {
                       if (a.isOnTeam && !b.isOnTeam) return -1;
                       if (!a.isOnTeam && b.isOnTeam) return 1;
                     }
@@ -594,7 +630,7 @@ export function IdentityDetails({
                 })()}
                 <button
                   type="button"
-                  disabled={disabled || (isForcedLaunchTurn && isVoteOnlyBrawlSkill) || (selfBrawl.skill.actionType === 'target_player' && !brawlTarget)}
+                  disabled={disabled || isLiTianwangWaitingTeam || isPutiWaitingMission2 || (isForcedLaunchTurn && isVoteOnlyBrawlSkill) || (selfBrawl.skill.actionType === 'target_player' && !brawlTarget)}
                   onClick={() => handleUseSkill(selfBrawl.skill.skillId, brawlTarget || undefined)}
                   style={{
                     background: 'linear-gradient(135deg, #d97706 0%, #b45309 50%, #78350f 100%)',

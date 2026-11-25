@@ -460,3 +460,104 @@ test('module 4: Phantom Vision [画皮惑眼] mixes 1 innocent blue into Sun Wuk
   const redView = projectGame(game, honghaierId);
   assert.ok(!redView.self?.evilIds.includes(phantomId!), 'Red players do not see phantom blue as teammate');
 });
+
+test('skill feedback & guards: Li Tianwang requires non-empty current team and retains result across mission transitions', () => {
+  const players = makePlayers(6);
+  const onlineIds = players.map(p => p.id);
+  let game = createGame('li-tianwang-persist', players, { ...defaultSettings, playerCount: 6, brawlModeEnabled: true }, a => a);
+  game.captainOrder = onlineIds;
+  game.captainIndex = 0;
+  game.phase = 'proposing';
+
+  // Force p1=li_tianwang (blue), p2=blue, p3=red
+  game.roles.p1 = 'loyal';
+  game.brawlRoles!.p1 = 'li_tianwang';
+  game.brawl!.playerStates.p1 = { userId: 'p1', seat: 1, roleId: 'li_tianwang', camp: 'blue', skillUsed: false };
+  game.roles.p2 = 'loyal';
+  game.brawl!.playerStates.p2 = { userId: 'p2', seat: 2, roleId: 'bai_longma', camp: 'blue', skillUsed: false };
+  game.roles.p3 = 'assassin';
+  game.brawl!.playerStates.p3 = { userId: 'p3', seat: 3, roleId: 'hong_haier', camp: 'red', skillUsed: false };
+
+  // Empty team rejected with TEAM_NOT_READY without consuming skill!
+  assert.throws(() => transition(game, 'p1', {
+    type: 'brawlCommand',
+    payload: { action: 'useSkill', skillId: 'zhaoyao_baojing' },
+  }, onlineIds), /TEAM_NOT_READY/);
+  assert.equal(game.brawl!.playerStates.p1.skillUsed, false, 'Skill NOT consumed when team is empty');
+
+  // Propose team [p2, p3] -> Li Tianwang inspects during discussion -> sees demon
+  game = transition(game, 'p1', { type: 'proposeTeam', payload: { playerIds: ['p2', 'p3'], direction: 'clockwise' } }, onlineIds);
+  game = transition(game, 'p1', { type: 'brawlCommand', payload: { action: 'useSkill', skillId: 'zhaoyao_baojing' } }, onlineIds);
+  const viewDuringM1 = projectGame(game, 'p1');
+  assert.equal(viewDuringM1.selfBrawl?.zhaoyaoResult, true);
+  assert.ok(viewDuringM1.selfBrawl?.zhaoyaoDetail?.includes('2号仙友2、3号仙友3'));
+  assert.ok(viewDuringM1.selfBrawl?.zhaoyaoDetail?.includes('有妖魔潜伏'));
+  // Scrubbed for other players
+  assert.equal(projectGame(game, 'p2').selfBrawl?.zhaoyaoResult, undefined);
+  assert.equal(projectGame(game, 'p2').brawl?.privateReceipts, undefined);
+
+  // Advance through vote & Mission 1 into Mission 2 -> Li Tianwang's result MUST persist!
+  game = transition(game, 'p1', { type: 'startTeamVote', payload: {} }, onlineIds);
+  for (const pid of onlineIds) {
+    game = transition(game, pid, { type: 'teamVote', payload: { approve: true } }, onlineIds);
+  }
+  game = transition(game, 'p2', { type: 'missionVote', payload: { success: true } }, onlineIds);
+  game = transition(game, 'p3', { type: 'missionVote', payload: { success: true } }, onlineIds);
+
+  assert.equal(game.mission, 2);
+  const viewInM2 = projectGame(game, 'p1');
+  assert.equal(viewInM2.selfBrawl?.zhaoyaoResult, true, 'Li Tianwang zhaoyaoResult survives resetRoundBrawlEffects into Mission 2');
+  assert.ok(viewInM2.selfBrawl?.zhaoyaoDetail?.includes('第 1 难'), 'Retains exact inspected mission & team detail');
+});
+
+test('skill feedback & refund: armed mission skills auto-refund on rejected vote and log 0-failure outcomes cleanly', () => {
+  const players = makePlayers(6);
+  const onlineIds = players.map(p => p.id);
+  let game = createGame('skill-refund-test', players, { ...defaultSettings, playerCount: 6, brawlModeEnabled: true }, a => a);
+  game.captainOrder = onlineIds;
+  game.captainIndex = 0;
+  game.phase = 'proposing';
+
+  game.roles.p1 = 'loyal';
+  game.brawl!.playerStates.p1 = { userId: 'p1', seat: 1, roleId: 'wangmu_niangniang', camp: 'blue', skillUsed: false };
+  game.roles.p2 = 'loyal';
+  game.brawl!.playerStates.p2 = { userId: 'p2', seat: 2, roleId: 'guanyin_pusa', camp: 'blue', skillUsed: false };
+  game.roles.p3 = 'minion';
+  game.brawl!.playerStates.p3 = { userId: 'p3', seat: 3, roleId: 'bai_gujing', camp: 'red', skillUsed: false };
+
+  game = transition(game, 'p1', { type: 'proposeTeam', payload: { playerIds: ['p1', 'p2'], direction: 'clockwise' } }, onlineIds);
+  // Arm Wangmu, Guanyin, and Baigujing during discussion
+  game = transition(game, 'p1', { type: 'brawlCommand', payload: { action: 'useSkill', skillId: 'jiuzhuan_xiantao' } }, onlineIds);
+  game = transition(game, 'p2', { type: 'brawlCommand', payload: { action: 'useSkill', skillId: 'jingping_ganlu', targetPlayerId: 'p1' } }, onlineIds);
+  game = transition(game, 'p3', { type: 'brawlCommand', payload: { action: 'useSkill', skillId: 'huapi_lijian' } }, onlineIds);
+  assert.equal(game.brawl!.playerStates.p1.skillUsed, true);
+  assert.equal(game.brawl!.playerStates.p2.skillUsed, true);
+  assert.equal(game.brawl!.playerStates.p3.skillUsed, true);
+
+  // Proposal gets REJECTED in teamVote -> all 3 skills auto-refund!
+  game = transition(game, 'p1', { type: 'startTeamVote', payload: {} }, onlineIds);
+  for (const pid of onlineIds) {
+    game = transition(game, pid, { type: 'teamVote', payload: { approve: false } }, onlineIds);
+  }
+  assert.equal(game.brawl!.playerStates.p1.skillUsed, false, 'Wangmu refunded after rejected vote');
+  assert.equal(game.brawl!.playerStates.p2.skillUsed, false, 'Guanyin refunded after rejected vote');
+  assert.equal(game.brawl!.playerStates.p3.skillUsed, false, 'Baigujing refunded after rejected vote');
+  assert.ok(projectGame(game, 'p1').selfBrawl?.generalFeedback?.includes('自动退还'), 'Wangmu gets refund receipt');
+
+  // Re-arm Wangmu & Baigujing on passing 0-failure mission -> both get explicit no-failure receipts & replay entries
+  const cap2 = captain(game);
+  game = transition(game, cap2, { type: 'proposeTeam', payload: { playerIds: ['p1', 'p2'], direction: 'clockwise' } }, onlineIds);
+  game = transition(game, 'p1', { type: 'brawlCommand', payload: { action: 'useSkill', skillId: 'jiuzhuan_xiantao' } }, onlineIds);
+  game = transition(game, 'p3', { type: 'brawlCommand', payload: { action: 'useSkill', skillId: 'huapi_lijian' } }, onlineIds);
+  game = transition(game, cap2, { type: 'startTeamVote', payload: {} }, onlineIds);
+  for (const pid of onlineIds) {
+    game = transition(game, pid, { type: 'teamVote', payload: { approve: true } }, onlineIds);
+  }
+  game = transition(game, 'p1', { type: 'missionVote', payload: { success: true } }, onlineIds);
+  game = transition(game, 'p2', { type: 'missionVote', payload: { success: true } }, onlineIds);
+
+  assert.ok(projectGame(game, 'p1').selfBrawl?.generalFeedback?.includes('无需化解'), 'Wangmu gets explicit 0-failure receipt');
+  assert.ok(projectGame(game, 'p3').selfBrawl?.generalFeedback?.includes('未能触发'), 'Baigujing gets explicit 0-failure receipt');
+  assert.ok(game.brawl!.replayTimeline!.some(a => a.roleId === 'wangmu_niangniang' && a.outcome === 'miss' && a.detail.includes('0 张失败牌')));
+  assert.ok(game.brawl!.replayTimeline!.some(a => a.roleId === 'bai_gujing' && a.outcome === 'miss' && a.detail.includes('0 张失败牌')));
+});

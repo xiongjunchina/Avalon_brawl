@@ -4430,8 +4430,8 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
   position: relative !important;
   width: 100% !important;
   max-width: 674px !important;
-  height: clamp(390px, 50dvh, 435px) !important;
-  min-height: clamp(390px, 50dvh, 435px) !important;
+  height: clamp(272px, 36.5dvh, 322px) !important;
+  min-height: clamp(272px, 36.5dvh, 322px) !important;
   margin: 0 auto !important;
   padding: 0 !important;
   background: transparent !important;
@@ -4440,6 +4440,18 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
   box-shadow: none !important;
   overflow: visible !important;
   box-sizing: border-box !important;
+}
+.table-seats-grid.altar-dual-flank-arena.grid-12,
+.is-live-table .table-seats-grid.altar-dual-flank-arena.grid-12,
+.is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.grid-12 {
+  height: clamp(298px, 39.5dvh, 346px) !important;
+  min-height: clamp(298px, 39.5dvh, 346px) !important;
+}
+.table-seats-grid.altar-dual-flank-arena.is-ended-grid,
+.is-live-table .table-seats-grid.altar-dual-flank-arena.is-ended-grid,
+.is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.is-ended-grid {
+  height: clamp(340px, 44dvh, 392px) !important;
+  min-height: clamp(340px, 44dvh, 392px) !important;
 }
 
 /* 3-Zone / Circular Ring Arena Container */
@@ -4465,8 +4477,8 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
   left: 50% !important;
   top: 50% !important;
   transform: translate(-50%, -50%) !important;
-  width: min(240px, 62vw) !important;
-  max-width: 240px !important;
+  width: min(204px, 52vw) !important;
+  max-width: 204px !important;
   aspect-ratio: 960 / 570 !important;
   display: flex !important;
   align-items: center !important;
@@ -4477,8 +4489,8 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
 }
 @media (min-width: 601px) {
   .pantao-celestial-table-bg {
-    width: min(320px, 56vw) !important;
-    max-width: 320px !important;
+    width: min(296px, 50vw) !important;
+    max-width: 296px !important;
   }
 }
 
@@ -8708,13 +8720,21 @@ button.seat-mic-badge:active {
   position: relative !important;
   width: 100% !important;
   max-width: 674px !important;
-  height: clamp(390px, 50dvh, 435px) !important;
-  min-height: clamp(390px, 50dvh, 435px) !important;
+  height: clamp(272px, 36.5dvh, 322px) !important;
+  min-height: clamp(272px, 36.5dvh, 322px) !important;
   margin: 0 auto !important;
   padding: 0 !important;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
+}
+.is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.grid-12 {
+  height: clamp(298px, 39.5dvh, 346px) !important;
+  min-height: clamp(298px, 39.5dvh, 346px) !important;
+}
+.is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.is-ended-grid {
+  height: clamp(340px, 44dvh, 392px) !important;
+  min-height: clamp(340px, 44dvh, 392px) !important;
 }
 .is-live-table .game-play-priority .scheme-a-main-arena,
 .is-live-table .game-play-priority .circular-ring-arena {
@@ -8734,28 +8754,72 @@ button.seat-mic-badge:active {
   align-items: center !important;
   justify-content: center !important;
   width: auto !important;
-  max-width: 98px !important;
+  max-width: 88px !important;
   height: auto !important;
 }
 .is-live-table .game-play-priority .flank-avatar-wrap {
-  width: clamp(36px, 4.5dvh, 40px) !important;
-  height: clamp(36px, 4.5dvh, 40px) !important;
+  width: clamp(34px, 4.3dvh, 40px) !important;
+  height: clamp(34px, 4.3dvh, 40px) !important;
 }
 .is-live-table .game-play-priority .flank-nameplate {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   gap: 1.5px !important;
-  height: 19px !important;
+  height: 18px !important;
   padding: 0 5px !important;
   border-radius: 10px !important;
   background: linear-gradient(135deg, #fefdf8 0%, #f6ecd6 100%) !important;
   border: 1.2px solid #d4af37 !important;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22) !important;
   width: auto !important;
-  max-width: 98px !important;
+  max-width: 86px !important;
   color: #241208 !important;
-  font-size: 10px !important;
+  font-size: 9.5px !important;
+}
+.brawl-revealed-seat-img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 50% !important;
+  display: block !important;
+}
+.ended-seat-role-pill {
+  display: inline-block !important;
+  margin-top: 1px !important;
+  padding: 0.5px 6px !important;
+  border-radius: 999px !important;
+  font-size: 9.5px !important;
+  font-weight: 800 !important;
+  line-height: 1.35 !important;
+  white-space: nowrap !important;
+  max-width: 86px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22) !important;
+}
+.ended-seat-role-pill.team-blue {
+  background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid #bae6fd !important;
+}
+.ended-seat-role-pill.team-red {
+  background: linear-gradient(180deg, #dc2626 0%, #991b1b 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid #fecaca !important;
+}
+.current-ordeal-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  padding: 1px 7px !important;
+  border-radius: 999px !important;
+  background: rgba(254, 243, 199, 0.92) !important;
+  border: 1px solid #d97706 !important;
+  color: #831843 !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  white-space: nowrap !important;
 }
 .is-live-table .game-play-priority .scheme-a-center-altar,
 .is-live-table .game-play-priority .altar-bagua-disc {
@@ -9121,7 +9185,7 @@ button.seat-mic-badge:active {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  margin: 4px 0 6px;
+  margin: 6px 0 4px;
   width: 100%;
   box-sizing: border-box;
 }

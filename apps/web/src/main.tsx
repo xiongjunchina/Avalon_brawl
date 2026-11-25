@@ -1815,6 +1815,7 @@ function App() {
                 chatBubbles={chatBubbles}
                 onOpenChat={handleOpenChatDrawer}
                 hasUnreadChat={unreadChatCount > 0}
+                actionError={error}
               />
               {room.settings.voiceChatEnabled && (
                 <div className="game-floating-voice-hud" aria-label="实时语音控制">

@@ -193,6 +193,17 @@ export function recordBrawlReplayAction(
 }
 
 /**
+ * 记录某位玩家的法宝施展/结算私密永久回执（局中仅投影给本人，绝不因切换难次而丢失）
+ */
+export function setBrawlPrivateReceipt(state: BrawlGameState, userId: string | undefined, text: string): void {
+  if (!userId) return;
+  if (!state.privateReceipts) {
+    state.privateReceipts = {};
+  }
+  state.privateReceipts[userId] = text;
+}
+
+/**
  * 投影大乱斗状态：
  * 对局中物理级剔除所有对局复盘记录和暗中技能目标，彻底杜绝抓包看底牌；
  * 终局揭晓（isEnded 为 true）时完整解密下发 replayTimeline。
@@ -207,6 +218,7 @@ export function projectBrawlGameState(
   const sanitized = structuredClone(brawl);
   // 对局中物理剔除复盘时间线；仅保留显性公法白名单的匿名播报，静默技能绝对不泄漏
   delete sanitized.replayTimeline;
+  delete sanitized.privateReceipts;
   sanitized.events = sanitized.events.filter(ev => ev.visibility === 'anonymous_broadcast');
 
   // 剔除画皮假红及尚未到达的未来奇劫牌库，彻底杜绝抓包看底牌
@@ -283,7 +295,7 @@ export function resetRoundBrawlEffects(state: BrawlGameState): void {
   state.zhizhuBannedTargetId = undefined;
   state.doubleVoteUserId = undefined;
   state.yishanTargetId = undefined;
-  state.zhaoyaoResult = undefined;
+  // 注意：绝不清空 zhaoyaoResult、privateReceipts、guanyinGanluResult 等私密结算回执，确保玩家在后续难次打开真身仍可回看结果！
   state.guanyinGanluTargetId = undefined;
   state.jinjiaoHuluTargetId = undefined;
   state.yutuMihunTargetId = undefined;
@@ -404,8 +416,8 @@ export function projectSelfBrawlView(
     }
   }
 
-  let generalFeedback: string | undefined;
-  if (playerState.skillUsed) {
+  let generalFeedback: string | undefined = state.privateReceipts?.[userId];
+  if (!generalFeedback && playerState.skillUsed) {
     if (effectiveRoleId === 'rulai_fozu') {
       const imprisonedP = players.find(p => p.id === state.imprisonedTargetId);
       generalFeedback = imprisonedP
@@ -433,9 +445,11 @@ export function projectSelfBrawlView(
         ? `🦁 大口吞天神威显化：已张开巨口强行将【${bannedP.seat}号 · ${bannedP.nickname}】吞走剔除出队，本轮禁止其入队！`
         : '🦁 大口吞天神威已施展：已将车上队员吞走剔除出队！';
     } else if (effectiveRoleId === 'puti_zhushi') {
-      generalFeedback = '🔮 道法点化真传已发：已暗授天机告知蓝方同修场上潜伏群妖之一的真名！';
+      generalFeedback = state.putiDianhuaNotice
+        ? `🔮 道法点化显灵：已将【${state.putiDianhuaNotice.redRoleName}】真名密授给 1 位蓝方同修！`
+        : '🔮 道法点化已施展（50% 概率未命中，本次未能传信）。';
     } else if (effectiveRoleId === 'yuhuang_dadi') {
-      generalFeedback = '📜 天尊玉旨天条已敕：已降下三界至尊御旨，本轮出征若溃败将降旨赦免尝试逆转！';
+      generalFeedback = '📜 天尊玉旨天条已敕：已降下三界至尊御旨，后续出征若溃败将降旨赦免尝试逆转！';
     } else if (effectiveRoleId === 'wangmu_niangniang') {
       generalFeedback = `🍑 瑶池九转仙桃神威：已赐下圣桃仙气护体，本轮出征若出现失败牌有 ${Math.round(BRAWL_SKILL_PROBS.WANGMU_PARDON * 100)}% 概率当场化解赦免 1 败！`;
     } else if (effectiveRoleId === 'bai_longma') {
@@ -446,7 +460,27 @@ export function projectSelfBrawlView(
       generalFeedback = '🌾 倒打一耙暗度陈仓：九齿钉耙神机已蓄势，表决未过时将强制反转 1 张反对票！';
     } else if (effectiveRoleId === 'taishang_laojun') {
       generalFeedback = '⭕ 金刚琢悬空待命：下一次任意妖魔发动主动法宝时，将当场凌空套走收缴！';
+    } else if (effectiveRoleId === 'li_tianwang' && state.zhaoyaoResult) {
+      generalFeedback = `🪞 照妖宝镜探查完毕：${state.zhaoyaoResult.hasDemon ? '车队中【有妖魔潜伏！】' : '车队中【无妖魔，皆是正道仙友！】'}`;
+    } else if (effectiveRoleId === 'jinchi_dapeng') {
+      generalFeedback = '🦅 云程万里已蓄力待命：进入刺杀阶段将自动为红孩儿排除 1 名非孙悟空席位！';
     }
+  }
+
+  let zhaoyaoDetail: string | undefined;
+  if (isLiTianwang && state.zhaoyaoResult) {
+    const teamDesc = state.zhaoyaoResult.teamSummary
+      || state.zhaoyaoResult.teamPlayerIds
+          .map(id => {
+            const tp = players.find(p => p.id === id);
+            return tp ? `${tp.seat}号${tp.nickname}` : '';
+          })
+          .filter(Boolean)
+          .join('、');
+    const missionPrefix = state.zhaoyaoResult.mission ? `第 ${state.zhaoyaoResult.mission} 难` : '当前';
+    zhaoyaoDetail = state.zhaoyaoResult.hasDemon
+      ? `🪞 ${missionPrefix}照妖宝镜探查${teamDesc ? `【${teamDesc}】` : '车队'}：【有妖魔潜伏！】`
+      : `🪞 ${missionPrefix}照妖宝镜探查${teamDesc ? `【${teamDesc}】` : '车队'}：【无妖魔，皆是正道仙友！】`;
   }
 
   let huangfengSecret: string | undefined;
@@ -476,7 +510,7 @@ export function projectSelfBrawlView(
     isAwakened: playerState.isAwakened,
     wishRank: playerState.wishRank,
     peekedRoles: peekedMap[playerState.roleId]?.length ? peekedMap[playerState.roleId] : undefined,
-    ...(isLiTianwang && state.zhaoyaoResult ? { zhaoyaoResult: state.zhaoyaoResult.hasDemon } : {}),
+    ...(isLiTianwang && state.zhaoyaoResult ? { zhaoyaoResult: state.zhaoyaoResult.hasDemon, ...(zhaoyaoDetail ? { zhaoyaoDetail } : {}) } : {}),
     ...(isAssassinOrDapeng && state.dapengExcludedPlayerId ? { dapengExcludedPlayerId: state.dapengExcludedPlayerId } : {}),
     ...(isAssassinOrDapeng && state.ordeals?.shituoExcludedPlayerId ? { shituoExcludedPlayerId: state.ordeals.shituoExcludedPlayerId } : {}),
     ...(playerState.roleId === 'sun_wukong' && state.phantomEvilId ? { phantomVisionActive: true } : {}),

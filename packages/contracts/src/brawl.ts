@@ -205,7 +205,8 @@ export interface BrawlGameState {
   yishanTargetId?: string;     // 银角大王移山压顶目标（表决票强制被压制为弃权）
   dapengArmed?: boolean;       // 金翅大鹏雕云程万里是否已发动待命
   dapengExcludedPlayerId?: string; // 金翅大鹏雕云程万里排除的非大圣席位
-  zhaoyaoResult?: { hasDemon: boolean; teamPlayerIds: string[] }; // 托塔李天王照妖镜探查私密结果
+  zhaoyaoResult?: { hasDemon: boolean; teamPlayerIds: string[]; mission?: number; roundNumber?: number; teamSummary?: string }; // 托塔李天王照妖镜探查私密结果
+  privateReceipts?: Record<string, string>; // 玩家本局法宝施展/结算私密永久回执（局中仅对本人投影，物理脱敏）
   shawujingBaozhangArmed?: boolean; // 沙悟净降妖宝杖平票定海待命
   zhubajieDaodaArmed?: boolean;     // 猪八戒倒打一耙反转票待命
   tieshanShenfengArmed?: boolean;   // 铁扇公主芭蕉神风待命
@@ -249,6 +250,7 @@ export interface SelfBrawlView {
   wishRank?: number; // 命中心愿的志愿序号 (1 ~ 5)
   peekedRoles?: { roleId: string; roleName: string; camp: BrawlCamp }[];
   zhaoyaoResult?: boolean; // 李天王专属：当前车队是否有妖魔
+  zhaoyaoDetail?: string; // 李天王专属：含难次与被查验阵容明细的完整探查结论
   dapengExcludedPlayerId?: string; // 终局刺杀阶段排除的非孙悟空席位
   shituoExcludedPlayerId?: string; // 狮驼死战红方胜出终局额外排除的非孙悟空席位
   phantomVisionActive?: boolean; // 孙悟空专属：本局开启画皮惑眼（视野含1名假红）

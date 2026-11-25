@@ -36,7 +36,13 @@ export function BattleRound({ round: r, players, anonymous, userId, brawlActions
       ) : (
         <div className="battle-card-counts"><span className="approve">成功牌 × {r.result.successes}</span><span className="reject">失败牌 × {r.result.failures}</span></div>
       )}
-      <p className="hint">{r.result.masked && r.result.successes < 0 ? '本难触发混沌迷雾，终局复盘揭晓真实牌底。' : '任务牌始终匿名，不对应个人。'}</p>
+      <p className="hint">
+        {r.result.masked && r.result.successes < 0
+          ? '本难触发混沌迷雾，终局复盘揭晓真实牌底。'
+          : r.result.masked
+            ? '🌫️ 本难原为混沌迷雾，复盘已还原真实成功/失败牌数。任务牌始终匿名，不对应个人。'
+            : '任务牌始终匿名，不对应个人。'}
+      </p>
     </section>}
     {brawlActions && brawlActions.length > 0 && (
       <section className="battle-section battle-brawl-chronicle" aria-label="仙妖斗法实录">
@@ -53,6 +59,11 @@ export function BattleRound({ round: r, players, anonymous, userId, brawlActions
                   {action.outcome === 'success' ? '✓ 生效' : action.outcome === 'blocked' ? '🛡️ 被化解' : action.outcome === 'info' ? '👁️ 天机' : '× 未触发'}
                 </span>
               </div>
+              {action.targetNickname && (
+                <div style={{ fontSize: 11.5, color: '#92400e', fontWeight: 700, margin: '2px 0' }}>
+                  🎯 目标：{action.targetSeat ? `${action.targetSeat}号 · ` : ''}{action.targetNickname}
+                </div>
+              )}
               <p className="brawl-chronicle-detail">{action.detail}</p>
             </div>
           ))}

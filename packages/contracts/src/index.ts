@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { brawlCommandPayloadSchema, type BrawlGameState, type SelfBrawlView } from './brawl.js';
+import { brawlCommandPayloadSchema, type BrawlGameState, type BrawlReplayAction, type SelfBrawlView } from './brawl.js';
 
 export const settingsSchema = z.object({
   playerCount: z.number().int().min(5).max(12),
@@ -530,6 +530,8 @@ export interface Replay extends GameSummary {
   settings:Settings; players:Player[]; roles:Record<string,Role>; rounds:RoundView[];
   inspections:Inspection[]; earlyWindows:EarlyWindow[];
   brawlRoles?: Record<string, string>;
+  brawlBonusRoles?: Record<string, string>;
+  brawlReplayTimeline?: BrawlReplayAction[];
   roleAssignmentAudit?: RoleAssignmentAudit;
 }
 export interface SettingPreset { id:string; name:string; settings:Settings; updatedAt:string }

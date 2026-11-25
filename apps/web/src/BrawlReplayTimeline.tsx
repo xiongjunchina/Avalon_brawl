@@ -60,6 +60,11 @@ export function BrawlReplayTimeline({ actions }: { actions: BrawlReplayAction[] 
                         <span className="brawl-replay-seat-tag">{item.actorSeat > 0 ? `${item.actorSeat}号` : '天机'}</span>
                         <strong className="brawl-replay-name">{item.actorNickname}</strong>
                         <span className="brawl-replay-role-pill">{item.roleName}</span>
+                        {item.roundNumber > 0 && item.phase !== 'assassination' && (
+                          <span style={{ fontSize: 10.5, color: '#78350f', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 4, padding: '0 4px', fontWeight: 700 }}>
+                            第{item.roundNumber}次提案
+                          </span>
+                        )}
                       </div>
                       <div className="brawl-replay-tags">
                         <span className="brawl-replay-skill-tag">【{item.skillName}】</span>

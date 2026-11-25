@@ -68,6 +68,8 @@ export const errors: Record<string, string> = {
   INVALID_SKILL: '技能与当前角色身份不匹配。',
   SKILL_ALREADY_USED: '本命法宝整局限用 1 次，已经施展过了。',
   MISSION_NOT_REACHED: '该法宝须在第 2 难及以后方可施展。',
+  TEAM_NOT_READY: '领队尚未拟定本难出征队员，请待领队选好人或进入论道/表决后再祭出照妖宝镜。',
+  TARGET_NOT_ON_TEAM: '所选目标不在当前出征阵容中，请选择车上队员。',
   BALLOT_SUPPRESSED_BY_YISHAN: '你已被银角大王移山压顶，本次表决强制按弃权处理。',
 };
 export async function api<T>(path: string, body?: unknown, method = body === undefined ? 'GET' : 'POST', options: { timeoutMs?: number } = {}): Promise<T> {

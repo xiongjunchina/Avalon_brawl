@@ -62,14 +62,31 @@ export class Accounts {
       if(!r)throw new DomainError('GAME_NOT_FOUND',404);
       const g=r.state;
       // Explicit allowlist: future engine fields and legacy raw ballots must not leak into replays.
+      const brawlRolesMap = g.brawlRoles
+        ? { ...g.brawlRoles }
+        : g.brawl?.playerStates
+          ? Object.fromEntries(Object.values(g.brawl.playerStates).map(ps => [ps.userId, ps.roleId]))
+          : undefined;
+      const brawlBonusRolesMap = g.brawl?.playerStates
+        ? Object.fromEntries(
+            Object.values(g.brawl.playerStates)
+              .filter(ps => Boolean(ps.bonusRoleId))
+              .map(ps => [ps.userId, ps.bonusRoleId!]),
+          )
+        : undefined;
+      const hasBonusRoles = Boolean(brawlBonusRolesMap && Object.keys(brawlBonusRolesMap).length > 0);
       return {...summary(r,userId),settings:{...g.settings},
         players:g.players.map(p=>({id:p.id,nickname:p.nickname,seat:p.seat})),
         roles:Object.fromEntries(g.players.map(p=>[p.id,g.roles[p.id]])),
-        ...(g.brawlRoles ? { brawlRoles: { ...g.brawlRoles } } : {}),
+        ...(brawlRolesMap ? { brawlRoles: brawlRolesMap } : {}),
+        ...(hasBonusRoles ? { brawlBonusRoles: brawlBonusRolesMap } : {}),
+        ...(g.brawl?.replayTimeline ? { brawlReplayTimeline: structuredClone(g.brawl.replayTimeline) } : {}),
         rounds:g.rounds.map(r=>({number:r.number,mission:r.mission,captainId:r.captainId,team:[...r.team],direction:r.direction,
+          ...(r.militaryWager ? { militaryWager: true } : {}),
           ...(r.vote?{vote:{approvals:r.vote.approvals,rejections:r.vote.rejections,abstentions:r.vote.abstentions??0,passed:r.vote.passed,
+            ...(r.vote.forced ? { forced: true } : {}),
             ...(!g.settings.anonymousTeamVote&&r.vote.ballots?{ballots:Object.fromEntries(g.players.filter(p=>(typeof r.vote!.ballots![p.id]==='boolean'||r.vote!.ballots![p.id]==='abstain')).map(p=>[p.id,r.vote!.ballots![p.id]]))}:{})}}:{}),
-          ...(r.result?{result:{successes:r.result.successes,failures:r.result.failures,passed:r.result.passed}}:{})})),
+          ...(r.result?{result:{successes:r.result.successes,failures:r.result.failures,passed:r.result.passed,...(r.result.masked ? { masked: true } : {})}}:{})})),
         inspections:((g as any).lady?.inspections??[]).map((i:any)=>({afterMission:i.afterMission,inspectorId:i.inspectorId,targetId:i.targetId})),
         earlyWindows:(g.earlyAssassination?.windows??[]).map(w=>({afterMission:w.afterMission,afterProposal:w.afterProposal,decision:w.decision}))};
     });

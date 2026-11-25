@@ -71,6 +71,7 @@ export function GamePanel({
   chatBubbles,
   onOpenChat,
   hasUnreadChat,
+  actionError,
 }: {
   room: RoomView;
   userId: string;
@@ -86,6 +87,7 @@ export function GamePanel({
   chatBubbles?: Record<string, { text: string; expiresAt: number }>;
   onOpenChat?: () => void;
   hasUnreadChat?: boolean;
+  actionError?: string;
 }) {
   const g = room.game!;
   const self = g.self;
@@ -430,6 +432,11 @@ export function GamePanel({
       <div className="game-current-summary" aria-label="本轮任务摘要">
         <strong>第 {g.mission} 难 · {size} 人出征</strong>
         {failuresRequiredFor(g.players.length, g.mission, isBrawl) >= 2 && <span className="current-two-fails">需 2 败</span>}
+        {!ended && activeOrdeal && (
+          <span className="current-ordeal-chip" title={activeOrdeal.description}>
+            {activeOrdeal.icon} {activeOrdeal.name}
+          </span>
+        )}
         <span>护经 <b>{successes}:{failures}</b> 群妖</span>
       </div>
 
@@ -738,54 +745,6 @@ export function GamePanel({
         </div>
       )}
 
-      {/* 八十一难 · 本难奇劫置顶法则横幅 + 公法不公人天机异动条 */}
-      {!ended && (activeOrdeal || livePublicEvents.length > 0 || g.brawl?.ordeals?.shituoRevealedDemonName) && (
-        <div className="brawl-live-hud-stack">
-          {activeOrdeal && (
-            <div className="brawl-ordeal-banner" role="status" aria-label={`第${g.mission}难奇劫：${activeOrdeal.name}`}>
-              <div className="brawl-ordeal-main">
-                <span className="brawl-ordeal-tag">{activeOrdeal.icon} 第 {g.mission} 难奇劫 · {activeOrdeal.name}</span>
-                <span className="brawl-ordeal-desc">{activeOrdeal.description}</span>
-              </div>
-              {isCelestialSwappedRound && g.brawl?.ordeals?.lastSwap && (
-                <div className="brawl-swap-alert">
-                  🌀 天意篡改已生效：移出 <strong>{g.brawl.ordeals.lastSwap.removedSeat}号 {g.brawl.ordeals.lastSwap.removedNickname}</strong>，随机换入 <strong>{g.brawl.ordeals.lastSwap.addedSeat}号 {g.brawl.ordeals.lastSwap.addedNickname}</strong>（阵容已锁定，请论道表决）
-                </div>
-              )}
-              {g.brawl?.ordeals?.shituoRevealedDemonName && (
-                <div className="brawl-shituo-reveal">
-                  🦁 狮驼死战仙家重赏：本局潜伏妖魔含 <strong>【{g.brawl.ordeals.shituoRevealedDemonName}】</strong>
-                </div>
-              )}
-            </div>
-          )}
-          {livePublicEvents.length > 0 && (
-            <div className="brawl-live-events-strip">
-              <button
-                type="button"
-                className="brawl-live-events-toggle"
-                onClick={() => setLiveEventsOpen(v => !v)}
-                aria-expanded={liveEventsOpen}
-              >
-                <span className="live-event-latest">
-                  ⚡ 天机播报（{livePublicEvents.length}）：{livePublicEvents[livePublicEvents.length - 1].summary}
-                </span>
-                <span className="live-event-chevron">{liveEventsOpen ? '收起 ▲' : '展开 ▼'}</span>
-              </button>
-              {liveEventsOpen && (
-                <div className="brawl-live-events-list">
-                  {[...livePublicEvents].reverse().map(ev => (
-                    <div key={ev.id} className="brawl-live-event-row">
-                      <strong>[{ev.roleName}]</strong> {ev.summary}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* 3. Celestial Feast Table Arena (Hidden for non-assassins during assassination phase) */}
       {!(g.phase === 'assassination' && self?.role !== 'assassin') && (() => {
         const renderSeat = (p: Player, flank: 'left' | 'right', style?: React.CSSProperties) => {
@@ -811,7 +770,14 @@ export function GamePanel({
               (g.phase === 'assassination' && self?.role === 'assassin' && p.id !== userId && !isDapengExcluded));
           const seatVoteChip = voteStatusMap[p.id] ?? null;
           const revealedRole = ended && g.revealedRoles ? g.revealedRoles[p.id] : undefined;
-          const revealedTeam = revealedRole ? roleTeam(revealedRole) : undefined;
+          const revealedBrawlRoleId = ended ? (g.revealedBrawlRoles?.[p.id] ?? g.brawl?.playerStates?.[p.id]?.roleId) : undefined;
+          const revealedBrawlRole = revealedBrawlRoleId ? BRAWL_ROLE_REGISTRY[revealedBrawlRoleId] : undefined;
+          const revealedRoleName = revealedBrawlRole
+            ? revealedBrawlRole.name
+            : revealedRole
+              ? formatRoleName(revealedRole, revealedLoyalGuardians[p.id], revealedFemaleDemons[p.id])
+              : undefined;
+          const revealedTeam = revealedBrawlRole ? revealedBrawlRole.camp : (revealedRole ? roleTeam(revealedRole) : undefined);
           const isWinnerSeat =
             ended && Boolean(g.result?.winner && revealedTeam && g.result.winner === revealedTeam);
           const isAssassinatedTarget = ended && g.result?.targetId === p.id;
@@ -873,7 +839,15 @@ export function GamePanel({
                   />
                 )}
                 <div className={`seat-card-avatar ${isSpeaking ? 'speaking-avatar' : ''}`}>
-                  {revealedRole ? (
+                  {revealedBrawlRole ? (
+                    <img
+                      src={assetUrl(`/art/roles/${revealedBrawlRole.artPrefix}-160.webp?v=brawl-art-v2`)}
+                      alt={revealedBrawlRole.name}
+                      className="brawl-revealed-seat-img"
+                      width={160}
+                      height={160}
+                    />
+                  ) : revealedRole ? (
                     <RolePortrait role={revealedRole} loyalGuardian={revealedLoyalGuardians[p.id]} femaleDemon={revealedFemaleDemons[p.id]} size="mini" />
                   ) : (
                     <PlayerAvatar
@@ -966,6 +940,11 @@ export function GamePanel({
                 </span>
                 {p.id === userId && <span className="flank-me-pill">我</span>}
               </div>
+              {ended && revealedRoleName && (
+                <span className={`ended-seat-role-pill team-${revealedTeam ?? 'blue'}`} title={revealedRoleName}>
+                  {revealedRoleName}
+                </span>
+              )}
 
               {/* Hidden interactive prompt for screen-readers & test assertions */}
               <div className="seat-card-bottom sr-only">
@@ -1028,10 +1007,12 @@ export function GamePanel({
                 const rad = (angleDeg * Math.PI) / 180;
                 const cosV = Math.cos(rad);
                 const sinV = Math.sin(rad);
-                const archCos = Math.sign(cosV) * Math.pow(Math.abs(cosV), 0.92);
-                const archSin = Math.sign(sinV) * Math.pow(Math.abs(sinV), 0.78);
-                const leftPct = 50 + archCos * 42.2;
-                const topPct = 50 + archSin * 42.5;
+                const leftRadius = g.players.length > 10 ? 39.2 : 40.2;
+                const topRadius = ended ? 41.0 : 39.5;
+                const archCos = Math.sign(cosV) * Math.pow(Math.abs(cosV), 0.94);
+                const archSin = Math.sign(sinV) * Math.pow(Math.abs(sinV), 0.86);
+                const leftPct = 50 + archCos * leftRadius;
+                const topPct = 50 + archSin * topRadius;
                 const flank = cosV < 0 ? 'left' : 'right';
                 return renderSeat(p, flank, {
                   left: `${leftPct.toFixed(1)}%`,
@@ -1470,6 +1451,54 @@ export function GamePanel({
         <DragonPlinthDecor side="right" />
       </div>
 
+      {/* 八十一难 · 本难奇劫法则说明 + 公法不公人天机播报（置于 5 个快捷按钮栏之下，确保手机首屏同屏展示仙桌与操作栏） */}
+      {!ended && (activeOrdeal || livePublicEvents.length > 0 || g.brawl?.ordeals?.shituoRevealedDemonName) && (
+        <div className="brawl-live-hud-stack">
+          {activeOrdeal && (
+            <div className="brawl-ordeal-banner" role="status" aria-label={`第${g.mission}难奇劫：${activeOrdeal.name}`}>
+              <div className="brawl-ordeal-main">
+                <span className="brawl-ordeal-tag">{activeOrdeal.icon} 第 {g.mission} 难奇劫 · {activeOrdeal.name}</span>
+                <span className="brawl-ordeal-desc">{activeOrdeal.description}</span>
+              </div>
+              {isCelestialSwappedRound && g.brawl?.ordeals?.lastSwap && (
+                <div className="brawl-swap-alert">
+                  🌀 天意篡改已生效：移出 <strong>{g.brawl.ordeals.lastSwap.removedSeat}号 {g.brawl.ordeals.lastSwap.removedNickname}</strong>，随机换入 <strong>{g.brawl.ordeals.lastSwap.addedSeat}号 {g.brawl.ordeals.lastSwap.addedNickname}</strong>（阵容已锁定，请论道表决）
+                </div>
+              )}
+              {g.brawl?.ordeals?.shituoRevealedDemonName && (
+                <div className="brawl-shituo-reveal">
+                  🦁 狮驼死战仙家重赏：本局潜伏妖魔含 <strong>【{g.brawl.ordeals.shituoRevealedDemonName}】</strong>
+                </div>
+              )}
+            </div>
+          )}
+          {livePublicEvents.length > 0 && (
+            <div className="brawl-live-events-strip">
+              <button
+                type="button"
+                className="brawl-live-events-toggle"
+                onClick={() => setLiveEventsOpen(v => !v)}
+                aria-expanded={liveEventsOpen}
+              >
+                <span className="live-event-latest">
+                  ⚡ 天机播报（{livePublicEvents.length}）：{livePublicEvents[livePublicEvents.length - 1].summary}
+                </span>
+                <span className="live-event-chevron">{liveEventsOpen ? '收起 ▲' : '展开 ▼'}</span>
+              </button>
+              {liveEventsOpen && (
+                <div className="brawl-live-events-list">
+                  {[...livePublicEvents].reverse().map(ev => (
+                    <div key={ev.id} className="brawl-live-event-row">
+                      <strong>[{ev.roleName}]</strong> {ev.summary}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       <section className="avalon-quest-board game-mission-overview" data-sound="page" aria-label="五难进度与任务记录">
         <div className="mission-overview-heading"><h2>五难进度</h2><span>点击任务查看记录</span></div>
         {/* Top Row: 5 Large Circular Quest Medallions (Clickable to inspect that mission's team & vote history) */}
@@ -1560,6 +1589,21 @@ export function GamePanel({
               </button>
             </div>
             <div className="identity-body">
+              {actionError && (
+                <p role="alert" style={{
+                  margin: '0 0 8px',
+                  padding: '7px 10px',
+                  borderRadius: '8px',
+                  background: '#fef2f2',
+                  border: '1.5px solid #dc2626',
+                  color: '#991b1b',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  lineHeight: 1.45,
+                }}>
+                  ⚠️ {actionError}
+                </p>
+              )}
               <IdentityDetails
                 self={self}
                 players={publicPlayers}

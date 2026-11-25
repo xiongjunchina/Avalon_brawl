@@ -8,6 +8,7 @@ import { BrawlPanel } from '../src/BrawlPanel.js';
 import { MissionReportDialog } from '../src/MissionReportDialog.js';
 import { GamePanel } from '../src/GamePanel.js';
 import { GuideRules, GuideRoles } from '../src/GuidePanel.js';
+import { ReplayView } from '../src/AccountPanel.js';
 
 const makePlayers = (n: number) =>
   Array.from({ length: n }, (_, i) => ({ id: `u${i + 1}`, nickname: `仙友${i + 1}`, seat: i + 1 }));
@@ -142,4 +143,122 @@ test('GuideRules & GuideRoles (brawl) match current engine rules: 6 leaders for 
   assert.ok(rolesHtml.includes('大车 60%') && rolesHtml.includes('小车 50%'), 'Accurate Baiyan odds');
   assert.ok(rolesHtml.includes('60% 概率被紫金葫芦'), 'Accurate Jinjiao odds');
   assert.ok(rolesHtml.includes('无论任务成败均 100% 私密得知'), 'Accurate Guanyin unconditional probe');
+});
+
+test('GamePanel renders real Brawl portraits & role pills on ended seats, and places ordeal/events HUD below the 5-button utility row', () => {
+  const players = makePlayers(10);
+  const settings = { ...defaultSettings, playerCount: 10, brawlModeEnabled: true, brawlOrdealsEnabled: true };
+  let game = createGame('ui-layout-and-reveal', players, settings, a => a);
+  game.captainOrder = players.map(p => p.id);
+  game.captainIndex = 0;
+  game.phase = 'proposing';
+  game.brawl!.ordeals!.deck = ['celestial_swap', 'chaotic_fog', 'selfless_captain', 'shituo_bounty', 'quicksand_ban'];
+  game.brawl!.ordeals!.currentOrdealId = 'celestial_swap';
+
+  const liveRoom: RoomView = {
+    id: 'r-live',
+    code: '654321',
+    hostId: 'u1',
+    version: 1,
+    settings,
+    members: players.map(p => ({ ...p, ready: true, online: true })),
+    phase: 'playing',
+    acceptingNewMembers: false,
+    game: projectGame(game, 'u1'),
+  };
+
+  const liveHtml = renderToStaticMarkup(createElement(GamePanel, {
+    room: liveRoom,
+    userId: 'u1',
+    disabled: false,
+    connected: true,
+    send: () => {},
+  }));
+  const seatsIdx = liveHtml.indexOf('table-seats-grid');
+  const utilityIdx = liveHtml.indexOf('dock-utility-row');
+  const hudIdx = liveHtml.indexOf('brawl-live-hud-stack');
+  assert.ok(seatsIdx > 0 && utilityIdx > seatsIdx, 'Player table appears above 5-button utility row');
+  assert.ok(hudIdx > utilityIdx, 'Ordeal description and live events strip appear BELOW the 5-button utility row');
+
+  // Verify ended game table displays ACTUAL Brawl portraits & visible role pills (not classic loyal/minion art)
+  game.brawl!.playerStates.u1.roleId = 'wangmu_niangniang';
+  game.brawl!.playerStates.u1.camp = 'blue';
+  game.brawlRoles!.u1 = 'wangmu_niangniang';
+  game.roles.u1 = 'loyal';
+
+  game.brawl!.playerStates.u2.roleId = 'tieshan_gongzhu';
+  game.brawl!.playerStates.u2.camp = 'red';
+  game.brawlRoles!.u2 = 'tieshan_gongzhu';
+  game.roles.u2 = 'minion';
+
+  game.phase = 'finished';
+  game.result = { winner: 'red', reason: 'three_failures' };
+
+  const endedHtml = renderToStaticMarkup(createElement(GamePanel, {
+    room: { ...liveRoom, phase: 'finished', game: projectGame(game, 'u1') },
+    userId: 'u1',
+    disabled: false,
+    connected: true,
+    send: () => {},
+  }));
+  assert.ok(endedHtml.includes('brawl-wangmu-160.webp'), 'Ended seat renders real Wangmu Brawl portrait');
+  assert.ok(endedHtml.includes('brawl-tieshan-160.webp'), 'Ended seat renders real Tieshan Brawl portrait');
+  assert.ok(endedHtml.includes('ended-seat-role-pill team-blue') && endedHtml.includes('王母娘娘'), 'Ended seat shows visible Wangmu role pill');
+  assert.ok(endedHtml.includes('ended-seat-role-pill team-red') && endedHtml.includes('铁扇公主'), 'Ended seat shows visible Tieshan role pill');
+});
+
+test('ReplayView renders complete Brawl skill timeline, per-round chronicle, and 5-8p bonus roles', () => {
+  const players = makePlayers(6);
+  const html = renderToStaticMarkup(createElement(ReplayView, {
+    replay: {
+      id: 'g-replay-1',
+      startedAt: '2026-11-25T12:00:00.000Z',
+      endedAt: '2026-11-25T12:20:00.000Z',
+      rulesetVersion: 'standard-no-lancelot-v6',
+      playerCount: 6,
+      self: { nickname: '仙友1', seat: 1, role: 'merlin', team: 'blue', brawlRoleId: 'sun_wukong', brawlRoleName: '孙悟空' },
+      result: { winner: 'blue', reason: 'merlin_survived', targetId: 'u2' },
+      favorite: false,
+      settings: { ...defaultSettings, playerCount: 6, brawlModeEnabled: true, brawlOrdealsEnabled: true },
+      players,
+      roles: { u1: 'merlin', u2: 'percival', u3: 'loyal', u4: 'loyal', u5: 'assassin', u6: 'morgana' },
+      brawlRoles: { u1: 'sun_wukong', u2: 'tang_seng', u3: 'li_tianwang', u4: 'wangmu_niangniang', u5: 'hong_haier', u6: 'liuer_mihou' },
+      brawlBonusRoles: { u1: 'rulai_fozu' },
+      brawlReplayTimeline: [
+        {
+          id: 'act-1',
+          roundNumber: 1,
+          mission: 1,
+          phase: 'team_building',
+          actorId: 'u3',
+          actorSeat: 3,
+          actorNickname: '仙友3',
+          roleId: 'li_tianwang',
+          roleName: '托塔李天王',
+          skillName: '照妖宝镜',
+          outcome: 'info',
+          detail: '举起照妖宝镜密照【1号仙友1、5号仙友5】：探查结果显示车内【妖氛弥漫（有妖魔）】。',
+          timestamp: '2026-11-25T12:05:00.000Z',
+        },
+      ],
+      rounds: [
+        {
+          number: 1,
+          mission: 1,
+          captainId: 'u1',
+          team: ['u1', 'u5'],
+          direction: 'clockwise',
+          vote: { approvals: 4, rejections: 2, abstentions: 0, passed: true },
+          result: { successes: 1, failures: 1, passed: false, masked: true },
+        },
+      ],
+      inspections: [],
+      earlyWindows: [],
+    },
+  }));
+  assert.ok(html.includes('仙魔对局全景复盘'), 'ReplayView embeds full BrawlReplayTimeline');
+  assert.ok(html.includes('仙妖斗法实录'), 'ReplayView embeds per-round skill chronicle in BattleHistory');
+  assert.ok(html.includes('托塔李天王') && html.includes('妖氛弥漫（有妖魔）'), 'Shows exact actor, skill and outcome');
+  assert.ok(html.includes('附带仙宝：如来佛祖·五行山掌'), 'Shows 5-8p bonus role in HistoryRoster');
+  assert.ok(html.includes('复盘已还原真实成功/失败牌数'), 'Notes chaotic fog revealed counts in replay');
 });

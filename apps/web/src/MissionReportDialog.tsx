@@ -132,7 +132,11 @@ export function MissionReportDialog({
               <span className="vote-tag reject">× {round.vote.rejections} 封驳</span>
               <span className="vote-tag abstain">− {round.vote.abstentions ?? 0} 旁观</span>
               <strong className={`vote-conclusion ${round.vote.passed ? 'pass' : 'fail'}`}>
-                {round.vote.passed ? '【组队表决通过 · 准予启程】' : '【组队表决未过 · 平票流局】'}
+                {round.vote.passed
+                  ? '【组队表决通过 · 准予启程】'
+                  : round.vote.approvals === round.vote.rejections
+                    ? '【组队表决未过 · 平票流局】'
+                    : '【组队表决未过 · 否决流局】'}
               </strong>
             </div>
 

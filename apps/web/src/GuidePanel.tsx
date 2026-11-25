@@ -2,7 +2,17 @@ import { assetUrl } from './deployment';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { usePageSound } from './audio-interactions';
 import type { FemaleDemon, LoyalGuardian, Role, BrawlRoleDef } from '@avalon/contracts';
-import { ROLE_CONFIG, MISSION_SIZES, BRAWL_ROLE_REGISTRY } from '@avalon/game-core';
+import {
+  ROLE_CONFIG,
+  MISSION_SIZES,
+  BRAWL_ROLE_REGISTRY,
+  BRAWL_PLAYER_CONFIG,
+  BRAWL_MISSION_SIZES,
+  BRAWL_ORDEAL_REGISTRY,
+  ALL_BRAWL_ORDEAL_IDS,
+  BRAWL_SKILL_PROBS,
+  failuresRequiredFor,
+} from '@avalon/game-core';
 import { Emblem, roleTeam } from './Heraldry';
 import { RolePortrait } from './RolePortrait';
 import { ALL_GALLERY_ROLES, FEMALE_DEMONS, LOYAL_GUARDIANS, WUYUE_MISSIONS, roleNames, roleMottos, roleTitles, type RoleGalleryItem } from './roles';
@@ -16,10 +26,16 @@ const classicRuleChapters = ['胜负条件', '对局流程', '人数配置', '�
 
 const brawlRuleChapters = [
   '仙魔三界对决',
-  '全明星抽卡与盲盒',
+  '人数配额与固定领军',
+  '两流必发与奇劫军令状',
+  '房主设置与心仪选角',
   '30位弱技能设计',
   '天机战报公法不公人',
 ];
+
+const BRAWL_ALL_CORE_IDS = new Set(['sun_wukong', 'tang_seng', 'hong_haier', 'liuer_mihou']);
+const BRAWL_NINE_PLUS_CORE_IDS = new Set(['guanyin_pusa', 'huangmei_laoguai']);
+const pct = (p: number) => `${Math.round(p * 100)}%`;
 
 const brawlRolesList: BrawlRoleDef[] = [
   // 蓝方 15 仙佛
@@ -93,6 +109,8 @@ function composition(roles: Role[]) {
 
 /** 大乱斗模式专属规则介绍 */
 export function BrawlGuideRules() {
+  const playerCounts = [5, 6, 7, 8, 9, 10, 11, 12] as const;
+
   return (
     <div className="guide-rules">
       <section id="guide-brawl-rule-1" className="panel guide-section">
@@ -101,44 +119,139 @@ export function BrawlGuideRules() {
         <div className="guide-victories">
           <div className="allegiance-blue">
             <h3><Emblem kind="blue" />蓝方 · 取经仙佛</h3>
-            <p>在五轮修道任务中完成三次出征，并在终局刺杀中守护齐天大圣孙悟空免遭红孩儿刺杀，即获全胜！</p>
+            <p>在五轮取经劫难中完成三次出征（蓝方出征只能投成功牌），并在终局刺杀中守护齐天大圣孙悟空免遭红孩儿三昧真火刺杀，即获全胜！</p>
           </div>
           <div className="allegiance-red">
             <h3><Emblem kind="red" />红方 · 混世妖魔</h3>
-            <p>破坏三次任务、让流局次数达到五次，或由红孩儿在终局刺杀中准确刺中孙悟空，任一成立即可翻盘获胜！</p>
+            <p>破坏三次出征任务（红方出征可投成功或失败牌），或由红孩儿在刺杀中准确刺中孙悟空，任一条件成立即可翻盘获胜！</p>
           </div>
         </div>
+        <ul>
+          <li><strong>开局基础视野</strong>：<strong>孙悟空</strong>看清红方妖气，但看不见佛相匿形的<strong>黄眉老怪</strong>（若开启【画皮惑眼】还会混入 1 位无辜蓝方假红气）；<strong>唐三藏</strong>能看见孙悟空与六耳猕猴，但不知谁真谁假；<strong>红方妖魔</strong>彼此相认，但<strong>孤狼牛魔王</strong>不与群妖互认（大圣仍能见其妖气）。</li>
+          <li><strong>节奏保障</strong>：大乱斗模式取消传统“五次流局直接判负”，全面采用固定基础规则<strong>【两流必发】</strong>，让每一难都直奔真枪实弹的推理交锋。</li>
+        </ul>
       </section>
 
       <section id="guide-brawl-rule-2" className="panel guide-section">
-        <p className="eyebrow">02 / 全明星抽卡与盲盒机制</p>
-        <h2>无放回随机抽取，情报与盲盒</h2>
-        <p>西游大乱斗拥有 15 位蓝方仙佛与 15 位红方妖魔（共 30 位西游全明星神魔）。</p>
+        <p className="eyebrow">02 / 人数配额与固定领军</p>
+        <h2>5–12 人局固定领军、副法宝提纯与天机盲盒</h2>
+        <p>西游大乱斗收录 15 位蓝方仙佛与 15 位红方妖魔（共 30 位全明星神魔），按对局人数区分两档固定领军安排：</p>
         <ul>
-          <li><strong>5~12人局</strong>：蓝方必定包含核心神魔（孙悟空、唐三藏），红方必定包含核心（红孩儿、六耳猕猴），其余席位严格按蓝红阵营标准配额从各阵营全明星神魔池中<strong>无放回随机抽取</strong>！</li>
-          <li><strong>天机盲盒</strong>：未被抽入本局的神仙与妖魔隐藏于“盲盒”中，二郎神（天眼照虚）、老鼠精（偷吃灯油）、百眼魔君（千眼窥机）等角色拥有窥探盲盒的专属特异灵觉！</li>
+          <li><strong>5–8 人局（固定必出 4 位领军 + 附带随机副法宝）</strong>：蓝方必出<strong>孙悟空、唐三藏</strong>，红方必出<strong>红孩儿、六耳猕猴</strong>；其余席位从各阵营剩余 13 位神魔池中<strong>无放回随机抽取</strong>。为消除小局固定核心的白板感，这 4 位核心开局还会各额外获赐 <strong>1 个本局未出场的同阵营主动副法宝</strong>（红方副法宝不含孤狼牛魔王），确保人人有法宝可打！</li>
+          <li><strong>9–12 人局（固定必出 6 位领军）</strong>：蓝方必出<strong>孙悟空、唐三藏、观音菩萨</strong>，红方必出<strong>红孩儿、六耳猕猴、黄眉老怪</strong>；其余席位从各阵营剩余 12 位神魔池中<strong>无放回随机抽取</strong>，强化大局的查验与反侦察深度！</li>
+          <li><strong>天机盲盒侦察</strong>：未被抽入本局的神魔藏于盲盒之中，<strong>二郎神</strong>（开局窥 1 妖）、<strong>老鼠精</strong>（开局窥 1 仙）、<strong>百眼魔君</strong>（开局窥 1 仙）自带洞悉本局入场敌方名号的盲盒灵觉。</li>
         </ul>
+
+        <div className="guide-configs" aria-label="大乱斗5至12人人数配置">
+          {playerCounts.map(count => {
+            const cfg = BRAWL_PLAYER_CONFIG[count];
+            const sizes = BRAWL_MISSION_SIZES[count];
+            const is9Plus = count >= 9;
+            const twoFailMissions = [1, 2, 3, 4, 5].filter(m => failuresRequiredFor(count, m, true) === 2);
+            return (
+              <article key={count} className="guide-config">
+                <h3>
+                  {count} 人局
+                  <span className="guide-config-split">（{cfg.blueTotal}蓝 {cfg.redTotal}红）</span>
+                </h3>
+                <p>
+                  <strong>固定领军</strong>
+                  {is9Plus
+                    ? '6 位必出（蓝：孙悟空、唐三藏、观音菩萨；红：红孩儿、六耳猕猴、黄眉老怪）'
+                    : '4 位必出（蓝：孙悟空、唐三藏；红：红孩儿、六耳猕猴）· 核心各附 1 随机同阵营主动副法宝'}
+                </p>
+                <p>
+                  <strong>盲盒抽取</strong>
+                  蓝方随机抽 {cfg.blueDrawCount} 位 · 红方{cfg.redDrawCount > 0 ? `随机抽 ${cfg.redDrawCount} 位` : '无额外盲盒席位（双首领各附随机妖宝）'}
+                </p>
+                <p className="hint guide-config-twofail-hint">
+                  五难出征人数{twoFailMissions.length > 0 ? ` · 第 ${twoFailMissions.join('/')} 难需 2 张失败牌方算失败` : ' · 五难均 1 张失败牌即失败'}
+                </p>
+                <ol aria-label={`大乱斗${count}人局各任务人数`} className="guide-missions">
+                  {sizes.map((size, i) => {
+                    const needTwo = failuresRequiredFor(count, i + 1, true) === 2;
+                    return (
+                      <li key={i} className={needTwo ? 'is-two-fail' : ''}>
+                        <span>{WUYUE_MISSIONS[i]?.shortLabel ?? `第${i + 1}难`}</span>
+                        <strong>{size}人</strong>
+                        {needTwo && <em className="guide-mission-two-fail">需2败</em>}
+                      </li>
+                    );
+                  })}
+                </ol>
+              </article>
+            );
+          })}
+        </div>
       </section>
 
       <section id="guide-brawl-rule-3" className="panel guide-section">
-        <p className="eyebrow">03 / 30位弱技能设计原则</p>
-        <h2>彻底脱离实体坐席几何限制，重在博弈与配合</h2>
-        <p>所有神魔弱技能均严格脱离现场实体的顺逆时针或几何相邻座位，不依赖现场物理排座：</p>
+        <p className="eyebrow">03 / 两流必发、八十一难奇劫与立军令状</p>
+        <h2>每难一劫多变博弈，零实体座次依赖</h2>
         <ul>
-          <li><strong>投票权重型</strong>：如哪吒三太子【三头六臂】算 2 票，牛魔王【平天撼地】算 2 票；猪八戒【倒打一耙】反转尾票；</li>
-          <li><strong>组队出征资格型</strong>：如如来佛祖【五行山掌】禁锢 1 人入五行山（当轮禁止组队与投票）；蜘蛛精【盘丝结茧】；白龙马【龙马负重】队伍名额 +1；</li>
-          <li><strong>免死翻盘保底型</strong>：如玉皇大帝【天尊玉旨】50% 概率赦免单张失败牌；王母娘娘【九转仙桃】（仅对 4 人及以上车队有效，需 2 张失败牌才算失败）；</li>
-          <li><strong>盲盒侦测与反制型</strong>：如二郎神天眼照虚、老鼠精偷吃灯油、太上老君金刚琢收缴妖魔法宝！</li>
+          <li><strong>【两流必发】（大乱斗常驻基础规则）</strong>：每难流局独立计数（进入新一难重置为 0/2）。单难连续流局 2 次后，第 3 轮保留领队点将与全员发言论道，随后<strong>跳过表决强制发车直接出征</strong>。强发轮不进入表决，纯表决类技能（哪吒、牛魔王、银角大王、猪八戒、沙悟净）将自动暂留保留，而镇元大仙【袖里乾坤】仍可出手收队换队长。</li>
+          <li><strong>【立军令状】（第 2~4 难领队亲征特权）</strong>：第 2、3、4 难且本难非「舍己为公」时，领队若将自己编入出征名单，可自愿勾选【立军令状】公开担保本车：
+            <ul>
+              <li><strong>护经成功</strong>：领队获赐 1 次<strong>私密天眼查验</strong>任意 1 名其他玩家阵营的特权（整局最多成功兑现 1 次；查验尊重黄眉老怪假佛匿形，验到黄眉仍显蓝方清光）；</li>
+              <li><strong>出征翻车</strong>：领队识人不明受罚，<strong>下一难全程禁止入选出征车队</strong>（即便领队本身为蓝方好人亦须受罚；若触发防死锁人数下限则自动豁免）；</li>
+              <li><strong>流局作废</strong>：若立状车队表决未通过或被镇元大仙收队，军令状自动作废，不消耗全局限额。</li>
+            </ul>
+          </li>
+          <li><strong>【八十一难 · 每难一劫】（开房可开关，默认开启）</strong>：开局从 5 张精锐奇劫牌库中无放回抽取 5 张不重复法则，每进入新一难自动翻开 1 张（其中「弱水流沙」绝不出现在第 1 难），全部零物理座次依赖：</li>
         </ul>
+
+        <div className="guide-brawl-ordeal-grid" aria-label="八十一难五张奇劫法则卡">
+          {ALL_BRAWL_ORDEAL_IDS.map(id => {
+            const ordeal = BRAWL_ORDEAL_REGISTRY[id];
+            return (
+              <article key={id} className="guide-brawl-ordeal-card">
+                <div className="guide-brawl-ordeal-head">
+                  <span className="guide-brawl-ordeal-icon" aria-hidden="true">{ordeal.icon}</span>
+                  <div>
+                    <strong>{ordeal.name}</strong>
+                    <small>{ordeal.tagline}</small>
+                  </div>
+                </div>
+                <p>{ordeal.description}</p>
+              </article>
+            );
+          })}
+        </div>
       </section>
 
       <section id="guide-brawl-rule-4" className="panel guide-section">
-        <p className="eyebrow">04 / 天机战报“公法不公人”原则</p>
-        <h2>法宝公开播报，施法者席位绝对隐匿</h2>
-        <p>任何仙魔在手机端发动其专属法宝时，全场公屏将实时弹窗滚动【天机战报】（如“【五行山掌】如来佛祖施展五行山掌，将一名仙友禁锢于五行山下”）：</p>
+        <p className="eyebrow">04 / 房主设置与心仪选角</p>
+        <h2>高阶信息迷雾、心仪志愿与语音约定</h2>
+        <dl className="guide-options">
+          <dt>画皮惑眼（高阶可选开关）</dt>
+          <dd>开启后，系统开局从除孙悟空、唐三藏外的蓝方仙友中随机选定 1 人笼罩虚幻妖气，在孙悟空的火眼金睛中误显红光！打破“大圣全知上帝视角”，迫使双方深化推理博弈，终局复盘将揭晓假红真身。</dd>
+          <dt>心仪神魔选角（最多 5 位志愿）</dt>
+          <dd>房主开启后，每位玩家可在等待区从 30 位全明星神魔中私密预选最多 <strong>5 位心仪志愿</strong>（第 1→5 志愿依次优先纳入盲盒并按阵营分配，同时兼顾首领防连庄与近期角色防重复保护）。选角志愿对其他玩家全程保密。</dd>
+          <dt>提前刺杀与表决设置</dt>
+          <dd>可按习惯选择线下常规房或声网高清实时语音房、队长按座次或开局打乱顺序循环、组队表决匿名（5–7人默认）或实名（8–12人默认）、完成第 2 难后开启红孩儿提前刺杀窗口，以及倒计时后自动亮牌。</dd>
+        </dl>
+      </section>
+
+      <section id="guide-brawl-rule-5" className="panel guide-section">
+        <p className="eyebrow">05 / 30位弱技能设计原则</p>
+        <h2>彻底脱离实体坐席几何限制，重在博弈与配合</h2>
+        <p>所有 30 位神魔弱技能均严格脱离现场实体排座与顺逆时针依赖，所有封禁技能内置防死锁人数护栏：</p>
         <ul>
-          <li><strong>公法</strong>：全场所有人都能获知哪位神魔祭出了什么法宝，知晓法术效果正在生效；</li>
-          <li><strong>不公人</strong>：战报绝对不透露施法者的座位号与用户 ID，全场玩家依然需要通过场上发言、眼神与逻辑盘出究竟是谁在施法，极大保留桌游盘逻辑的乐趣！</li>
+          <li><strong>投票权重与反制型</strong>：哪吒三太子【三头六臂】与牛魔王【平天撼地】投票计 2 票；银角大王【移山压顶】强制压制 1 人弃权；猪八戒【倒打一耙】流局反转 1 张反对票；沙悟净【降妖宝杖】流局 {pct(BRAWL_SKILL_PROBS.SHA_PASS)} 概率强行反转为发车通过；</li>
+          <li><strong>组队资格与换队型</strong>：如来佛祖【五行山掌】禁锢 1 人当轮禁止上车与投票；蜘蛛精【盘丝结茧】与青毛狮子怪【大口吞天】封禁或吞走剔除 1 名非队长队员；白龙马【龙马负重】队伍名额上限临时 +1；镇元大仙【袖里乾坤】收队换下任队长重选且不增加本难流局计数；</li>
+          <li><strong>任务增减与保底翻盘型</strong>：王母娘娘【九转仙桃】任意车队出征前均可赐桃，若出现失败牌有 {pct(BRAWL_SKILL_PROBS.WANGMU_PARDON)} 概率当场化解赦免 1 张失败牌；玉皇大帝【天尊玉旨】提前降旨蓄力，本轮失败时 1 败 {pct(BRAWL_SKILL_PROBS.YUHUANG_ONE_FAIL)} 概率逆转为胜、2 败 {pct(BRAWL_SKILL_PROBS.YUHUANG_TWO_FAIL)} 概率逆转为胜；白骨精【画皮离间】失败时静默虚增 1 败；金角大王【紫金葫芦】{pct(BRAWL_SKILL_PROBS.JINJIAO_ABSORB)}、玉兔精【捣药迷魂】{pct(BRAWL_SKILL_PROBS.YUTU_DISCARD)}、百眼魔君【黄花毒茶】大车 {pct(BRAWL_SKILL_PROBS.BAIYAN_BIG_TEAM)}/小车 {pct(BRAWL_SKILL_PROBS.BAIYAN_SMALL_TEAM)} 暗中破坏目标成功牌；</li>
+          <li><strong>盲盒侦测、查验与收缴型</strong>：二郎神、老鼠精、百眼魔君开局窥探盲盒；观音菩萨【净瓶甘露】无论成败 100% 验明随队目标真实出牌；托塔李天王【照妖宝镜】查验车队是否含妖魔；菩提祖师【道法点化】与黄眉老怪【假设雷音】上演真假密信博弈；太上老君【金刚琢】提前悬空自动套走下一次红方主动法宝；金翅大鹏雕【云程万里】终局为红孩儿排除 1 个非大圣席位！</li>
+        </ul>
+      </section>
+
+      <section id="guide-brawl-rule-6" className="panel guide-section">
+        <p className="eyebrow">06 / 天机战报“公法不公人”原则</p>
+        <h2>显性公法匿名播报，暗算密探静默至终局复盘</h2>
+        <p>为兼顾“信息风暴”与“桌游盘逻辑”的纯粹体验，大乱斗战报采用<strong>显性公法白名单 + 暗算密探静默执行</strong>双轨机制：</p>
+        <ul>
+          <li><strong>显性公法白名单（公法不公人）</strong>：如来佛祖、蜘蛛精、青毛狮子怪、白龙马、镇元大仙、王母娘娘、玉皇大帝、太上老君、沙悟净、猪八戒、哪吒三太子、牛魔王、银角大王，以及八十一难奇劫与军令状，发动时会在公屏实时播报【天机战报】——全员知晓法术效果正在生效，但<strong>绝不透露施法者的座位号与昵称</strong>；</li>
+          <li><strong>暗算密探静默执行（零剧透不自爆）</strong>：白骨精、百眼魔君、黄眉老怪、金角大王、玉兔精、观音菩萨、托塔李天王、菩提祖师、铁扇公主、黄风怪、金翅大鹏雕的技能在局中<strong>严格静默不发公屏战报</strong>，仅当事人私密收执反馈，彻底避免暗算与密探自爆身份；</li>
+          <li><strong>终局全景解密</strong>：对局结束进入结算后，系统自动解密【仙魔对局全景复盘】时间线，完整还原全盘暗算、毒茶、查验、画皮假红、副法宝与混沌迷雾真实牌数！</li>
         </ul>
       </section>
     </div>
@@ -184,6 +297,8 @@ export function BrawlGuideRoles({ onSelectRole }: { onSelectRole?: (role: BrawlR
             <div className="guide-role-badges">
               <span className="guide-role-faction-pill">{factionLabel}</span>
               <span className="guide-role-title-pill">{role.title}</span>
+              {BRAWL_ALL_CORE_IDS.has(role.id) && <span className="guide-role-core-pill">全人数必出</span>}
+              {BRAWL_NINE_PLUS_CORE_IDS.has(role.id) && <span className="guide-role-core-pill is-nine-plus">9人+必出</span>}
             </div>
             <h3>{role.fullName}</h3>
             <p className="guide-role-motto">{role.motto}</p>
@@ -194,11 +309,11 @@ export function BrawlGuideRoles({ onSelectRole }: { onSelectRole?: (role: BrawlR
         <dl className="guide-role-dl">
           <div className="guide-role-detail">
             <dt>专属神通</dt>
-            <dd style={{ color: '#ffd54f', fontWeight: 'bold' }}>【{role.skill.skillName}】</dd>
+            <dd style={{ color: '#92400e', fontWeight: 'bold' }}>【{role.skill.skillName}】</dd>
           </div>
           <div className="guide-role-detail">
             <dt>施法时机</dt>
-            <dd>{phaseNames[role.skill.triggerPhase] || role.skill.triggerPhase} · {role.skill.maxUses === 1 ? '整局限用 1 次' : '常驻被动'}</dd>
+            <dd>{phaseNames[role.skill.triggerPhase] || role.skill.triggerPhase} · {role.skill.actionType === 'passive' ? '常驻被动' : '整局限用 1 次'}</dd>
           </div>
           <div className="guide-role-detail">
             <dt>神通效果</dt>
@@ -216,7 +331,7 @@ export function BrawlGuideRoles({ onSelectRole }: { onSelectRole?: (role: BrawlR
   return (
     <div className="guide-roles">
       <p className="hint">
-        这里展示《西游 · 仙魔大乱斗》全部 30 位全明星神魔人物图鉴。每局按人数从仙魔池中无放回随机抽取，点击任意法相可鉴赏高清立绘大图。
+        这里展示《西游 · 仙魔大乱斗》全部 30 位全明星神魔图鉴。5–8 人局固定 4 位核心（悟空/唐僧/红孩儿/六耳，各附 1 随机同阵营主动副法宝）；9–12 人局固定 6 位领军（增设观音菩萨与黄眉老怪），其余席位无放回盲盒抽取。点击任意法相可鉴赏高清立绘大图。
       </p>
 
       {/* 蓝方 15 仙佛 */}

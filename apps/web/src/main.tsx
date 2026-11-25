@@ -1430,7 +1430,7 @@ function App() {
                       <div className="mp-role-card-row">
                         <div className="mp-portrait-card is-red">
                           <div className="mp-portrait-img">
-                            <RolePortrait role="assassin" size="tile" />
+                            <RolePortrait role="morgana" size="tile" />
                           </div>
                           <div className="mp-portrait-label">
                             <strong>六耳猕猴</strong>
@@ -1440,7 +1440,7 @@ function App() {
 
                         <div className="mp-portrait-card is-red">
                           <div className="mp-portrait-img">
-                            <RolePortrait role="morgana" size="tile" />
+                            <RolePortrait role="assassin" size="tile" />
                           </div>
                           <div className="mp-portrait-label">
                             <strong>红孩儿</strong>
@@ -1495,7 +1495,7 @@ function App() {
                             </div>
                             <div className="mp-portrait-label">
                               <strong>仅此 2 首领</strong>
-                              <small>小局精悍对决</small>
+                              <small>双首领各附随机妖宝</small>
                             </div>
                           </div>
                         )}

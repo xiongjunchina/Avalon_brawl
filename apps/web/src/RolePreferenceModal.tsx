@@ -357,7 +357,7 @@ function RolePreferenceForm({
             <strong className="choice-title">{r.name}</strong>
             <span className="choice-subtitle">{r.title}</span>
           </div>
-          <p className="choice-motto" style={{ fontSize: '11px', color: '#ffd54f' }}>
+          <p className="choice-motto" style={{ fontSize: '11px', color: '#92400e' }}>
             【{r.skill.skillName}】{r.skill.description}
           </p>
         </div>

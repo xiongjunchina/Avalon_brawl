@@ -171,7 +171,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
       triggerPhase: 'team_building',
       actionType: 'target_player',
       maxUses: 1,
-      description: '选定出征队员洒甘露：若任务失败，私密探查该人是否投了成功。',
+      description: '选定队员洒甘露：若其随队出征，结算后100%私密探查其投了成功或失败。',
     },
   },
   zhenyuan_daxian: {
@@ -189,7 +189,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
       triggerPhase: 'team_voting',
       actionType: 'single_button',
       maxUses: 1,
-      description: '表决前大袖收走全队，强制流局换下任队长重新组队，且不扣 5 次流局上限。',
+      description: '挑人或表决阶段大袖收走全队，换下任队长重选，且不增加本难流局计数。',
     },
   },
   erlang_shen: {
@@ -354,7 +354,6 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
       triggerPhase: 'team_building',
       actionType: 'single_button',
       maxUses: 1,
-      awakeningChance: 0.5,
       description: '本轮出征若失败，静默虚增1张失败牌引车内好人自相残杀！',
     },
   },

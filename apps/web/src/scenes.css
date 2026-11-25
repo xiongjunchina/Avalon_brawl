@@ -2855,6 +2855,8 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
 .guide-role-faction-pill { font-size: 11px !important; font-weight: 700 !important; padding: 2px 8px !important; border-radius: 999px !important; background: #e0f2fe !important; color: #0369a1 !important; border: 1px solid #7dd3fc !important; }
 .guide-role.allegiance-red .guide-role-faction-pill { background: #fee2e2 !important; color: #991b1b !important; border-color: #fca5a5 !important; }
 .guide-role-title-pill { font-size: 11px !important; font-weight: 700 !important; padding: 2px 8px !important; border-radius: 999px !important; background: #fef3c7 !important; color: #78350f !important; border: 1px solid #fde68a !important; }
+.guide-role-core-pill { font-size: 10.5px !important; font-weight: 800 !important; padding: 2px 7px !important; border-radius: 999px !important; background: #831843 !important; color: #fffbeb !important; border: 1px solid #d4af37 !important; }
+.guide-role-core-pill.is-nine-plus { background: #78350f !important; color: #fef3c7 !important; border-color: #d97706 !important; }
 .guide-role-heading h3 { font-size: 20px !important; font-family: var(--calligraphy) !important; color: #241208 !important; margin: 2px 0 !important; }
 .guide-role-motto { font-size: 12px !important; color: #78350f !important; font-style: italic !important; margin: 2px 0 4px !important; line-height: 1.4 !important; }
 .guide-role-inspect-hint { font-size: 11.5px !important; font-weight: 700 !important; color: #0284c7 !important; }
@@ -2927,6 +2929,30 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
 .guide-step-title-wrap strong { font-size: 14px !important; color: #831843 !important; }
 .guide-step-title-wrap small { display: block; font-size: 11.5px !important; color: #78350f !important; line-height: 1.3; }
 .guide-steps p { font-size: 13px !important; line-height: 1.5 !important; color: #241208 !important; margin: 0 !important; }
+.guide-configs { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; margin-top: 10px !important; }
+@media (max-width: 560px) { .guide-configs { grid-template-columns: 1fr !important; } }
+.guide-config { background: #fefcf5 !important; border: 1.5px solid rgba(212, 175, 55, 0.45) !important; border-radius: 12px !important; padding: 12px !important; color: #241208 !important; }
+.guide-config h3 { font-size: 15px !important; font-weight: 800 !important; color: #831843 !important; margin: 0 0 6px !important; }
+.guide-config-split { font-size: 12.5px !important; font-weight: 700 !important; color: #78350f !important; margin-left: 4px !important; }
+.guide-config p { font-size: 12.5px !important; line-height: 1.5 !important; margin: 4px 0 !important; color: #241208 !important; }
+.guide-config p > strong { color: #92400e !important; margin-right: 6px !important; }
+.guide-config-twofail-hint { margin: 8px 0 6px !important; padding: 5px 8px !important; font-size: 11.5px !important; }
+.guide-missions { display: grid !important; grid-template-columns: repeat(5, minmax(0, 1fr)) !important; gap: 4px !important; list-style: none !important; padding: 0 !important; margin: 6px 0 0 !important; text-align: center !important; }
+.guide-missions li { display: flex !important; flex-direction: column !important; align-items: center !important; gap: 2px !important; padding: 6px 2px !important; border-radius: 8px !important; background: #ffffff !important; border: 1px solid rgba(212, 175, 55, 0.35) !important; margin: 0 !important; }
+.guide-missions li.is-two-fail { background: #fffbeb !important; border-color: #d97706 !important; }
+.guide-missions span { font-size: 10.5px !important; color: #78350f !important; line-height: 1.2 !important; }
+.guide-missions strong { font-size: 12.5px !important; color: #241208 !important; }
+.guide-mission-two-fail { font-style: normal !important; font-size: 9.5px !important; font-weight: 800 !important; color: #991b1b !important; background: #fee2e2 !important; border-radius: 4px !important; padding: 0 4px !important; line-height: 1.4 !important; }
+.guide-brawl-ordeal-grid { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; margin-top: 8px !important; }
+@media (max-width: 560px) { .guide-brawl-ordeal-grid { grid-template-columns: 1fr !important; } }
+.guide-brawl-ordeal-card { background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%) !important; border: 1.5px solid rgba(217, 119, 6, 0.45) !important; border-radius: 12px !important; padding: 10px 12px !important; }
+.guide-brawl-ordeal-head { display: flex !important; align-items: center !important; gap: 8px !important; margin-bottom: 4px !important; }
+.guide-brawl-ordeal-icon { font-size: 20px !important; line-height: 1 !important; flex-shrink: 0 !important; }
+.guide-brawl-ordeal-head strong { display: block !important; font-size: 14px !important; color: #831843 !important; }
+.guide-brawl-ordeal-head small { display: block !important; font-size: 11.5px !important; color: #92400e !important; font-weight: 600 !important; }
+.guide-brawl-ordeal-card p { font-size: 12.5px !important; line-height: 1.5 !important; color: #241208 !important; margin: 0 !important; }
+.guide-options dt { font-size: 13.5px !important; font-weight: 800 !important; color: #831843 !important; margin-top: 10px !important; }
+.guide-options dd { font-size: 13px !important; line-height: 1.6 !important; color: #241208 !important; margin: 3px 0 8px 0 !important; }
 /* Dawn: separate faction and character statistics, same glass frames. */
 .account.panel { padding: 18px; margin: 0; border: none; background: none; box-shadow: none; }
 .account-banner { height: 130px; background: none; border: none; }

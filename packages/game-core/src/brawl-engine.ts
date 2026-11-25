@@ -441,7 +441,7 @@ export function projectSelfBrawlView(
     } else if (effectiveRoleId === 'bai_longma') {
       generalFeedback = '🐴 龙马负重天马显圣：已激发神足负重潜能，本轮出征车队席位上限已提升 +1！';
     } else if (effectiveRoleId === 'sha_wujing') {
-      generalFeedback = '🌊 降妖宝杖沉沙定海：平票定海之威已就绪，遇平票即视为正道大胜！';
+      generalFeedback = '🌊 降妖宝杖定海蓄势：本轮表决若流局，将有 50% 概率强行镇压反转为发车通过！';
     } else if (effectiveRoleId === 'zhu_bajie') {
       generalFeedback = '🌾 倒打一耙暗度陈仓：九齿钉耙神机已蓄势，表决未过时将强制反转 1 张反对票！';
     } else if (effectiveRoleId === 'taishang_laojun') {

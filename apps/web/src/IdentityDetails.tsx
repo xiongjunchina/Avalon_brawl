@@ -294,7 +294,7 @@ export function IdentityDetails({
                 📿 {selfBrawl.bonusRoleName ? `附带随机仙宝（${selfBrawl.bonusRoleName}）` : '本命绝技'} · {selfBrawl.skill.skillName}
               </span>
               <span style={{ fontSize: '10px', color: '#78350f', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.35)', padding: '1px 5px', borderRadius: '4px' }}>
-                {selfBrawl.skill.maxUses === 1 ? '整局限用 1 次' : '常驻被动'}
+                {selfBrawl.skill.actionType === 'passive' ? '常驻被动' : '整局限用 1 次'}
               </span>
             </div>
             <div style={{ fontSize: '11px', color: '#0369a1' }}>

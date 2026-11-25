@@ -7,6 +7,7 @@ import { createGame, projectGame, transition, BRAWL_ROLE_REGISTRY } from '@avalo
 import { BrawlPanel } from '../src/BrawlPanel.js';
 import { MissionReportDialog } from '../src/MissionReportDialog.js';
 import { GamePanel } from '../src/GamePanel.js';
+import { GuideRules, GuideRoles } from '../src/GuidePanel.js';
 
 const makePlayers = (n: number) =>
   Array.from({ length: n }, (_, i) => ({ id: `u${i + 1}`, nickname: `仙友${i + 1}`, seat: i + 1 }));
@@ -101,4 +102,44 @@ test('GamePanel renders ordeal banner, 2-rejection track, and military wager tog
     send: () => {},
   }));
   assert.ok(htmlAfterSkill.includes('天机播报'), 'Renders live anonymous broadcast strip');
+});
+
+test('GuideRules & GuideRoles (brawl) match current engine rules: 6 leaders for 9+, two-reject force, ordeals, wager, accurate probs', () => {
+  const rulesHtml = renderToStaticMarkup(createElement(GuideRules, { mode: 'brawl' }));
+  const rolesHtml = renderToStaticMarkup(createElement(GuideRoles, { mode: 'brawl' }));
+
+  // 1. 9–12p fixed 6 leaders + 5–8p fixed 4 leaders with bonus skill + 5–12p matrix
+  assert.ok(rulesHtml.includes('固定必出 6 位领军'), 'Documents 9–12p fixed 6 leaders');
+  assert.ok(rulesHtml.includes('观音菩萨') && rulesHtml.includes('黄眉老怪'), 'Lists Guanyin & Huangmei in 9–12p fixed leaders');
+  assert.ok(rulesHtml.includes('固定必出 4 位领军') && rulesHtml.includes('同阵营主动副法宝'), 'Documents 5–8p core bonus skill');
+  for (let n = 5; n <= 12; n++) {
+    assert.ok(rulesHtml.includes(`${n} 人局`), `Renders ${n}-player brawl config card`);
+  }
+
+  // 2. Two-rejection forced launch replaces legacy 5-rejection auto-loss
+  assert.ok(rulesHtml.includes('两流必发'), 'Documents two-rejection forced launch');
+  assert.ok(!rulesHtml.includes('让流局次数达到五次'), 'Removed stale 5-rejection red win condition');
+
+  // 3. All 5 Ordeal cards, Military Wager, and Phantom Vision
+  for (const name of ['混沌迷雾', '弱水流沙', '舍己为公', '狮驼死战', '天意篡改']) {
+    assert.ok(rulesHtml.includes(name), `Documents ordeal card: ${name}`);
+  }
+  assert.ok(rulesHtml.includes('立军令状'), 'Documents military wager');
+  assert.ok(rulesHtml.includes('画皮惑眼'), 'Documents phantom vision');
+
+  // 4. Accurate skill probabilities & dual-track battle event policy
+  assert.ok(rulesHtml.includes('1 败 60%') && rulesHtml.includes('2 败 30%'), 'Accurate Yuhuang pardon odds');
+  assert.ok(!rulesHtml.includes('仅对 4 人及以上车队有效'), 'Removed stale Wangmu 4+ restriction');
+  assert.ok(rulesHtml.includes('显性公法白名单') && rulesHtml.includes('暗算密探静默执行'), 'Documents dual-track broadcast policy');
+
+  // 5. Role encyclopedia accuracy, badges, passive labels & contrast
+  assert.ok(rolesHtml.includes('全人数必出') && rolesHtml.includes('9人+必出'), 'Badges core & 9+ fixed leaders');
+  assert.ok(rolesHtml.includes('常驻被动'), 'Passive roles labeled properly instead of 整局限用 1 次');
+  assert.ok(!rolesHtml.includes('开局50%概率隐身'), 'Removed false Baigujing stealth claim');
+  assert.ok(!rolesHtml.includes('大车50%、小车33%'), 'Removed stale Baiyan odds');
+  assert.ok(!rolesHtml.includes('不扣全局流局上限'), 'Removed stale 5-rejection wording on Zhenyuan');
+  assert.ok(!rolesHtml.includes('#ffd54f'), 'Removed low-contrast pale yellow on light card');
+  assert.ok(rolesHtml.includes('大车 60%') && rolesHtml.includes('小车 50%'), 'Accurate Baiyan odds');
+  assert.ok(rolesHtml.includes('60% 概率被紫金葫芦'), 'Accurate Jinjiao odds');
+  assert.ok(rolesHtml.includes('无论任务成败均 100% 私密得知'), 'Accurate Guanyin unconditional probe');
 });

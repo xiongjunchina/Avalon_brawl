@@ -264,7 +264,7 @@ test('ReplayView renders complete Brawl skill timeline, per-round chronicle, and
   assert.ok(html.includes('复盘已还原真实成功/失败牌数'), 'Notes chaotic fog revealed counts in replay');
 });
 
-test('GamePanel 12-player oval seat coordinates maintain zero overlap on mobile (366x390) viewport', () => {
+test('GamePanel 12-player true ellipse coordinates curve smoothly around oval table with zero overlap on 360x340 mobile', () => {
   const players = makePlayers(12);
   const settings = { ...defaultSettings, playerCount: 12, brawlModeEnabled: true, brawlOrdealsEnabled: true };
   const game = createGame('ui-12p-no-overlap', players, settings, a => a);
@@ -285,17 +285,35 @@ test('GamePanel 12-player oval seat coordinates maintain zero overlap on mobile 
     connected: true,
     send: () => {},
   }));
-  const coords = Array.from(html.matchAll(/style="left:([0-9.]+)%;top:([0-9.]+)%"/g)).map(m => ({
-    x: (parseFloat(m[1]) / 100) * 366,
-    y: (parseFloat(m[2]) / 100) * 390,
+  const pcts = Array.from(html.matchAll(/style="left:([0-9.]+)%;top:([0-9.]+)%"/g)).map(m => ({
+    xPct: parseFloat(m[1]),
+    yPct: parseFloat(m[2]),
   }));
-  assert.equal(coords.length, 12, 'Renders all 12 seat coordinates');
-  for (let i = 0; i < coords.length; i++) {
-    for (let j = i + 1; j < coords.length; j++) {
-      const dx = Math.abs(coords[i].x - coords[j].x);
-      const dy = Math.abs(coords[i].y - coords[j].y);
-      // Either horizontally clear (>= 84px nameplate width) or vertically clear (>= 60px avatar+nameplate+badge)
-      assert.ok(dx >= 84 || dy >= 60, `Seat ${i + 1} and Seat ${j + 1} overlap on 366x390 mobile (dx=${dx.toFixed(1)}, dy=${dy.toFixed(1)})`);
+  assert.equal(pcts.length, 12, 'Renders all 12 seat coordinates');
+  // 1. True elliptical curve: all 12 points lie on (x-50)^2/39.2^2 + (y-51)^2/41.2^2 ≈ 1
+  for (let i = 0; i < 12; i++) {
+    const e = ((pcts[i].xPct - 50) / 39.2) ** 2 + ((pcts[i].yPct - 51.0) / 41.2) ** 2;
+    assert.ok(Math.abs(e - 1) < 0.02, `Seat ${i + 1} deviates from smooth ellipse (e=${e.toFixed(3)})`);
+  }
+  // 2. No ugly wide gap beside Seat 1 / Seat 7 and no flat straight side rails
+  assert.ok(pcts[1].xPct <= 73 && pcts[11].xPct >= 27, 'Seats 2 and 12 stay snug beside Seat 1');
+  assert.ok(pcts[3].xPct > pcts[2].xPct + 2.5, 'Seat 4 curves outward past Seat 3 instead of flat vertical rail');
+
+  // 3. Exact 2D bounding box check on 360x340 mobile arena (avatar 32px, nameplate 74x16px, badge +6px above avatar)
+  const W = 360, H = 340, halfH = 24.75, npW = 74, npH = 16, badgeExtra = 6;
+  const coords = pcts.map(p => ({ x: (p.xPct / 100) * W, y: (p.yPct / 100) * H }));
+  for (let i = 0; i < 12; i++) {
+    assert.ok(coords[i].x - npW / 2 >= 0 && coords[i].x + npW / 2 <= W, `Seat ${i + 1} fits horizontally inside 360px`);
+    assert.ok(coords[i].y - halfH - badgeExtra >= 0 && coords[i].y + halfH <= H, `Seat ${i + 1} fits vertically inside 340px`);
+    for (let j = i + 1; j < 12; j++) {
+      const hi = coords[i].y <= coords[j].y ? coords[i] : coords[j];
+      const lo = coords[i].y <= coords[j].y ? coords[j] : coords[i];
+      const sepNameVsBadge = Math.max(Math.abs(hi.x - lo.x) - (npW / 2 + 24), (lo.y - halfH - badgeExtra) - (hi.y + halfH));
+      const sepNameVsName = Math.max(Math.abs(hi.x - lo.x) - npW, (lo.y + halfH - npH) - (hi.y + halfH));
+      assert.ok(
+        sepNameVsBadge >= 0 && sepNameVsName >= 0,
+        `Seat ${i + 1} and Seat ${j + 1} overlap on 360x340 mobile (nameVsBadge=${sepNameVsBadge.toFixed(1)}, nameVsName=${sepNameVsName.toFixed(1)})`,
+      );
     }
   }
 });

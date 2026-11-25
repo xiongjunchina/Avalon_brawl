@@ -720,7 +720,7 @@ export function createGame(
       .map(p => p.id);
   }
   let guardianClues: Record<string, GuardianClue> | undefined;
-  if (settings.guardianPerksEnabled) {
+  if (!settings.brawlModeEnabled && settings.guardianPerksEnabled) {
     guardianClues = {};
     const loyalGuardians = assignLoyalGuardians(id, sorted, roles);
     const loyalPlayers = sorted.filter(p => roles[p.id] === 'loyal');
@@ -2678,16 +2678,20 @@ export function projectGame(g: GameState, userId?: string): GameView {
     ...(g.result ? {
       result: { ...g.result },
       revealedRoles: { ...g.roles },
-      ...(g.brawlRoles ? { revealedBrawlRoles: { ...g.brawlRoles } } : {}),
+      ...(g.brawlRoles
+        ? { revealedBrawlRoles: { ...g.brawlRoles } }
+        : g.brawl?.playerStates
+          ? { revealedBrawlRoles: Object.fromEntries(Object.values(g.brawl.playerStates).map(ps => [ps.userId, ps.roleId])) }
+          : {}),
     } : {}),
     ...(g.brawl ? { brawl: projectBrawlGameState(g.brawl, Boolean(g.result)) } : {}),
     ...(g.brawl && userId ? { selfBrawl: projectSelfBrawlView(g.brawl, userId, g.mission, g.brawlPeekedMap, g.players) } : {}),
     ...(g.abortPoll ? { abortPoll: { requestedBy: g.abortPoll.requestedBy, approvals: g.abortPoll.approvals.length,
       required: g.abortPoll.electorate.length, voted: !!userId && g.abortPoll.approvals.includes(userId) } } : {}),
-    ...(role && userId ? { self: { role, ...(role === 'loyal' ? { loyalGuardian: assignLoyalGuardians(g.id, g.players, g.roles, g.rulesetVersion)[userId] } : {}), ...(role === 'minion' ? { femaleDemon: assignFemaleDemons(g.id, g.players, g.roles)[userId] } : {}), team: teamOf(role), evilIds,
+    ...(role && userId ? { self: { role, ...(!g.brawl && role === 'loyal' ? { loyalGuardian: assignLoyalGuardians(g.id, g.players, g.roles, g.rulesetVersion)[userId] } : {}), ...(!g.brawl && role === 'minion' ? { femaleDemon: assignFemaleDemons(g.id, g.players, g.roles)[userId] } : {}), team: teamOf(role), evilIds,
       merlinCandidates: role === 'percival' ? g.players.filter(p => ['merlin','morgana'].includes(g.roles[p.id])).map(p => p.id) : [],
-      guinevereCandidates: role === 'guinevere' ? [...(g.guinevereCandidates ?? [])] : [],
-      guardianClue: role === 'loyal' && g.guardianClues ? g.guardianClues[userId] : undefined,
+      ...(!g.brawl ? { guinevereCandidates: role === 'guinevere' ? [...(g.guinevereCandidates ?? [])] : [] } : {}),
+      guardianClue: !g.brawl && role === 'loyal' && g.guardianClues ? g.guardianClues[userId] : undefined,
       confirmed: g.confirmed.includes(userId), teamVoted: userId in g.teamVotes, missionVoted: userId in g.missionVotes,
       canDecideEarly: role === 'assassin' && canUseEarlyAssassination(g),
       treasures: {

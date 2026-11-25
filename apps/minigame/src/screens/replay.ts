@@ -1,4 +1,5 @@
 import type { Replay } from '@avalon/contracts';
+import { BRAWL_ROLE_REGISTRY } from '@avalon/game-core';
 import type { ScreenModel } from '../ui/widgets.js';
 import { formatRoleName } from '../../../web/src/roles.js';
 
@@ -7,10 +8,15 @@ export function replayScreen(replay: Replay, backId: string, showFavorite = fals
     const player = replay.players.find(item => item.id === id);
     return player ? `${player.seat}号${player.nickname}` : '未知成员';
   };
+  const roleLabel = (id: string) => {
+    const bid = replay.brawlRoles?.[id];
+    if (bid && BRAWL_ROLE_REGISTRY[bid]) return BRAWL_ROLE_REGISTRY[bid].name;
+    return replay.roles[id] ? formatRoleName(replay.roles[id]!) : '未知身份';
+  };
   return { web:{page:'sheet',background:'dawn',backId,document:{kind:'replay',replay}},title: '对局复盘', subtitle: `${replay.playerCount}人 · ${replay.result.winner === 'blue' ? '蓝方获胜' : replay.result.winner === 'red' ? '红方获胜' : '中止'}`, rows: [
     { id: 'replay:reason', text: `结案：${replay.result.reason}${replay.result.targetId ? ` · 目标${name(replay.result.targetId)}` : ''}` },
     { id: 'replay:rules', text: `规则 ${replay.rulesetVersion} · ${replay.settings.anonymousTeamVote ? '匿名组队投票' : '公开组队投票'}` },
-    ...replay.players.map(player => ({ id: `replay:player:${player.id}`, text: `${name(player.id)} · ${replay.roles[player.id] ? formatRoleName(replay.roles[player.id]!) : '未知身份'}` })),
+    ...replay.players.map(player => ({ id: `replay:player:${player.id}`, text: `${name(player.id)} · ${roleLabel(player.id)}` })),
     ...replay.rounds.flatMap(round => [
       { id: `replay:round:${round.number}`, text: `第${round.number}轮 / 任务${round.mission} · 队长${name(round.captainId)}` },
       { id: `replay:team:${round.number}`, text: `出征：${round.team.map(name).join('、') || '未确定'}` },

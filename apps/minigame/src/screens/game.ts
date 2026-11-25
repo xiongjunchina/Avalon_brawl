@@ -159,7 +159,10 @@ export function gameScreen(room: RoomView, user: User, ui: GameUiState, now = Da
   if (game.phase === 'assassination' && self?.role === 'assassin') rows.push({ id: 'assassinate', text: `刺杀所选玩家${ui.targetId ? ' ✓' : ''}` });
   if (game.phase === 'finished' || game.phase === 'aborted') rows.push(
     { id: 'result', text: `结果：${game.result?.winner === 'blue' ? '取经阵营获胜' : game.result?.winner === 'red' ? '妖魔阵营获胜' : '对局中止'} · ${game.result?.reason ?? ''}` },
-    ...Object.entries(game.revealedRoles ?? {}).map(([id, role]) => ({ id: `revealed:${id}`, text: `${playerLabel(id)} · ${game.revealedBrawlRoles?.[id] ? (BRAWL_ROLE_REGISTRY[game.revealedBrawlRoles[id]]?.name ?? formatRoleName(role)) : formatRoleName(role)}` })),
+    ...Object.entries(game.revealedRoles ?? {}).map(([id, role]) => {
+      const bid = game.revealedBrawlRoles?.[id] ?? game.brawl?.playerStates?.[id]?.roleId;
+      return { id: `revealed:${id}`, text: `${playerLabel(id)} · ${bid ? (BRAWL_ROLE_REGISTRY[bid]?.name ?? formatRoleName(role)) : formatRoleName(role)}` };
+    }),
     ...(room.hostId === user.id ? [{ id: 'rematch', text: '返回房间再来一局' }] : [{ id: 'result:waiting', text: '等待房主返回房间' }]),
   );
   if (!['finished', 'aborted'].includes(game.phase)) {
@@ -214,7 +217,7 @@ function gameOverlayScreen(room: RoomView, user: User, ui: GameUiState, base: Sc
   else if(ui.overlay==='private-notice'){title=ui.noticeKind==='mirror'?'慈航照妖镜':ui.noticeKind==='bell'?'同心铃 · 私密传音':'金箍显圣 · 护法归位';}
   else if (ui.overlay === 'identity' && self && ui.privateRoleVisible) {
     title = '我的身份法相';
-    portrait = (self.loyalGuardian ? self.loyalGuardian + '-loyal' : self.femaleDemon ? 'minion-' + self.femaleDemon : self.role) + '-160.webp';
+    portrait = (game.selfBrawl?.artPrefix ?? (self.loyalGuardian ? self.loyalGuardian + '-loyal' : self.femaleDemon ? 'minion-' + self.femaleDemon : self.role)) + '-160.webp';
     const description = roleDescriptions[self.role];
     const brawlName = game.selfBrawl?.roleName;
     const displayName = brawlName ?? formatRoleName(self.role, self.loyalGuardian, self.femaleDemon);
@@ -280,7 +283,7 @@ function gameOverlayScreen(room: RoomView, user: User, ui: GameUiState, base: Sc
     ? gameOverlayScreen(room,user,{...ui,overlay:'identity',overlayReturn:undefined,privateRoleVisible:true},base) : base;
   return { title, rows, portrait, web: { page:'sheet',sheet:ui.overlay,targetId:ui.targetId,background:ui.overlay==='guanyin-window'?'mirror':ui.overlay==='private-notice'?(ui.noticeKind==='jingu'?'dawn':'mirror'):ui.overlay==='identity'?'mirror':game.phase==='finished'?'dawn':'sword',backId:'overlayClose',underlay,
     document: {kind,remainingSeconds:game.guanyinEndsAt?Math.max(0,Math.ceil((Date.parse(game.guanyinEndsAt)-now)/1000)):GUANYIN_WINDOW_MS/1000,noticeKind:ui.noticeKind,modal:true,treasureTargetsExpanded:ui.treasureTargetsExpanded,game:{...game,players:game.players.map(p=>({...room.members.find(m=>m.id===p.id),...p})),self:undefined},...(ui.privateRoleVisible && ['identity','treasures','art','private-notice','guanyin-window'].includes(ui.overlay??'')?{self}:{}),user,
-      roleItem:ui.overlay==='art'&&self?getRoleGalleryItem(self.role,self.loyalGuardian,self.femaleDemon):undefined,
+      roleItem:ui.overlay==='art'&&self?(game.selfBrawl?{id:game.selfBrawl.roleId,role:self.role,name:game.selfBrawl.roleName,fullName:game.selfBrawl.roleName,title:game.selfBrawl.roleTitle,motto:game.selfBrawl.motto??game.selfBrawl.skill.description,story:`【${game.selfBrawl.skill.skillName}】${game.selfBrawl.skill.description}`,team:game.selfBrawl.camp,artPrefix:game.selfBrawl.artPrefix??'merlin'}:getRoleGalleryItem(self.role,self.loyalGuardian,self.femaleDemon)):undefined,
       voteChoice:ui.voteChoice,submitted:self?.teamVoted,earlyHistoryExpanded:ui.earlyHistoryExpanded,reportMission:ui.reportMission} } };
 
 }

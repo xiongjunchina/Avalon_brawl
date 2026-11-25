@@ -3,7 +3,7 @@ import { reasons } from '../../../web/src/game-presentation.js';
 import type { WebDocument } from './web-document.js';
 import { layoutDocument, measureWebText } from './web-document-layout.js';
 import type { RoomView, Settings, User } from '@avalon/contracts';
-import { MISSION_SIZES, ROLE_CONFIG, failuresRequiredFor, teamOf, assignLoyalGuardians, assignFemaleDemons } from '@avalon/game-core';
+import { MISSION_SIZES, ROLE_CONFIG, BRAWL_ROLE_REGISTRY, failuresRequiredFor, teamOf, assignLoyalGuardians, assignFemaleDemons } from '@avalon/game-core';
 import { defaultRoleArtPrefix, roleNames, roleMottos, WUYUE_MISSIONS, getRoleGalleryItem, formatRoleName } from '../../../web/src/roles.js';
 import { wrapText, textGraphemes, type HitRegion, type SafeViewport } from './layout.js';
 import { MINI_GAME_VOICE_ENABLED } from '../features.js';
@@ -194,15 +194,34 @@ export function layoutWebScreen(model: ScreenModel, v: SafeViewport): WebLayout 
     const phaseSize=cssClamp(12.5,w*.034,15),ribbonW=stage==='mission'?Math.min(w-20,measureWebText(phaseText,phaseSize,'calligraphy')+textGraphemes(phaseText).length*.8+88):w-20;add('label','ribbon',phaseText,(w-ribbonW)/2,ribbonY,ribbonW,ribbonH,{fontSize:phaseSize,letterSpacing:stage==='mission'?.8:undefined});
     const ended=Boolean(game?.result);let resultHeroH=121;
     if(ended&&game){
-      const role=game.revealedRoles?.[web.user?.id??''];const ownTeam=role?teamOf(role):web.ownTeam;
+      const brawlRoleFor = (pid: string) => {
+        const bid = game.revealedBrawlRoles?.[pid] ?? game.brawl?.playerStates?.[pid]?.roleId;
+        return bid ? BRAWL_ROLE_REGISTRY[bid] : undefined;
+      };
+      const isBrawlGame = Boolean(game.brawl || game.revealedBrawlRoles);
+      const myBrawl = brawlRoleFor(web.user?.id ?? '');
+      const role=game.revealedRoles?.[web.user?.id??''];const ownTeam=myBrawl?myBrawl.camp:(role?teamOf(role):web.ownTeam);
       const headline=game.result!.winner===null?'本局不计胜负':game.result!.winner===ownTeam?'本局胜利！':'本局失败';
-      const guardian=game.revealedRoles?assignLoyalGuardians(game.id,game.players,game.revealedRoles,game.rulesetVersion):{};
-      const demons=game.revealedRoles?assignFemaleDemons(game.id,game.players,game.revealedRoles):{};
+      const guardian=!isBrawlGame&&game.revealedRoles?assignLoyalGuardians(game.id,game.players,game.revealedRoles,game.rulesetVersion):{};
+      const demons=!isBrawlGame&&game.revealedRoles?assignFemaleDemons(game.id,game.players,game.revealedRoles):{};
+      const roleLabelFor = (pid: string) => {
+        const b = brawlRoleFor(pid);
+        if (b) return b.name;
+        const r = game.revealedRoles?.[pid];
+        return r ? formatRoleName(r, guardian[pid], demons[pid]) : '';
+      };
+      const teamFor = (pid: string) => {
+        const b = brawlRoleFor(pid);
+        if (b) return b.camp;
+        const r = game.revealedRoles?.[pid];
+        return r ? teamOf(r) : undefined;
+      };
       nodes.splice(nodes.findIndex(n=>n.id==='ribbon'),1);
-      const self=role?formatRoleName(role,guardian[web.user?.id??''],demons[web.user?.id??''])+'（'+(ownTeam==='blue'?'蓝方':'红方')+'）':'';
+      const selfLabel = roleLabelFor(web.user?.id ?? '');
+      const self=selfLabel?selfLabel+'（'+(ownTeam==='blue'?'蓝方':'红方')+'）':'';
       resultHeroH=resultHeroGeometry(w-20,self,(reasons[game.result!.reason]??game.result!.reason)+'。').height;
       add('label','result-hero',headline,10,ribbonY,w-20,resultHeroH,{skin:'result-hero',team:game.result!.winner??undefined,
-        detail:JSON.stringify({won:game.result!.winner===ownTeam,self:role?formatRoleName(role,guardian[web.user?.id??''],demons[web.user?.id??''])+'（'+(ownTeam==='blue'?'蓝方':'红方')+'）':'',reason:reasons[game.result!.reason]??game.result!.reason,teams:['blue','red'].map(team=>({team,players:game.players.filter(p=>game.revealedRoles?.[p.id]&&teamOf(game.revealedRoles[p.id]!)===team).map(p=>p.seat+'号 '+p.nickname+' · '+formatRoleName(game.revealedRoles![p.id]!,guardian[p.id],demons[p.id]))}))})});
+        detail:JSON.stringify({won:game.result!.winner===ownTeam,self,reason:reasons[game.result!.reason]??game.result!.reason,teams:['blue','red'].map(team=>({team,players:game.players.filter(p=>teamFor(p.id)===team).map(p=>p.seat+'号 '+p.nickname+' · '+roleLabelFor(p.id))}))})});
     }
     const resultExtra=ended&&w<=380&&!web.practice&&room.hostId===web.user?.id?11.1875:0;
     const arenaTop = ended?ribbonY+resultHeroH+134.6875+resultExtra:ribbonY + ribbonH + 4;
@@ -223,16 +242,23 @@ export function layoutWebScreen(model: ScreenModel, v: SafeViewport): WebLayout 
       const roomMember = room.members.find(item => item.id === member?.id);
       const memberView = member?.id === web.user?.id ? { ...roomMember, ...web.user, online:roomMember?.online, ready:roomMember?.ready } : roomMember;
       const revealed = game?.revealedRoles?.[member?.id ?? ''];
+      const revealedBrawlId = ended && member ? (game?.revealedBrawlRoles?.[member.id] ?? game?.brawl?.playerStates?.[member.id]?.roleId) : undefined;
+      const revealedBrawl = revealedBrawlId ? BRAWL_ROLE_REGISTRY[revealedBrawlId] : undefined;
+      const revealedCamp = revealedBrawl ? revealedBrawl.camp : (revealed ? teamOf(revealed) : undefined);
       const ballot = game?.phase === 'team_vote' && !room.settings.anonymousTeamVote ? game.teamVote?.ballots?.[member?.id ?? ''] : undefined;
-          const isWinnerSeat = ended && Boolean(game?.result?.winner && revealed && teamOf(revealed) === game.result.winner);
+          const isWinnerSeat = ended && Boolean(game?.result?.winner && revealedCamp && revealedCamp === game.result.winner);
           const micState = member?playerMicState(web,member.id):undefined;
           add('seat', member ? (game ? 'player:' : 'member:') + member.id : 'share', member?.nickname ?? '虚位以待', px, py, seatW, cellH,
             { count: index + 1, selected: Boolean(member && (selected.includes(member.id) || web.targetId === member.id)), selfPlayer: member?.id === web.user?.id, online: memberView?.online,
-              micState,lineHeight:cssClamp(26,v.height*.038,32),team:revealed?teamOf(revealed):undefined,
+              micState,lineHeight:cssClamp(26,v.height*.038,32),team:revealedCamp,
               teamStatus: !ended && member && selected.includes(member.id) && ['proposing','discussion','team_vote','guanyin_window','mission'].includes(stage) ? (['guanyin_window','mission'].includes(stage) ? '出征' : '已选') : undefined,
               badge: isWinnerSeat ? '🏆 胜' : (!ended && member?.id === game?.captainId ? '👑 队长' : (!game && member?.id === room.hostId ? '房主' : undefined)),
               detail: !game ? memberView?.ready ? '已就位' : '待出发' : ballot === true ? '✓' : ballot === false ? '×' : ballot === 'abstain' ? '−' : undefined,
-              image: revealed ? 'roles/' + getRoleGalleryItem(revealed,assignLoyalGuardians(game!.id,game!.players,game!.revealedRoles!,game!.rulesetVersion)[member!.id],assignFemaleDemons(game!.id,game!.players,game!.revealedRoles!)[member!.id]).artPrefix + '-160.webp' : memberView?.avatarUrl ?? memberView?.wechatAvatarUrl ?? (member ? 'emblems/' + (memberView?.avatar ?? 'cards') + '.png' : undefined) });
+              image: revealedBrawl
+                ? 'roles/' + revealedBrawl.artPrefix + '-160.webp'
+                : revealed
+                  ? 'roles/' + getRoleGalleryItem(revealed,assignLoyalGuardians(game!.id,game!.players,game!.revealedRoles!,game!.rulesetVersion)[member!.id],assignFemaleDemons(game!.id,game!.players,game!.revealedRoles!)[member!.id]).artPrefix + '-160.webp'
+                  : memberView?.avatarUrl ?? memberView?.wechatAvatarUrl ?? (member ? 'emblems/' + (memberView?.avatar ?? 'cards') + '.png' : undefined) });
         }
         add('altar','altar','☯',(10+arenaInset+rightEnd-altarW)/2,arenaTop + 15 + (flankH - altarW)/2,altarW,altarW,{ detail: (game?.draftTeam?.direction === 'counterclockwise' ? '⟲ 逆时针' : '⟳ 顺时针'), count: ended ? undefined : (game?.mission ?? 1) });
     const missionEligible=game?.phase==='mission'&&model.rows.some(row=>row.id==='mission-choice:success');

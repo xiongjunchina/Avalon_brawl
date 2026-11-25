@@ -94,17 +94,29 @@ export class Accounts {
   async statistics(userId:string):Promise<Statistics> {
     const empty=():Score=>({completed:0,wins:0,losses:0,aborted:0,winRate:null});
     const roles:Role[]=['merlin','percival','guinevere','loyal','morgana','assassin','mordred','oberon','minion'];
-    const stats:Statistics={...empty(),byRole:Object.fromEntries(roles.map(r=>[r,empty()])) as Record<Role,Score>,byTeam:{blue:empty(),red:empty()}};
+    const byBrawlRole:Record<string,Score>=Object.fromEntries(Object.keys(BRAWL_ROLE_REGISTRY).map(id=>[id,empty()]));
+    const stats:Statistics={...empty(),byRole:Object.fromEntries(roles.map(r=>[r,empty()])) as Record<Role,Score>,byBrawlRole,byTeam:{blue:empty(),red:empty()}};
     return this.store.tx(async c=>{
-      const rows=(await c.query<{role:Role;winner:Team|null;count:number}>(`SELECT g.state->'roles'->>($1::text) AS role,
+      const rows=(await c.query<{role:Role;brawl_role_id:string|null;winner:Team|null;count:number}>(`SELECT g.state->'roles'->>($1::text) AS role,
+        COALESCE(g.state->'brawlRoles'->>($1::text), g.state->'brawl'->'playerStates'->($1::text)->>'roleId') AS brawl_role_id,
         g.state->'result'->>'winner' AS winner,count(*)::int AS count
         FROM games g JOIN game_participants p ON p.game_id=g.id AND p.user_id=$1::uuid
         WHERE g.ended_at IS NOT NULL AND g.state->>'phase' IN ('finished','aborted')
-        GROUP BY 1,2`,[userId])).rows;
-      for(const r of rows)for(const s of [stats,stats.byRole[r.role],stats.byTeam[teamOf(r.role)]]) {
-        if(r.winner===null)s.aborted+=r.count;
-        else {s.completed+=r.count;if(r.winner===teamOf(r.role))s.wins+=r.count;else s.losses+=r.count;}
-        s.winRate=s.completed?s.wins/s.completed:null;
+        GROUP BY 1,2,3`,[userId])).rows;
+      for(const r of rows) {
+        const brawlDef = r.brawl_role_id ? BRAWL_ROLE_REGISTRY[r.brawl_role_id] : undefined;
+        const team:Team = brawlDef ? brawlDef.camp : teamOf(r.role);
+        const targets:Score[] = [stats, stats.byTeam[team]];
+        if (brawlDef && stats.byBrawlRole?.[brawlDef.id]) {
+          targets.push(stats.byBrawlRole[brawlDef.id]);
+        } else if (stats.byRole[r.role]) {
+          targets.push(stats.byRole[r.role]);
+        }
+        for(const s of targets) {
+          if(r.winner===null)s.aborted+=r.count;
+          else {s.completed+=r.count;if(r.winner===team)s.wins+=r.count;else s.losses+=r.count;}
+          s.winRate=s.completed?s.wins/s.completed:null;
+        }
       }
       return stats;
     });

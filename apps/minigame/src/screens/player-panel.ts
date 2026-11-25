@@ -1,4 +1,5 @@
 import { defaultSettings, defaultAnonymousTeamVote } from '@avalon/contracts';
+import { BRAWL_ROLE_REGISTRY } from '@avalon/game-core';
 import { toggleSetting } from './settings.js';
 import {BUILTIN_AVATARS} from '../../../web/src/avatar-catalog.js';
 import type { Avatar, DirectMessage, FriendSummary, GameSummary, Replay, RoomChatMessage, ServerMessage, SettingPreset, Settings, Statistics, User } from '@avalon/contracts';
@@ -137,13 +138,15 @@ export class PlayerPanel {
     if (this.page === 'stats') return { title: '战绩统计', rows: [
       { id: 'summary', text: this.stats ? `${this.stats.completed}局 · ${this.stats.wins}胜 ${this.stats.losses}负 · 胜率${this.stats.winRate === null ? '—' : `${Math.round(this.stats.winRate * 100)}%`}` : '读取中' },
       ...Object.entries(this.stats?.byTeam ?? {}).map(([key, value]) => ({ id: `team:${key}`, text: `${key === 'blue' ? '蓝方' : '红方'} ${value.wins}胜 ${value.losses}负` })),
-      ...Object.entries(this.stats?.byRole ?? {}).map(([key, value]) => ({ id: `role:${key}`, text: `${formatRoleName(key as Parameters<typeof formatRoleName>[0])} ${value.wins}胜 ${value.losses}负` })),
+      ...(this.stats?.byBrawlRole
+        ? Object.entries(this.stats.byBrawlRole).map(([key, value]) => ({ id: `role:${key}`, text: `${BRAWL_ROLE_REGISTRY[key]?.name ?? key} ${value.wins}胜 ${value.losses}负` }))
+        : Object.entries(this.stats?.byRole ?? {}).map(([key, value]) => ({ id: `role:${key}`, text: `${formatRoleName(key as Parameters<typeof formatRoleName>[0])} ${value.wins}胜 ${value.losses}负` }))),
       { id: 'page:account', text: '返回账户' },
     ] };
     if (this.page === 'history') return { title: this.favoritesOnly ? '我的收藏' : '对局历史', rows: [
       { id: 'favorites', text: this.favoritesOnly ? '切换到全部对局' : '只看收藏的对局' },
       ...(!this.games.length ? [{ id: 'empty', text: this.favoritesOnly ? '暂无收藏，可在复盘中收藏对局' : '暂无已完成的对局' }] : []),
-      ...this.games.map(game => ({ id: `game:${game.id}`, text: `${game.playerCount}人 · ${formatRoleName(game.self.role)} · ${game.result.winner === game.self.team ? '获胜' : game.result.winner === null ? '中止' : '失败'} ${game.favorite ? '★' : ''}` })),
+      ...this.games.map(game => ({ id: `game:${game.id}`, text: `${game.playerCount}人 · ${game.self.brawlRoleName || formatRoleName(game.self.role)} · ${game.result.winner === game.self.team ? '获胜' : game.result.winner === null ? '中止' : '失败'} ${game.favorite ? '★' : ''}` })),
       ...(this.cursor ? [{ id: 'more', text: '加载更多' }] : []), { id: 'page:account', text: '返回账户' },
     ] };
     if (this.page === 'replay' && this.replay) return replayScreen(this.replay, 'page:history', true);

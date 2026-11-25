@@ -181,11 +181,12 @@ function model(): ScreenModel {
   result.web.freeAccess=freeAccess;
   result.web.waitingMissionsExpanded=waitingMissionsExpanded;
   result = feedback(result);
-  const privateSelf = gameUi.privateRoleVisible
-    ? view === 'game' ? room?.game?.self : view === 'practice' ? practice?.view().game?.self : undefined
-    : undefined;
-  const portraitRole = privateSelf?.loyalGuardian ? `${privateSelf.loyalGuardian}-loyal`
-    : privateSelf?.femaleDemon ? `minion-${privateSelf.femaleDemon}` : privateSelf?.role;
+  const activeGame = view === 'game' ? room?.game : view === 'practice' ? practice?.view().game : undefined;
+  const privateSelf = gameUi.privateRoleVisible ? activeGame?.self : undefined;
+  const privateBrawl = gameUi.privateRoleVisible ? activeGame?.selfBrawl : undefined;
+  const portraitRole = privateBrawl?.artPrefix
+    ?? (privateSelf?.loyalGuardian ? `${privateSelf.loyalGuardian}-loyal`
+      : privateSelf?.femaleDemon ? `minion-${privateSelf.femaleDemon}` : privateSelf?.role);
   const nextHorizontalContext=[view,auxiliary,result.web?.document?.kind,result.web?.document?.activeTab,result.web?.document?.replay?.id].join('|');
   if(nextHorizontalContext!==horizontalContext){horizontalContext=nextHorizontalContext;horizontalScroll=0;activeRound=undefined;}
   const chatDoc=result.web?.document,chatKey=chatDoc?.kind==='chat'?nextHorizontalContext+'|'+(chatDoc.chatFriend?.id??'room')+'|'+(chatDoc.messages?.at(-1)?.id??'empty'):'';

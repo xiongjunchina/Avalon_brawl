@@ -8,7 +8,7 @@ import { BrawlPanel } from '../src/BrawlPanel.js';
 import { MissionReportDialog } from '../src/MissionReportDialog.js';
 import { GamePanel } from '../src/GamePanel.js';
 import { GuideRules, GuideRoles } from '../src/GuidePanel.js';
-import { ReplayView } from '../src/AccountPanel.js';
+import { ReplayView, StatisticsView } from '../src/AccountPanel.js';
 
 const makePlayers = (n: number) =>
   Array.from({ length: n }, (_, i) => ({ id: `u${i + 1}`, nickname: `仙友${i + 1}`, seat: i + 1 }));
@@ -297,4 +297,33 @@ test('GamePanel 12-player oval seat coordinates maintain zero overlap on mobile 
       assert.ok(dx >= 84 || dy >= 60, `Seat ${i + 1} and Seat ${j + 1} overlap on 366x390 mobile (dx=${dx.toFixed(1)}, dy=${dy.toFixed(1)})`);
     }
   }
+});
+
+test('StatisticsView renders 30 Brawl role stats with real portraits instead of collapsing Brawl games into classic loyal/minion', () => {
+  const zero = { completed: 0, wins: 0, losses: 0, aborted: 0, winRate: null as number | null };
+  const byRole = {
+    merlin: { ...zero }, percival: { ...zero }, guinevere: { ...zero }, loyal: { ...zero },
+    morgana: { ...zero }, assassin: { ...zero }, mordred: { ...zero }, oberon: { ...zero }, minion: { ...zero },
+  };
+  const byBrawlRole = Object.fromEntries(Object.keys(BRAWL_ROLE_REGISTRY).map(id => [id, { ...zero }]));
+  byBrawlRole.wangmu_niangniang = { completed: 3, wins: 2, losses: 1, aborted: 0, winRate: 2 / 3 };
+  byBrawlRole.tieshan_gongzhu = { completed: 2, wins: 1, losses: 1, aborted: 0, winRate: 0.5 };
+
+  const html = renderToStaticMarkup(createElement(StatisticsView, {
+    stats: {
+      completed: 5, wins: 3, losses: 2, aborted: 0, winRate: 0.6,
+      byRole,
+      byBrawlRole,
+      byTeam: {
+        blue: { completed: 3, wins: 2, losses: 1, aborted: 0, winRate: 2 / 3 },
+        red: { completed: 2, wins: 1, losses: 1, aborted: 0, winRate: 0.5 },
+      },
+    },
+  }));
+  assert.ok(html.includes('30 位神魔角色战绩'), 'Displays 30 Brawl role statistics heading');
+  assert.ok(html.includes('王母娘娘') && html.includes('brawl-wangmu-160.webp'), 'Renders Wangmu Brawl stats and portrait');
+  assert.ok(html.includes('铁扇公主') && html.includes('brawl-tieshan-160.webp'), 'Renders Tieshan Brawl stats and portrait');
+  assert.ok(html.includes('托塔李天王') && html.includes('如来佛祖'), 'Includes other 30 Brawl roles');
+  assert.ok(!html.includes('经典模式历史角色战绩'), 'Hides classic collapse section when user has no classic games');
+  assert.ok(!html.includes('取经护法战绩') && !html.includes('女妖精战绩'), 'Does not render classic loyal/minion cards for pure Brawl user');
 });

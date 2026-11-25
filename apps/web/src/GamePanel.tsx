@@ -420,10 +420,10 @@ export function GamePanel({
   const missionRounds = inspectMission
     ? g.rounds.filter(r => r.mission === inspectMission)
     : [];
-  const revealedLoyalGuardians = g.revealedRoles
+  const revealedLoyalGuardians = !isBrawl && g.revealedRoles
     ? assignLoyalGuardians(g.id, g.players, g.revealedRoles, g.rulesetVersion)
     : {};
-  const revealedFemaleDemons = g.revealedRoles
+  const revealedFemaleDemons = !isBrawl && g.revealedRoles
     ? assignFemaleDemons(g.id, g.players, g.revealedRoles)
     : {};
 

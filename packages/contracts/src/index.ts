@@ -500,7 +500,7 @@ export interface GameView {
 }
 
 export interface Score { completed:number; wins:number; losses:number; aborted:number; winRate:number|null }
-export interface Statistics extends Score { byRole:Record<Role,Score>; byTeam:Record<Team,Score> }
+export interface Statistics extends Score { byRole:Record<Role,Score>; byBrawlRole?:Record<string,Score>; byTeam:Record<Team,Score> }
 export interface GameSummary {
   id:string; startedAt:string; endedAt:string; rulesetVersion:string; playerCount:number;
   self: {nickname:string;seat:number;role:Role;team:Team;brawlRoleId?:string;brawlRoleName?:string}; result:GameResult; favorite:boolean;

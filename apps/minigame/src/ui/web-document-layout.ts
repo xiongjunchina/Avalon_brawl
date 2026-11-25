@@ -7,7 +7,7 @@ import {settingsText} from '../../../web/src/settings-summary.js';
 import {BUILTIN_AVATARS} from '../../../web/src/avatar-catalog.js';
 import {CHAT_CONTENT_SAFETY_NOTICE, NICKNAME_CONTENT_SAFETY_NOTICE, PROFILE_CONTENT_SAFETY_NOTICE} from '../../../web/src/content-safety-copy.js';
 import type { GameView, Player, Role, Score, RoundView } from '@avalon/contracts';
-import { assignFemaleDemons, assignLoyalGuardians, failuresRequiredFor, GUANYIN_WINDOW_MS, ROLE_CONFIG, teamOf } from '@avalon/game-core';
+import { assignFemaleDemons, assignLoyalGuardians, BRAWL_ROLE_REGISTRY, failuresRequiredFor, GUANYIN_WINDOW_MS, ROLE_CONFIG, teamOf } from '@avalon/game-core';
 import { defaultRoleArtPrefix, ALL_GALLERY_ROLES, formatRoleName, getRoleGalleryItem, roleMottos, roleNames, roleTitles, WUYUE_MISSIONS } from '../../../web/src/roles.js';
 import { webGuideSections } from './web-guide-sections.js';
 import { roleTreasures } from '../../../web/src/role-descriptions.js';
@@ -429,7 +429,11 @@ export function layoutDocument(model:ScreenModel,v:SafeViewport):WebLayout {
       button('overlayClose','已阅，返回对局',y,{skin:'treasure-confirm',fontSize:14},x,w,46);y+=46+gap;const footer=txt('notice-footer',mirror?'稍后可点击对局页「法宝」再次查看':'可从对局页「法宝」回看',y,12,{align:'center',tone:'muted',lineHeight:17});y+=footer.height;
     }y+=pad-13;bodyEnd=y;
   } else if(doc.kind==='identity'&&doc.self&&game) {
-    const self=doc.self,item=getRoleGalleryItem(self.role,self.loyalGuardian,self.femaleDemon), knowledge=identityKnowledge(self,game.players.length);
+    const self=doc.self,selfBrawl=game.selfBrawl;
+    const item=selfBrawl
+      ? { id: selfBrawl.roleId, role: self.role, name: selfBrawl.roleName, fullName: selfBrawl.roleName, title: selfBrawl.roleTitle, motto: selfBrawl.motto ?? selfBrawl.skill.description, story: selfBrawl.skill.description, team: selfBrawl.camp, artPrefix: selfBrawl.artPrefix ?? 'merlin' }
+      : getRoleGalleryItem(self.role,self.loyalGuardian,self.femaleDemon);
+    const knowledge=identityKnowledge(self,game.players.length);
     modalHeader('真身法相底牌');y+=2;
     const bx=x+2,bw=w-4;
     add('button','identityArt',item.name,bx,y,bw,109.84375,{skin:'identity-card',image:'roles/'+item.artPrefix+'-160.webp',team:self.team,detail:item.title+'|'+item.motto,badge:(self.team==='blue'?'蓝方 · 取经正果':'红方 · 群妖乱道')});y+=115.84375;
@@ -442,7 +446,7 @@ export function layoutDocument(model:ScreenModel,v:SafeViewport):WebLayout {
     txt('identity-vision-title',knowledge.title,y+9,14,{fontFace:'display',align:'center',lineHeight:18.2},bx+10,bw-20);
     candidatePlayers.forEach((p,i)=>{const tw=candidatePlayers.length<=2?60:(bw-24)/columns;const sx=candidatePlayers.length<=2?bx+bw/2-(candidatePlayers.length*tw+(candidatePlayers.length-1)*16)/2:bx+12;token('vision:'+p.id,p,sx+(i%columns)*(tw+(candidatePlayers.length<=2?16:0)),y+32.1875+Math.floor(i/columns)*visionStep,tw,visionDiameter+16);const node=nodes.at(-1)!;node.detail='vision';node.fontSize=visionDiameter;});
     txt('identity-vision-description',knowledge.description,y+(candidatePlayers.length?38.828125+tokenRows*visionStep:30),11.5,{lineHeight:16.675,align:'center',tone:'muted'},bx+12,bw-24);y+=kh+6;
-    const tip=roleDescriptions[self.role].tip,tipLines=wrapText(tip,bw-110,t=>measure(t,11)),tipH=Math.max(48,tipLines.length*15.390625+14);
+    const tip=selfBrawl?`【${selfBrawl.skill.skillName}】${selfBrawl.skill.description}`:roleDescriptions[self.role].tip,tipLines=wrapText(tip,bw-110,t=>measure(t,11)),tipH=Math.max(48,tipLines.length*15.390625+14);
     panel('identity-tip',y,tipH,'tip',bx,bw);add('label','identity-tip-badge','💡 玩法心法',bx+10,y+8,72,20,{skin:'badge',fontSize:10.5,tone:'gold'});
     txt('role-tip',tip,y+7,11,{lineHeight:15.390625},bx+88,bw-98);y+=tipH+9;
     const treasure=identityTreasure(self,game.players.length,model.web!.underlay?.web?.room?.settings.treasuresEnabled??false,{...game,self});
@@ -663,7 +667,7 @@ export function layoutDocument(model:ScreenModel,v:SafeViewport):WebLayout {
         for(const g of games){const expanded=doc.expanded?.includes(g.id);let h=242;const historyCard=panel('history:'+g.id,y,h,'history-card');
           txt('history-outcome:'+g.id,(g.result.winner===null?'中断':g.result.winner===g.self.team?'胜利':'失败'),y+14,22,{fontFace:'display'},x+12,50);txt('history-player-count:'+g.id,g.playerCount+' 人局',y+19,14,{tone:'muted'},x+64,w-152);
           add('label','history-status:'+g.id,g.favorite?'已收藏':'已结束',x+w-63,y+14,50,30,{skin:'history-status',fontSize:12});
-          txt('history-role:'+g.id,formatRoleName(g.self.role)+' · '+(g.self.team==='blue'?'蓝方':'红方')+' · '+(reasons[g.result.reason]??''),y+61,16,{},x+12,w-24);
+          txt('history-role:'+g.id,(g.self.brawlRoleName || formatRoleName(g.self.role))+' · '+(g.self.team==='blue'?'蓝方':'红方')+' · '+(reasons[g.result.reason]??''),y+61,16,{},x+12,w-24);
           button('game:'+g.id,'查看复盘 · '+formatDate(g.endedAt),y+109,{skin:'pill',fontSize:16},x+15,w-28,50);
           const details=panel('history-details:'+g.id,y+169,60,'replay-details',x+12,w-24);button('details:'+g.id,(expanded?'▾':'▸')+' 对局信息',y+174,{skin:'plain-summary',fontSize:13},x+22,w-44,30);
           if(expanded){const date=txt('history-date:'+g.id,formatDate(g.endedAt)+' · 当时昵称：'+g.self.nickname,y+237,14,{lineHeight:25.2,tone:'muted'},x+22,w-44);const uid=txt('history-id:'+g.id,'对局编号 ID：'+g.id,date.y+date.height+12,12,{lineHeight:21,tone:'muted'},x+22,w-44);details.height=uid.y+uid.height+16-details.y;h=details.y+details.height+14-y;historyCard.height=h;}
@@ -676,8 +680,14 @@ export function layoutDocument(model:ScreenModel,v:SafeViewport):WebLayout {
         const statHint=txt('statistics-aborted','另有 '+s.aborted+' 局中断，不计入胜负与胜率。统计以最终获胜阵营为准，包含提前刺杀。',y+12,14,{lineHeight:25.2},x+14,w-28);const statFrame=panel('statistics-aborted:panel',y,statHint.height+24,'hint');nodes.splice(nodes.indexOf(statFrame),1);nodes.splice(nodes.indexOf(statHint),0,statFrame);y+=statHint.height+24+14;
         heading('faction-heading','阵营战绩');y-=2;
         for(const [i,team] of ['blue','red'].entries()){const score=s.byTeam[team as 'blue'|'red'];scoreCard('team:'+team,team==='blue'?'蓝方阵营':'红方阵营',score,x+i*(w+8)/2,y,(w-8)/2,team==='blue'?'emblems/blue-faction.png':'emblems/red-faction.png',team as 'blue'|'red');}y+=205.875;
-        heading('role-heading','角色战绩');
-        Object.entries(roleNames).forEach(([role,name],i)=>{scoreCard('role:'+role,name,s.byRole[role as Role],x+(i%2)*(w+8)/2,y+Math.floor(i/2)*161.125,(w-8)/2,'roles/'+defaultRoleArtPrefix(role as Role)+'-160.webp',teamOf(role as Role));});y+=Math.ceil(Object.keys(roleNames).length/2)*161.125;
+        heading('role-heading', s.byBrawlRole ? '30 位神魔角色战绩' : '角色战绩');
+        if (s.byBrawlRole) {
+          const brawlList = Object.values(BRAWL_ROLE_REGISTRY);
+          brawlList.forEach((def,i)=>{scoreCard('role:'+def.id,def.name,s.byBrawlRole![def.id]??{completed:0,wins:0,losses:0,aborted:0,winRate:null},x+(i%2)*(w+8)/2,y+Math.floor(i/2)*161.125,(w-8)/2,'roles/'+def.artPrefix+'-160.webp',def.camp);});
+          y+=Math.ceil(brawlList.length/2)*161.125;
+        } else {
+          Object.entries(roleNames).forEach(([role,name],i)=>{scoreCard('role:'+role,name,s.byRole[role as Role],x+(i%2)*(w+8)/2,y+Math.floor(i/2)*161.125,(w-8)/2,'roles/'+defaultRoleArtPrefix(role as Role)+'-160.webp',teamOf(role as Role));});y+=Math.ceil(Object.keys(roleNames).length/2)*161.125;
+        }
       }
       if(model.rows.some(r=>r.id==='admin')){button('admin','管理员入口',y,{skin:'pill'});y+=52;}
     } else if(doc.kind==='friends') {
@@ -865,8 +875,8 @@ export function layoutDocument(model:ScreenModel,v:SafeViewport):WebLayout {
         const privacy=txt('replay-privacy','仅本局参与者可看。'+(g.settings.anonymousTeamVote?'组队投票仅展示总数。':'组队投票展示当时公开的个人赞反。')+'任务出牌始终不对应个人。',y+15,16,{lineHeight:28,tone:'muted',emphasis:[{text:'仅本局参与者可看。',color:'#f0dcb0'}]},x+31,w-62),notice=panel('replay-privacy-frame',y,privacy.height+30,'replay-notice',x+12,w-24);nodes.splice(nodes.indexOf(notice),1);nodes.splice(nodes.indexOf(privacy),0,notice);y+=notice.height+28;metadata.height=y-metadata.y;
       }y+=8;
       const identities=panel('replay-identities',y,70,'replay-details');button('details:identities',(identitiesOpen?'▾':'▸')+' 全员最终身份（'+g.players.length+' 人）',y+10,{skin:'plain-summary',fontSize:13},x+12,w-24,30);y+=70;
-      const guardians=assignLoyalGuardians(g.id,g.players,g.roles,g.rulesetVersion),demons=assignFemaleDemons(g.id,g.players,g.roles);
-      if(identitiesOpen){for(const p of g.players){const role=g.roles[p.id];if(!role)continue;const item=getRoleGalleryItem(role,guardians[p.id],demons[p.id]);add('label','replay-player:'+p.id,name(p.id),x+12,y,w-24,adminReplay?64:76,{skin:adminReplay?'admin-replay-identity':'replay-identity',image:'roles/'+item.artPrefix+'-160.webp',detail:formatRoleName(role,guardians[p.id],demons[p.id]),team:item.team});y+=adminReplay?72:76;}y+=12;identities.height=y-identities.y;}y+=18;
+      const guardians=g.brawlRoles?{}:assignLoyalGuardians(g.id,g.players,g.roles,g.rulesetVersion),demons=g.brawlRoles?{}:assignFemaleDemons(g.id,g.players,g.roles);
+      if(identitiesOpen){for(const p of g.players){const brawlDef=g.brawlRoles?.[p.id]?BRAWL_ROLE_REGISTRY[g.brawlRoles[p.id]]:undefined;const role=g.roles[p.id];if(!brawlDef&&!role)continue;const item=brawlDef?{artPrefix:brawlDef.artPrefix,team:brawlDef.camp}:getRoleGalleryItem(role,guardians[p.id],demons[p.id]);const detail=brawlDef?brawlDef.name:formatRoleName(role,guardians[p.id],demons[p.id]);add('label','replay-player:'+p.id,name(p.id),x+12,y,w-24,adminReplay?64:76,{skin:adminReplay?'admin-replay-identity':'replay-identity',image:'roles/'+item.artPrefix+'-160.webp',detail,team:item.team});y+=adminReplay?72:76;}y+=12;identities.height=y-identities.y;}y+=18;
       txt('replay-rounds','逐轮记录',y,21,{fontFace:'display'});y+=42;
       roundNavigation(g.rounds);y+=adminReplay?70.796875:78;
       renderRounds(g.rounds,g.players,g.settings.anonymousTeamVote);replayRoundEnd=y;

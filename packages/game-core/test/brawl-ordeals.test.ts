@@ -561,3 +561,38 @@ test('skill feedback & refund: armed mission skills auto-refund on rejected vote
   assert.ok(game.brawl!.replayTimeline!.some(a => a.roleId === 'wangmu_niangniang' && a.outcome === 'miss' && a.detail.includes('0 张失败牌')));
   assert.ok(game.brawl!.replayTimeline!.some(a => a.roleId === 'bai_gujing' && a.outcome === 'miss' && a.detail.includes('0 张失败牌')));
 });
+
+test('Scheme A isolation: 5-12p Brawl games never leak classic loyalGuardian/femaleDemon/guardianClue and always expose complete 30-role revealedBrawlRoles', () => {
+  for (let count = 5; count <= 12; count++) {
+    const players = makePlayers(count);
+    const game = createGame(
+      `brawl-isolation-${count}`,
+      players,
+      { ...defaultSettings, playerCount: count, brawlModeEnabled: true, guardianPerksEnabled: true },
+      a => a,
+    );
+    assert.equal(game.guardianClues, undefined, `${count}p Brawl must not generate classic guardianClues`);
+    for (const p of players) {
+      const view = projectGame(game, p.id);
+      assert.ok(view.selfBrawl, `${count}p Brawl seat ${p.seat} must have selfBrawl`);
+      assert.ok(BRAWL_ROLE_REGISTRY[view.selfBrawl!.roleId], `${count}p Brawl seat ${p.seat} roleId in registry`);
+      assert.equal(view.self?.loyalGuardian, undefined, `${count}p Brawl seat ${p.seat} must not leak loyalGuardian`);
+      assert.equal(view.self?.femaleDemon, undefined, `${count}p Brawl seat ${p.seat} must not leak femaleDemon`);
+      assert.equal(view.self?.guardianClue, undefined, `${count}p Brawl seat ${p.seat} must not leak guardianClue`);
+      assert.equal(view.self?.guinevereCandidates, undefined, `${count}p Brawl seat ${p.seat} must not leak guinevereCandidates`);
+    }
+
+    // Also test legacy fallback: even if top-level brawlRoles is stripped, ended projectGame reconstructs revealedBrawlRoles from brawl.playerStates
+    const endedGame = structuredClone(game);
+    delete endedGame.brawlRoles;
+    endedGame.phase = 'finished';
+    endedGame.result = { winner: 'blue', reason: 'merlin_survived' };
+    const endedView = projectGame(endedGame, players[0].id);
+    const revealedMap = endedView.revealedBrawlRoles;
+    assert.ok(revealedMap, `${count}p ended Brawl must project revealedBrawlRoles`);
+    for (const p of players) {
+      const rid: string | undefined = revealedMap?.[p.id];
+      assert.ok(Boolean(rid && BRAWL_ROLE_REGISTRY[rid]), `${count}p ended Brawl seat ${p.seat} revealedBrawlRoles valid`);
+    }
+  }
+});

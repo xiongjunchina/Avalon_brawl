@@ -22,8 +22,8 @@ const outcome=(g:GameSummary)=>g.result.winner===null?'中断':g.result.winner==
 const outcomeKind=(g:GameSummary)=>g.result.winner===null?'aborted':g.result.winner===g.self.team?'victory':'defeat';
 
 export function HistoryRoster({replay:g}:{replay:Replay}) {
-  const guardians=assignLoyalGuardians(g.id,g.players,g.roles,g.rulesetVersion);
-  const demons=assignFemaleDemons(g.id,g.players,g.roles);
+  const guardians=g.brawlRoles?{}:assignLoyalGuardians(g.id,g.players,g.roles,g.rulesetVersion);
+  const demons=g.brawlRoles?{}:assignFemaleDemons(g.id,g.players,g.roles);
   return <ul className="history-roster" aria-label="本局全员角色">{[...g.players].sort((a,b)=>a.seat-b.seat).map(p=>{
     const role=g.roles[p.id],team=roleTeam(role),self=p.seat===g.self.seat;
     const brawlRoleId = g.brawlRoles?.[p.id];
@@ -105,6 +105,18 @@ async function cropImageToSquareDataUrl(file: File, size = 160): Promise<string>
 }
 
 export function StatisticsView({stats}:{stats:Statistics}) {
+  const brawlRoles = stats.byBrawlRole
+    ? Object.values(BRAWL_ROLE_REGISTRY).sort((a, b) => {
+        const sa = stats.byBrawlRole![a.id];
+        const sb = stats.byBrawlRole![b.id];
+        const ta = (sa?.completed ?? 0) + (sa?.aborted ?? 0);
+        const tb = (sb?.completed ?? 0) + (sb?.aborted ?? 0);
+        if (tb !== ta) return tb - ta;
+        if (a.camp !== b.camp) return a.camp === 'blue' ? -1 : 1;
+        return 0;
+      })
+    : [];
+  const hasClassicStats = Object.values(stats.byRole).some(s => s.completed + s.aborted > 0);
   return <>
     <div className="stat-grid" aria-label="我的战绩"><div><strong>{stats.completed}</strong><span>完成对局</span></div><div><strong>{stats.wins}</strong><span>胜利</span></div><div><strong>{stats.losses}</strong><span>失败</span></div><div><strong>{rate(stats)}</strong><span>总胜率</span></div></div>
     <p className="hint">另有 {stats.aborted} 局中断，不计入胜负与胜率。统计以最终获胜阵营为准，包含提前刺杀。</p>
@@ -117,14 +129,46 @@ export function StatisticsView({stats}:{stats:Statistics}) {
         <p className="card-foot">{s.completed} 局完成 · {s.aborted} 局中断</p>
       </article>;})}</div>
     </section>
-    <section className="stats-section" aria-labelledby="role-stats-title">
-      <div className="ornament-heading"><div><h2 id="role-stats-title">角色战绩</h2></div></div>
-      <div className="role-grid">{Object.entries(roleNames).map(([key,label])=>{const role=key as keyof typeof roleNames,s=stats.byRole[role],team=roleTeam(role);return <article key={role} className={`role-card allegiance-${team}`} aria-label={`${label}战绩`}>
-        <span className="role-team">{team==='blue'?'蓝方':'红方'}</span><RolePortrait role={role}/><h3>{label}</h3>
-        <p className="role-rate"><strong>{rate(s)}</strong><span>胜率</span></p>
-        <p className="role-record"><span>{s.wins} 胜</span><span>{s.losses} 负</span></p><p className="card-foot">{s.completed} 局完成 · {s.aborted} 局中断</p>
-      </article>;})}</div>
-    </section>
+    {stats.byBrawlRole ? (
+      <>
+        <section className="stats-section" aria-labelledby="role-stats-title">
+          <div className="ornament-heading"><div><h2 id="role-stats-title">30 位神魔角色战绩</h2></div></div>
+          <div className="role-grid">{brawlRoles.map(def=>{
+            const s = stats.byBrawlRole![def.id] ?? { completed: 0, wins: 0, losses: 0, aborted: 0, winRate: null };
+            const team = def.camp;
+            return <article key={def.id} className={`role-card allegiance-${team}`} aria-label={`${def.name}战绩`}>
+              <span className="role-team">{team==='blue'?'蓝方':'红方'}</span>
+              <span className={`role-portrait portrait-tile allegiance-${team}`} role="img" aria-label={`${def.name}法相图案`}>
+                <img src={assetUrl(`/art/roles/${def.artPrefix}-160.webp?v=brawl-art-v2`)} alt={def.name} width={160} height={160} loading="lazy" />
+              </span>
+              <h3>{def.name}</h3>
+              <p className="role-rate"><strong>{rate(s)}</strong><span>胜率</span></p>
+              <p className="role-record"><span>{s.wins} 胜</span><span>{s.losses} 负</span></p>
+              <p className="card-foot">{s.completed} 局完成 · {s.aborted} 局中断</p>
+            </article>;
+          })}</div>
+        </section>
+        {hasClassicStats && (
+          <details className="chronicle-details" style={{ marginTop: 14 }}>
+            <summary>经典模式历史角色战绩</summary>
+            <div className="role-grid" style={{ marginTop: 10 }}>{Object.entries(roleNames).map(([key,label])=>{const role=key as keyof typeof roleNames,s=stats.byRole[role],team=roleTeam(role);return <article key={role} className={`role-card allegiance-${team}`} aria-label={`${label}战绩`}>
+              <span className="role-team">{team==='blue'?'蓝方':'红方'}</span><RolePortrait role={role}/><h3>{label}</h3>
+              <p className="role-rate"><strong>{rate(s)}</strong><span>胜率</span></p>
+              <p className="role-record"><span>{s.wins} 胜</span><span>{s.losses} 负</span></p><p className="card-foot">{s.completed} 局完成 · {s.aborted} 局中断</p>
+            </article>;})}</div>
+          </details>
+        )}
+      </>
+    ) : (
+      <section className="stats-section" aria-labelledby="role-stats-title">
+        <div className="ornament-heading"><div><h2 id="role-stats-title">角色战绩</h2></div></div>
+        <div className="role-grid">{Object.entries(roleNames).map(([key,label])=>{const role=key as keyof typeof roleNames,s=stats.byRole[role],team=roleTeam(role);return <article key={role} className={`role-card allegiance-${team}`} aria-label={`${label}战绩`}>
+          <span className="role-team">{team==='blue'?'蓝方':'红方'}</span><RolePortrait role={role}/><h3>{label}</h3>
+          <p className="role-rate"><strong>{rate(s)}</strong><span>胜率</span></p>
+          <p className="role-record"><span>{s.wins} 胜</span><span>{s.losses} 负</span></p><p className="card-foot">{s.completed} 局完成 · {s.aborted} 局中断</p>
+        </article>;})}</div>
+      </section>
+    )}
   </>;
 }
 function StatisticsPanel() {

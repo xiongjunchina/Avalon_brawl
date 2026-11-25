@@ -11,8 +11,8 @@ export function PracticeSeatPicker({ gameId = 'practice', rulesetVersion, player
   const [open, setOpen] = useState(false);
   const player = players.find(p => p.id === value);
   const currentBrawlRole = player && brawlRoles?.[player.id] ? BRAWL_ROLE_REGISTRY[brawlRoles[player.id]] : undefined;
-  const loyalGuardians = assignLoyalGuardians(gameId, players, roles, rulesetVersion);
-  const femaleDemons = assignFemaleDemons(gameId, players, roles);
+  const loyalGuardians = brawlRoles ? {} : assignLoyalGuardians(gameId, players, roles, rulesetVersion);
+  const femaleDemons = brawlRoles ? {} : assignFemaleDemons(gameId, players, roles);
   return <>
     <button type="button" className="practice-view-trigger" aria-label="切换试玩视角" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>
       <span className="practice-view-seat"><span className="practice-view-label">视角 · </span>{player?.seat}号</span>

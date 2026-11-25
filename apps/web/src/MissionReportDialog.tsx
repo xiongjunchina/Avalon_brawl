@@ -61,7 +61,7 @@ export function MissionReportDialog({
           </div>
           <div className="mission-report-card-stats">
             {result.masked && result.successes < 0 ? (
-              <span className="stat-card stat-masked" style={{ width: '100%', justifyContent: 'center' }}>
+              <span className="stat-card stat-masked">
                 <span className="stat-icon" aria-hidden="true">🌫️</span>
                 <span className="stat-label">混沌迷雾遮蔽</span>
                 <strong className="stat-val">具体张数隐藏（? 张）</strong>

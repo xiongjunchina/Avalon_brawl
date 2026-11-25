@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { defaultSettings, defaultBrawlSettings, normalizeBrawlSettings, type RoomView } from '@avalon/contracts';
@@ -393,4 +395,27 @@ test('Brawl-only room settings remove classic options, normalize presets/dedicat
   assert.ok(rulesHtml.includes('传统经典版的“护法天机”“8–12 人经典法宝”“五次流局判负”均已移除'), 'Rules guide reflects cleaned Brawl room settings');
   assert.ok(rolesHtml.includes('队伍为空时触发不扣次数') && rolesHtml.includes('结果永久保留在真身底牌'), 'Role guide documents updated Li Tianwang behavior');
   assert.ok(rolesHtml.includes('流局自动退还'), 'Role guide documents mission-skill refund on rejected votes');
+});
+
+test('Global CSS anti-vertical-squeeze guardrails prevent vertical Chinese columns and enforce contrast on MissionReportDialog', () => {
+  const webSrcDir = path.resolve(import.meta.dirname, '../src');
+  const cssFiles = fs.readdirSync(webSrcDir).filter(f => f.endsWith('.css'));
+  for (const file of cssFiles) {
+    const content = fs.readFileSync(path.join(webSrcDir, file), 'utf8');
+    assert.doesNotMatch(content, /writing-mode\s*:\s*vertical-/i, `${file} must never use vertical writing-mode`);
+  }
+
+  const mainTsx = fs.readFileSync(path.join(webSrcDir, 'main.tsx'), 'utf8');
+  const cssImports = Array.from(mainTsx.matchAll(/import\s+['"]\.\/([^'"]+\.css)['"]/g)).map(m => m[1]);
+  assert.equal(cssImports.at(-1), 'layout-guardrails.css', 'layout-guardrails.css must be imported LAST in main.tsx');
+
+  const guardrails = fs.readFileSync(path.join(webSrcDir, 'layout-guardrails.css'), 'utf8');
+  assert.ok(guardrails.includes('.stat-card .stat-label') && guardrails.includes('white-space: nowrap !important'), 'Guardrails lock stat-label to single horizontal line');
+  assert.ok(guardrails.includes('.stat-card.stat-masked') && guardrails.includes('max-width: none !important'), 'Masked chaotic-fog stat card overrides 170px narrow cap');
+
+  const feedbackCss = fs.readFileSync(path.join(webSrcDir, 'feedback.css'), 'utf8');
+  assert.ok(feedbackCss.includes('.stat-card.stat-masked') && feedbackCss.includes('background: rgba(255, 252, 243'), 'Masked stat card has explicit high-contrast surface');
+
+  const flowCss = fs.readFileSync(path.join(webSrcDir, 'player-flow.css'), 'utf8');
+  assert.doesNotMatch(flowCss, /\.report-captain-compact\s*\{[^}]*#ffd875/i, 'Captain line on white report card must not use low-contrast pale yellow');
 });

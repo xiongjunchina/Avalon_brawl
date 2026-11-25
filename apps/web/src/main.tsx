@@ -44,6 +44,7 @@ import './account.css';
 import { ReadyReminder } from './ReadyReminder';
 import './feedback.css';
 import './chronicle.css';
+import './layout-guardrails.css';
 import { Modal } from './Modal';
 import { GamePanel } from './GamePanel';
 import { PracticeSeatPicker } from './PracticeSeatPicker';

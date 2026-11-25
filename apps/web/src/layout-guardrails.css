@@ -1,0 +1,80 @@
+/* ============================================================================
+ * Global Mobile Typography & Anti-Vertical-Squeeze Guardrails (Loaded LAST)
+ *
+ * Prevents Chinese badges, pills, tags, stats, and short buttons from ever
+ * being crushed into 1-character-wide vertical columns that blow up card height.
+ * ============================================================================ */
+
+:where(html, body, button, span, strong, small, label, p, h1, h2, h3, h4, li, dt, dd) {
+  writing-mode: horizontal-tb;
+}
+
+/* Short inline UI tokens must NEVER wrap character-by-character vertically */
+:is(
+  .stat-card .stat-icon,
+  .stat-card .stat-label,
+  .stat-card .stat-val,
+  .vote-tag,
+  .vote-conclusion,
+  .seat-badge,
+  .ended-seat-role-pill,
+  .ended-winner-tag,
+  .ended-my-role-pill,
+  .ended-my-role-pill span,
+  .ended-my-role-pill strong,
+  .current-ordeal-chip,
+  .brawl-ordeal-tag,
+  .brawl-replay-seat-tag,
+  .brawl-replay-role-pill,
+  .brawl-replay-skill-tag,
+  .brawl-replay-status-badge,
+  .brawl-chronicle-skill,
+  .brawl-chronicle-badge,
+  .chronicle-state,
+  .chronicle-direction,
+  .tool-pill,
+  .dock-utility-btn,
+  .compact-button,
+  .guide-role-faction-pill,
+  .guide-role-title-pill,
+  .guide-role-core-pill,
+  .camp-pill-blue,
+  .camp-pill-red,
+  .quest-summary-item,
+  .flank-seat-num,
+  .flank-me-pill,
+  .btn-replay-restart,
+  .btn-replay-history
+) {
+  writing-mode: horizontal-tb !important;
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  flex-shrink: 0 !important;
+}
+
+/* Multi-pill / stat flex rows wrap whole items cleanly instead of crushing a sibling */
+:is(
+  .mission-report-card-stats,
+  .mission-report-vote-totals,
+  .brawl-replay-card-head,
+  .brawl-replay-actor,
+  .brawl-replay-tags,
+  .brawl-chronicle-head,
+  .battle-vote-totals,
+  .battle-card-counts,
+  .battle-captain,
+  .guide-role-badges
+) {
+  flex-wrap: wrap !important;
+}
+
+/* Single full-width stat cards (e.g. masked Chaotic Fog) must never inherit narrow 2-column max-width */
+.mission-report-card-stats .stat-card.stat-masked {
+  flex: 1 1 100% !important;
+  width: 100% !important;
+  max-width: none !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  align-items: center !important;
+}

@@ -21,16 +21,22 @@ export function BattleRound({ round: r, players, anonymous, userId, brawlActions
       <div className="battle-party-grid" data-count={r.team.length}>{r.team.map(id => <PlayerToken key={id} player={playerById(id)} self={id === userId} />)}</div>
     </section>
     <section className="battle-section" aria-label="组队表决">
-      <h4>组队表决</h4>
-      {r.vote ? <>
+      <h4>组队表决{r.militaryWager ? ' · 📜 立军令状' : ''}</h4>
+      {r.vote ? (r.vote.forced ? (
+        <p className="hint" style={{ color: '#92400e', fontWeight: 600 }}>🔥 两流必发：本难已流局 2 次，第 3 轮跳过组队表决强制发车出征。</p>
+      ) : <>
         <div className="battle-vote-totals"><span className="approve">✓ {r.vote.approvals} 赞成</span><span className="reject">× {r.vote.rejections} 反对</span><span className="abstain">− {r.vote.abstentions ?? 0} 弃权</span><strong>{r.vote.passed ? '组队通过' : '组队未通过（流局）'}</strong></div>
         {ballots ? <details className="chronicle-ballots"><summary>全员公开票型 · {players.length} 人</summary><div className="battle-voters" aria-label="全员公开票型">{players.map(p => <div key={p.id} aria-label={`${p.seat} 号 ${p.nickname}：${ballots[p.id] === true ? '赞成' : ballots[p.id] === false ? '反对' : ballots[p.id] === 'abstain' ? '弃权' : '无票型记录'}`}><PlayerToken player={p} vote={ballots[p.id]} self={p.id === userId} />{ballots[p.id]===undefined&&<span className="chronicle-no-ballot">无记录</span>}</div>)}</div><p className="hint">图标表示组队投票，不代表任务出牌。</p></details> : <p className="hint">{anonymous ? '匿名组队投票，仅展示总票数。' : '本次未记录个人票型，仅展示总票数。'}</p>}
-      </> : <p className="hint">本次表决未完成，不展示未收齐的个人选择。</p>}
+      </>) : <p className="hint">本次表决未完成，不展示未收齐的个人选择。</p>}
     </section>
     {r.result && <section className={`battle-section battle-result ${r.result.passed ? 'is-pass' : 'is-fail'}`} aria-label="任务结算">
       <h4>任务结算</h4>
-      <div className="battle-card-counts"><span className="approve">成功牌 × {r.result.successes}</span><span className="reject">失败牌 × {r.result.failures}</span></div>
-      <p className="hint">任务牌始终匿名，不对应个人。</p>
+      {r.result.masked && r.result.successes < 0 ? (
+        <div className="battle-card-counts"><span className="approve">🌫️ 混沌迷雾 · 牌数已隐藏（? 张）</span></div>
+      ) : (
+        <div className="battle-card-counts"><span className="approve">成功牌 × {r.result.successes}</span><span className="reject">失败牌 × {r.result.failures}</span></div>
+      )}
+      <p className="hint">{r.result.masked && r.result.successes < 0 ? '本难触发混沌迷雾，终局复盘揭晓真实牌底。' : '任务牌始终匿名，不对应个人。'}</p>
     </section>}
     {brawlActions && brawlActions.length > 0 && (
       <section className="battle-section battle-brawl-chronicle" aria-label="仙妖斗法实录">

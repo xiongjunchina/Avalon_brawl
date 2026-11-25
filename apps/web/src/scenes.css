@@ -9090,5 +9090,188 @@ button.seat-mic-badge:active {
   transform: scale(1.1) !important;
 }
 
+/* ==================== 八十一难奇劫 · 天机显性播报 · 军令状 (Scheme A 白玉赤金) ==================== */
+.brawl-live-hud-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 4px 0 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.brawl-ordeal-banner {
+  background: linear-gradient(135deg, rgba(255, 252, 243, 0.97) 0%, rgba(254, 243, 199, 0.94) 100%);
+  border: 1.5px solid #d4af37;
+  border-radius: 10px;
+  padding: 6px 10px;
+  box-shadow: 0 2px 8px rgba(180, 83, 9, 0.14), inset 0 1px 0 #ffffff;
+  color: #241208;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.brawl-ordeal-main {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  line-height: 1.4;
+}
+
+.brawl-ordeal-tag {
+  font-size: 12px;
+  font-weight: 800;
+  color: #831843;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(212, 175, 55, 0.65);
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+
+.brawl-ordeal-desc {
+  font-size: 11.5px;
+  color: #78350f;
+  font-weight: 600;
+}
+
+.brawl-swap-alert {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #9a3412;
+  background: #fff7ed;
+  border: 1px dashed #ea580c;
+  border-radius: 7px;
+  padding: 4px 8px;
+  line-height: 1.4;
+}
+
+.brawl-shituo-reveal {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #065f46;
+  background: #ecfdf5;
+  border: 1px solid #34d399;
+  border-radius: 7px;
+  padding: 3px 8px;
+}
+
+.brawl-live-events-strip {
+  background: rgba(255, 252, 243, 0.96);
+  border: 1.2px solid rgba(212, 175, 55, 0.6);
+  border-radius: 9px;
+  overflow: hidden;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.06);
+}
+
+.brawl-live-events-toggle {
+  width: 100%;
+  min-height: 30px !important;
+  padding: 5px 10px !important;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #78350f !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  text-align: left !important;
+  box-shadow: none !important;
+}
+
+.brawl-live-events-toggle .live-event-latest {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.brawl-live-events-toggle .live-event-chevron {
+  flex-shrink: 0;
+  color: #831843;
+  font-size: 11px;
+}
+
+.brawl-live-events-list {
+  border-top: 1px dashed rgba(212, 175, 55, 0.45);
+  padding: 6px 10px;
+  max-height: 130px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #ffffff;
+}
+
+.brawl-live-event-row {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #241208;
+}
+
+.brawl-live-event-row strong {
+  color: #831843;
+}
+
+.wager-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
+  margin: 0 0 6px;
+  border-radius: 9px;
+  border: 1.2px solid rgba(212, 175, 55, 0.6);
+  background: #fffbeb;
+  color: #78350f;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1.35;
+}
+
+.wager-toggle-row.is-checked {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-color: #b45309;
+  color: #831843;
+  box-shadow: 0 2px 6px rgba(180, 83, 9, 0.2);
+}
+
+.wager-toggle-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  min-height: 16px;
+  margin: 0;
+  accent-color: #b45309;
+  flex-shrink: 0;
+}
+
+.wager-self-warn {
+  font-style: normal;
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.brawl-setup-toggle-pill {
+  cursor: pointer;
+  justify-content: space-between;
+}
+
+.brawl-setup-toggle-pill input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  margin: 0 0 0 8px;
+  accent-color: #b45309;
+  flex-shrink: 0;
+}
+
+
 
 

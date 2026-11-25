@@ -1413,9 +1413,11 @@ test('brawl: Huangmei Laoguai has mutual vision with Red teammates, but is maske
   const otherRed = redPlayers[1];
   const merlinPlayer = players.find(p => game.roles[p.id] === 'merlin')!;
 
-  // 强制将 huangmeiPlayer 的 brawl 角色设为黄眉老怪
+  // 强制将 huangmeiPlayer 的 brawl 角色设为黄眉老怪，otherRed 设为普通妖魔（避免随机抽到孤狼牛魔王导致偶发抖动）
   game.brawlRoles![huangmeiPlayer.id] = 'huangmei_laoguai';
   game.brawl!.playerStates[huangmeiPlayer.id].roleId = 'huangmei_laoguai';
+  game.brawlRoles![otherRed.id] = 'bai_gujing';
+  game.brawl!.playerStates[otherRed.id].roleId = 'bai_gujing';
 
   // 1. 黄眉老怪看其他红方队友：可见
   const huangmeiView = projectGame(game, huangmeiPlayer.id);

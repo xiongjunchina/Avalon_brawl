@@ -5,6 +5,23 @@ import type {
 } from '@avalon/contracts';
 
 /**
+ * 乱斗技能概率单一数据源（文案与结算严格共用同一常量，杜绝文案与逻辑不符）
+ */
+export const BRAWL_SKILL_PROBS = {
+  YUTU_DISCARD: 0.5,
+  JINJIAO_ABSORB: 0.6,
+  BAIYAN_BIG_TEAM: 0.6,
+  BAIYAN_SMALL_TEAM: 0.5,
+  WANGMU_PARDON: 0.5,
+  YUHUANG_ONE_FAIL: 0.6,
+  YUHUANG_TWO_FAIL: 0.3,
+  SHA_PASS: 0.5,
+  PUTI_REVEAL: 0.5,
+  TIESHAN_BONUS_ROLE: 0.5,
+  HUANGFENG_PEEK: 0.5,
+} as const;
+
+/**
  * 30 位西游高知名度全明星阵容注册表（15 蓝仙佛 + 15 红妖魔）
  * 架构支持未来任意扩展（只需向注册表追加新对象）
  */
@@ -374,8 +391,8 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
       triggerPhase: 'team_building',
       actionType: 'target_player',
       maxUses: 1,
-      awakeningChance: 0.33,
-      description: '队伍敲定后暗中迷魂车上 1 名好人，其出征时 33% 概率成功牌被封印弃权。',
+      awakeningChance: BRAWL_SKILL_PROBS.YUTU_DISCARD,
+      description: `队伍敲定后暗中迷魂车上 1 名好人，其出征时 ${Math.round(BRAWL_SKILL_PROBS.YUTU_DISCARD * 100)}% 概率成功牌被封印弃权。`,
     },
   },
   laoshu_jing: {
@@ -466,8 +483,8 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
       triggerPhase: 'team_building',
       actionType: 'target_player',
       maxUses: 1,
-      awakeningChance: 0.5,
-      description: '手机私密选定出征队员 1 人，若其投成功，50% 概率被葫芦化解吸收。',
+      awakeningChance: BRAWL_SKILL_PROBS.JINJIAO_ABSORB,
+      description: `手机私密选定出征队员 1 人，若其投成功，${Math.round(BRAWL_SKILL_PROBS.JINJIAO_ABSORB * 100)}% 概率被葫芦化解吸收。`,
     },
   },
   yinjiao_dawang: {
@@ -522,7 +539,7 @@ export const BRAWL_ROLE_REGISTRY: Record<string, BrawlRoleDef> = {
       triggerPhase: 'team_building',
       actionType: 'target_player',
       maxUses: 1,
-      description: '出征前暗下毒茶：若目标投成功，大车50%/小车33%概率毒化为失败！',
+      description: `出征前暗下毒茶：若目标投成功，大车${Math.round(BRAWL_SKILL_PROBS.BAIYAN_BIG_TEAM * 100)}%/小车${Math.round(BRAWL_SKILL_PROBS.BAIYAN_SMALL_TEAM * 100)}%概率毒化为失败！`,
     },
   },
   qingmao_shizi: {

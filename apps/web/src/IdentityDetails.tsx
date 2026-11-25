@@ -35,7 +35,16 @@ export function IdentityDetails({
   const [viewingBrawlArt, setViewingBrawlArt] = useState(false);
   const [treasureOpen, setTreasureOpen] = useState(false);
   const [brawlTarget, setBrawlTarget] = useState<string>('');
+  const [wagerTarget, setWagerTarget] = useState<string>('');
   const selfBrawl = game?.selfBrawl;
+  const effectiveSkillRoleId = selfBrawl?.bonusRoleId ?? selfBrawl?.roleId;
+  const isForcedLaunchTurn = Boolean(game?.brawl && (game.rejectionCount ?? 0) >= 2);
+  const isVoteOnlyBrawlSkill = Boolean(
+    selfBrawl && ['santou_liubi', 'pingtian_handi', 'yishan_yading', 'xiangyao_baozhang', 'daoda_yipa'].includes(selfBrawl.skill.skillId)
+  );
+  const isClickableBrawlSkill = Boolean(
+    selfBrawl && selfBrawl.skill.actionType !== 'passive'
+  );
 
   const handleUseSkill = (skillId: string, targetId?: string) => {
     if (onUseBrawlSkill) {
@@ -282,7 +291,7 @@ export function IdentityDetails({
           }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
               <span style={{ color: '#92400e', fontWeight: 800, fontSize: '12px' }}>
-                📿 本命绝技 · {selfBrawl.skill.skillName}
+                📿 {selfBrawl.bonusRoleName ? `附带随机仙宝（${selfBrawl.bonusRoleName}）` : '本命绝技'} · {selfBrawl.skill.skillName}
               </span>
               <span style={{ fontSize: '10px', color: '#78350f', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.35)', padding: '1px 5px', borderRadius: '4px' }}>
                 {selfBrawl.skill.maxUses === 1 ? '整局限用 1 次' : '常驻被动'}
@@ -317,6 +326,27 @@ export function IdentityDetails({
               </div>
             ) : null;
           })()}
+          {selfBrawl.shituoExcludedPlayerId && (() => {
+            const excluded = players.find(p => p.id === selfBrawl.shituoExcludedPlayerId);
+            return excluded ? (
+              <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#991b1b' }}>
+                🦁 狮驼死战妖魔重赏：已额外排除【{excluded.seat}号 · {excluded.nickname}】（此人绝非孙悟空）！
+              </div>
+            ) : null;
+          })()}
+          {selfBrawl.wagerInspectResult && (
+            <div style={{
+              fontSize: '11.5px',
+              fontWeight: 700,
+              color: selfBrawl.wagerInspectResult.team === 'blue' ? '#065f46' : '#991b1b',
+              background: selfBrawl.wagerInspectResult.team === 'blue' ? '#ecfdf5' : '#fef2f2',
+              border: `1px solid ${selfBrawl.wagerInspectResult.team === 'blue' ? '#10b981' : '#ef4444'}`,
+              borderRadius: '6px',
+              padding: '5px 8px',
+            }}>
+              📜 军令状天眼查验结果：【{selfBrawl.wagerInspectResult.targetSeat}号 · {selfBrawl.wagerInspectResult.targetNickname}】显现为【{selfBrawl.wagerInspectResult.team === 'blue' ? '仙佛清光（蓝方）' : '妖魔邪气（红方）'}】！
+            </div>
+          )}
           {selfBrawl.putiDianhuaNotice && (
             <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#6d28d9' }}>
               {selfBrawl.putiDianhuaNotice}
@@ -399,8 +429,70 @@ export function IdentityDetails({
             🔍 点击赏析专属法相大图
           </button>
 
+          {/* 军令状成功兑现：私密天眼查验交互区 */}
+          {selfBrawl.canWagerInspect && (
+            <div style={{
+              background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+              border: '1.5px solid #d97706',
+              borderRadius: '8px',
+              padding: '8px 10px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              boxShadow: '0 2px 8px rgba(217, 119, 6, 0.2)',
+            }}>
+              <span style={{ fontSize: '12px', color: '#831843', fontWeight: 800 }}>
+                📜 军令状护经成功 · 天眼查验特权就绪
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                <select
+                  value={wagerTarget}
+                  onChange={e => setWagerTarget(e.target.value)}
+                  style={{
+                    flex: '1 1 120px',
+                    background: '#ffffff',
+                    color: '#241208',
+                    border: '1.5px solid #d4af37',
+                    borderRadius: '6px',
+                    padding: '4px 6px',
+                    fontSize: '12px',
+                  }}
+                >
+                  <option value="">选择要查验阵营的仙友</option>
+                  {players.filter(p => p.id !== userId).map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.seat}号 {p.nickname}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={disabled || !wagerTarget}
+                  onClick={() => {
+                    if (!wagerTarget) return;
+                    send?.({ type: 'brawlCommand', payload: { action: 'wagerInspect', targetPlayerId: wagerTarget } });
+                    setWagerTarget('');
+                  }}
+                  style={{
+                    background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+                    color: '#ffffff',
+                    fontWeight: 'bold',
+                    border: '1px solid #fde68a',
+                    borderRadius: '6px',
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    margin: 0,
+                  }}
+                >
+                  🔍 立即查验
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* 技能发动交互区 */}
-          {selfBrawl.skillAvailable && !selfBrawl.skillUsed && selfBrawl.skill.actionType !== 'passive' && (
+          {selfBrawl.skillAvailable && !selfBrawl.skillUsed && isClickableBrawlSkill && (
             <div style={{
               background: 'linear-gradient(135deg, #ffffff 0%, #fef3c7 100%)',
               border: '1.5px solid #d4af37',
@@ -412,18 +504,22 @@ export function IdentityDetails({
               gap: '8px',
               marginTop: '2px',
               boxShadow: '0 2px 8px rgba(212, 175, 55, 0.25)',
+              flexWrap: 'wrap',
             }}>
               <span style={{ fontSize: '12px', color: '#78350f', fontWeight: 800 }}>
-                ✨ 绝技蓄势待发
+                {isForcedLaunchTurn && isVoteOnlyBrawlSkill
+                  ? '🔥 强发轮跳过表决 · 表决技暂留'
+                  : '✨ 绝技蓄势待发'}
               </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 {selfBrawl.skill.actionType === 'target_player' && (() => {
                   const currentTeam = game?.draftTeam?.playerIds ?? game?.rounds.at(-1)?.team ?? [];
                   const captainId = game?.captainId;
-                  const isQingshi = selfBrawl.roleId === 'qingmao_shizi';
-                  const isZhizhu = selfBrawl.roleId === 'zhizhu_jing';
-                  const isGuanyin = selfBrawl.roleId === 'guanyin_pusa';
-                  const isRulai = selfBrawl.roleId === 'rulai_fozu';
+                  const isQingshi = effectiveSkillRoleId === 'qingmao_shizi';
+                  const isZhizhu = effectiveSkillRoleId === 'zhizhu_jing';
+                  const isGuanyin = effectiveSkillRoleId === 'guanyin_pusa';
+                  const isRulai = effectiveSkillRoleId === 'rulai_fozu';
+                  const isYinjiao = effectiveSkillRoleId === 'yinjiao_dawang';
 
                   const candidateOptions = players.map(p => {
                     const isSelf = p.id === userId;
@@ -457,7 +553,7 @@ export function IdentityDetails({
                         label += ' (队长·不可结茧)';
                         disabledOpt = true;
                       }
-                    } else if (isRulai && isSelf) {
+                    } else if ((isRulai || isYinjiao) && isSelf) {
                       label += ' (你自己·不可选)';
                       disabledOpt = true;
                     }
@@ -498,7 +594,7 @@ export function IdentityDetails({
                 })()}
                 <button
                   type="button"
-                  disabled={disabled || (selfBrawl.skill.actionType === 'target_player' && !brawlTarget)}
+                  disabled={disabled || (isForcedLaunchTurn && isVoteOnlyBrawlSkill) || (selfBrawl.skill.actionType === 'target_player' && !brawlTarget)}
                   onClick={() => handleUseSkill(selfBrawl.skill.skillId, brawlTarget || undefined)}
                   style={{
                     background: 'linear-gradient(135deg, #d97706 0%, #b45309 50%, #78350f 100%)',
@@ -548,6 +644,20 @@ export function IdentityDetails({
 
       <section className="identity-knowledge" aria-label="你的身份视野">
         <h3>{title}</h3>
+        {selfBrawl?.phantomVisionActive && (
+          <p style={{
+            margin: '4px 0 6px',
+            padding: '6px 8px',
+            borderRadius: '8px',
+            background: '#fffbeb',
+            border: '1px solid #d97706',
+            color: '#92400e',
+            fontSize: '11.5px',
+            fontWeight: 700,
+          }}>
+            ⚠️【画皮惑眼生效】妖气混杂！你眼中混入了 1 位无辜仙友冒充红气，请结合场上局势自行甄别！
+          </p>
+        )}
         {!!candidates.length && <div className="identity-vision" data-count={candidates.length}>{candidates.map(id => {
           const player = players.find(p => p.id === id);
           return player ? <PlayerToken key={id} player={player} /> : null;

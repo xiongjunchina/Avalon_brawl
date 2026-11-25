@@ -15,6 +15,8 @@ const defaultSettings: Settings = {
   treasuresEnabled: true,
   rolePreferenceEnabled: false,
   brawlModeEnabled: false,
+  brawlOrdealsEnabled: false,
+  brawlPhantomVisionEnabled: false,
 };
 
 function makePlayers(count: number): Player[] {

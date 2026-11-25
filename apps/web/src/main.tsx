@@ -22,8 +22,10 @@ import {
   MISSION_SIZES,
   ROLE_CONFIG,
   captain as getCaptainId,
+  collectMissionBannedPlayerIds,
   createGame,
   failuresRequiredFor,
+  getEffectiveSkillRole,
   isEnded,
   missionSizesFor,
   projectGame,
@@ -120,6 +122,8 @@ function App() {
   const [setupSettings, setSetupSettings] = useState<Settings>(() => ({
     ...defaultSettings,
     brawlModeEnabled: true,
+    brawlOrdealsEnabled: true,
+    brawlPhantomVisionEnabled: false,
     playerCount: 6,
     captainMode: 'random_order',
     anonymousTeamVote: true,
@@ -696,7 +700,7 @@ function App() {
       if (isEnded(next) || !next.brawl) break;
       const pState = next.brawl.playerStates[bot.id];
       if (!pState || pState.skillUsed) continue;
-      const roleDef = BRAWL_ROLE_REGISTRY[pState.roleId];
+      const roleDef = getEffectiveSkillRole(pState);
       if (!roleDef) continue;
       const skill = roleDef.skill;
 
@@ -970,7 +974,16 @@ function App() {
       } else if (next.phase === 'proposing') {
         const cap = getCaptainId(next);
         const size = missionSizesFor(next.players.length, Boolean(next.brawl))[next.mission - 1];
-        const teamIds = next.players.slice(0, size).map(p => p.id);
+        const bannedIds = collectMissionBannedPlayerIds({
+          mission: next.mission,
+          captainId: cap,
+          humanBagBanned: next.treasuresState?.humanBag,
+          imprisonedTargetId: next.brawl?.imprisonedTargetId,
+          zhizhuBannedTargetId: next.brawl?.zhizhuBannedTargetId,
+          ordeals: next.brawl?.ordeals,
+          wager: next.brawl?.wager,
+        });
+        const teamIds = next.players.filter(p => !bannedIds.has(p.id)).slice(0, size).map(p => p.id);
         next = transition(
           next,
           cap,
@@ -1491,18 +1504,35 @@ function App() {
                   </div>
 
                   <div className="brawl-setup-features">
-                    <div className="brawl-setup-feature-pill">
-                      <span className="feature-icon" aria-hidden="true">🎭</span>
+                    <label className="brawl-setup-feature-pill brawl-setup-toggle-pill">
+                      <span className="feature-icon" aria-hidden="true">🔥</span>
                       <div className="feature-text">
-                        <strong>心仪神魔预选</strong>
-                        <span>入座后可在等待区自主设置最多 5 位心仪神魔，系统发牌优先满足出战志愿</span>
+                        <strong>八十一难 · 每难一劫（可开关）</strong>
+                        <span>每难翻开 1 张不重复奇劫法则（混沌迷雾/弱水流沙/舍己为公/狮驼死战/天意篡改），并常驻两流必发与军令状</span>
                       </div>
-                    </div>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(setupSettings.brawlOrdealsEnabled)}
+                        onChange={e => setSetupSettings(s => ({ ...s, brawlOrdealsEnabled: e.target.checked }))}
+                      />
+                    </label>
+                    <label className="brawl-setup-feature-pill brawl-setup-toggle-pill">
+                      <span className="feature-icon" aria-hidden="true">👁️</span>
+                      <div className="feature-text">
+                        <strong>画皮惑眼 · 高阶信息迷雾（可选）</strong>
+                        <span>开启后孙悟空火眼金睛中混入 1 位无辜蓝方假红气，打破全知上帝视角</span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(setupSettings.brawlPhantomVisionEnabled)}
+                        onChange={e => setSetupSettings(s => ({ ...s, brawlPhantomVisionEnabled: e.target.checked }))}
+                      />
+                    </label>
                     <div className="brawl-setup-feature-pill">
                       <span className="feature-icon" aria-hidden="true">⚡</span>
                       <div className="feature-text">
-                        <strong>专属本命神通</strong>
-                        <span>30 位神魔全明星皆具备独门被动或主动技能，弱技能碰撞，局局博弈全新</span>
+                        <strong>全员神通 + 5~8人小局副法宝</strong>
+                        <span>30 位全明星神魔自带绝技，5~8 人局 4 名固定核心额外获赐随机副法宝，人人有牌可打</span>
                       </div>
                     </div>
                   </div>

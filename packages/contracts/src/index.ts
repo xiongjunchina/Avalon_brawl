@@ -14,6 +14,8 @@ export const settingsSchema = z.object({
   treasuresEnabled: z.boolean().default(false),
   rolePreferenceEnabled: z.boolean().default(false),
   brawlModeEnabled: z.boolean().default(false),
+  brawlOrdealsEnabled: z.boolean().default(false),
+  brawlPhantomVisionEnabled: z.boolean().default(false),
 }).strict();
 export type Settings = z.infer<typeof settingsSchema>;
 export const specialCodeSchema = z.string().regex(/^[1-9]\d{5}$/);
@@ -52,6 +54,8 @@ export const defaultSettings: Settings = {
   treasuresEnabled: false,
   rolePreferenceEnabled: false,
   brawlModeEnabled: false,
+  brawlOrdealsEnabled: false,
+  brawlPhantomVisionEnabled: false,
 };
 export const defaultAnonymousTeamVote = (playerCount: number) => playerCount < 8;
 export type TeamBallot = boolean | 'abstain';
@@ -82,7 +86,7 @@ export const commandSchema = z.discriminatedUnion('type', [
   z.object({ ...base, type: z.literal('setAdmission'), payload: z.object({ acceptingNewMembers: z.boolean() }).strict() }).strict(),
   ...(['startGame', 'confirmRole', 'startTeamVote', 'returnToLobby', 'requestAbort', 'endGame'] as const).map(type =>
     z.object({ ...base, type: z.literal(type), payload: z.object({}).strict() }).strict()),
-  z.object({ ...base, type: z.literal('proposeTeam'), payload: z.object({ playerIds: z.array(z.string().uuid()).max(6), direction: z.enum(['clockwise', 'counterclockwise']) }).strict() }).strict(),
+  z.object({ ...base, type: z.literal('proposeTeam'), payload: z.object({ playerIds: z.array(z.string().uuid()).max(6), direction: z.enum(['clockwise', 'counterclockwise']), militaryWager: z.boolean().optional() }).strict() }).strict(),
   z.object({ ...base, type: z.literal('updateTeamDraft'), payload: z.object({ playerIds: z.array(z.string().uuid()).max(6), direction: z.enum(['clockwise', 'counterclockwise']) }).strict() }).strict(),
   z.object({ ...base, type: z.literal('teamVote'), payload: z.object({ approve: z.union([z.boolean(), z.literal('abstain')]) }).strict() }).strict(),
   z.object({ ...base, type: z.literal('missionVote'), payload: z.object({ success: z.boolean() }).strict() }).strict(),
@@ -404,8 +408,9 @@ export type Player = User & { seat: number };
 export interface RoundView {
   number: number; mission: number; captainId: string; team: string[];
   direction: 'clockwise' | 'counterclockwise';
-  vote?: { approvals: number; rejections: number; abstentions?: number; passed: boolean; ballots?: Record<string, TeamBallot> };
-  result?: { successes: number; failures: number; passed: boolean };
+  militaryWager?: boolean;
+  vote?: { approvals: number; rejections: number; abstentions?: number; passed: boolean; forced?: boolean; ballots?: Record<string, TeamBallot> };
+  result?: { successes: number; failures: number; passed: boolean; masked?: boolean };
 }
 export interface GameResult {
   winner: Team | null;

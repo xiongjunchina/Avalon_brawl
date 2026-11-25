@@ -60,20 +60,31 @@ export function MissionReportDialog({
             </div>
           </div>
           <div className="mission-report-card-stats">
-            <span className="stat-card stat-success">
-              <span className="stat-icon" aria-hidden="true">🪷</span>
-              <span className="stat-label">成功牌</span>
-              <strong className="stat-val">{result.successes} 张</strong>
-            </span>
-            <span className="stat-card stat-failure">
-              <span className="stat-icon" aria-hidden="true">🔥</span>
-              <span className="stat-label">失败牌</span>
-              <strong className="stat-val">{result.failures} 张</strong>
-            </span>
+            {result.masked && result.successes < 0 ? (
+              <span className="stat-card stat-masked" style={{ width: '100%', justifyContent: 'center' }}>
+                <span className="stat-icon" aria-hidden="true">🌫️</span>
+                <span className="stat-label">混沌迷雾遮蔽</span>
+                <strong className="stat-val">具体张数隐藏（? 张）</strong>
+              </span>
+            ) : (
+              <>
+                <span className="stat-card stat-success">
+                  <span className="stat-icon" aria-hidden="true">🪷</span>
+                  <span className="stat-label">成功牌</span>
+                  <strong className="stat-val">{result.successes} 张</strong>
+                </span>
+                <span className="stat-card stat-failure">
+                  <span className="stat-icon" aria-hidden="true">🔥</span>
+                  <span className="stat-label">失败牌</span>
+                  <strong className="stat-val">{result.failures} 张</strong>
+                </span>
+              </>
+            )}
           </div>
           <p className="mission-report-rule-note">
-            {twoFailsRequired ? '本难规则：需 2 张及以上失败牌方判定失败' : '本难规则：只要出现 1 张失败牌即判定失败'}
-            ，出牌过程始终匿名。
+            {result.masked && result.successes < 0
+              ? '本难触发【混沌迷雾】：无论成败均隐去具体出牌张数，终局复盘揭晓真实牌底。'
+              : `${twoFailsRequired ? '本难规则：需 2 张及以上失败牌方判定失败' : '本难规则：只要出现 1 张失败牌即判定失败'}，出牌过程始终匿名。`}
           </p>
         </div>
 
@@ -108,8 +119,14 @@ export function MissionReportDialog({
           <div className="mission-report-section">
             <h4 className="mission-report-section-title">
               <Emblem kind="chronicle" />
-              <span>全员组队表决记录</span>
+              <span>全员组队表决记录{round.militaryWager ? ' · 📜 立军令状亲征' : ''}</span>
             </h4>
+            {round.vote.forced ? (
+              <p className="mission-report-anon-hint" style={{ fontWeight: 700, color: '#92400e' }}>
+                🔥 【两流必发 · 强制启程】本难此前已流局 2 次，第 3 轮提案跳过全员表决直接发车出征。
+              </p>
+            ) : (
+              <>
             <div className="mission-report-vote-totals">
               <span className="vote-tag approve">✓ {round.vote.approvals} 准行</span>
               <span className="vote-tag reject">× {round.vote.rejections} 封驳</span>
@@ -131,6 +148,8 @@ export function MissionReportDialog({
                   ? '🛡️ 本局开启了「匿名组队表决」，仅展示总票数，不公开个人选票。'
                   : '本次未记录全员公开票型。'}
               </p>
+            )}
+              </>
             )}
           </div>
         )}

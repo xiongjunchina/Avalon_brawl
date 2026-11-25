@@ -79,6 +79,71 @@ export interface BrawlRoleDef {
   minPlayers?: number;
 }
 
+export type BrawlEventVisibility = 'anonymous_broadcast' | 'silent';
+
+export type BrawlOrdealId =
+  | 'chaotic_fog'
+  | 'quicksand_ban'
+  | 'selfless_captain'
+  | 'shituo_bounty'
+  | 'celestial_swap';
+
+export interface BrawlOrdealDef {
+  id: BrawlOrdealId;
+  name: string;
+  icon: string;
+  tagline: string;
+  description: string;
+  minMission?: number;
+}
+
+export interface BrawlCelestialSwapRecord {
+  roundNumber: number;
+  mission: number;
+  removedId: string;
+  removedSeat: number;
+  removedNickname: string;
+  addedId: string;
+  addedSeat: number;
+  addedNickname: string;
+}
+
+export interface BrawlOrdealState {
+  enabled: boolean;
+  /** Length 5 deck (index 0..4 => mission 1..5), unique non-repeating ordeals */
+  deck: BrawlOrdealId[];
+  currentOrdealId?: BrawlOrdealId;
+  /** 弱水流沙：本难被困流沙禁止上车的玩家ID */
+  quicksandBannedPlayerId?: string;
+  /** 天意篡改：最近一次系统公开换人的记录 */
+  lastSwap?: BrawlCelestialSwapRecord;
+  /** 狮驼死战：蓝方胜出后公屏揭露的在场妖魔名号 */
+  shituoRevealedDemonName?: string;
+  /** 狮驼死战：红方胜出后终局刺杀额外排除的非大圣席位 */
+  shituoRedBountyArmed?: boolean;
+  shituoExcludedPlayerId?: string;
+}
+
+export interface BrawlWagerState {
+  activeRoundNumber?: number;
+  activeCaptainId?: string;
+  /** 整局已成功兑现次数（最多 1 次） */
+  redeemedCount: number;
+  /** 成功兑现后待领队执行的私密查验 */
+  pendingInspectorId?: string;
+  /** 军令状查验私密结果（对局中仅查验者可见） */
+  inspectResult?: {
+    inspectorId: string;
+    targetId: string;
+    targetSeat: number;
+    targetNickname: string;
+    team: BrawlCamp;
+  };
+  /** 翻车受罚：该玩家在指定难次全程禁止上车 */
+  bannedPlayerId?: string;
+  bannedMission?: number;
+}
+
 export interface BrawlBattleEvent {
   id: string;
   roleId: string;
@@ -86,6 +151,7 @@ export interface BrawlBattleEvent {
   skillName: string;
   summary: string;
   description?: string;
+  visibility?: BrawlEventVisibility;
   timestamp: string;
 }
 
@@ -121,6 +187,7 @@ export interface BrawlPlayerState {
   skillUsed: boolean;
   isAwakened?: boolean;
   wishRank?: number; // 命中心愿的志愿序号 (1 ~ 5)
+  bonusRoleId?: string; // 5~8人局核心角色额外配发的同阵营随机副法宝来源角色 ID
 }
 
 export interface BrawlGameState {
@@ -161,6 +228,9 @@ export interface BrawlGameState {
   baiyanDuchaTargetId?: string;     // 百眼魔君黄花毒茶锁定的队员
   baiyanDuchaResult?: boolean;      // 百眼魔君黄花毒茶是否成功毒化出失败
   baiyanDuchaNotOnTeam?: boolean;   // 百眼魔君黄花毒茶目标是否未在出征车队中
+  ordeals?: BrawlOrdealState;       // 八十一难 · 每难一劫状态
+  wager?: BrawlWagerState;          // 队长自愿立军令状状态
+  phantomEvilId?: string;           // 画皮惑眼：孙悟空视野混入的无辜蓝方假红 ID（局中物理脱敏，终局揭晓）
 }
 
 export interface SelfBrawlView {
@@ -173,11 +243,17 @@ export interface SelfBrawlView {
   skill: BrawlSkillDef;
   skillAvailable: boolean;
   skillUsed: boolean;
+  bonusRoleId?: string;
+  bonusRoleName?: string;
   isAwakened?: boolean;
   wishRank?: number; // 命中心愿的志愿序号 (1 ~ 5)
   peekedRoles?: { roleId: string; roleName: string; camp: BrawlCamp }[];
   zhaoyaoResult?: boolean; // 李天王专属：当前车队是否有妖魔
   dapengExcludedPlayerId?: string; // 终局刺杀阶段排除的非孙悟空席位
+  shituoExcludedPlayerId?: string; // 狮驼死战红方胜出终局额外排除的非孙悟空席位
+  phantomVisionActive?: boolean; // 孙悟空专属：本局开启画皮惑眼（视野含1名假红）
+  canWagerInspect?: boolean; // 军令状：当前玩家有待执行的私密查验特权
+  wagerInspectResult?: { targetSeat: number; targetNickname: string; team: BrawlCamp }; // 军令状查验私密结果
   putiDianhuaNotice?: string; // 菩提祖师专属私密点化天机（或黄眉老怪假托之天机）
   guanyinGanluResult?: { targetSeat: number; targetNickname: string; success: boolean }; // 观音菩萨专属私密出征探查
   guanyinNotice?: string; // 观音菩萨专属净瓶甘露显圣状态/结果回执
@@ -191,11 +267,17 @@ export interface SelfBrawlView {
   generalFeedback?: string; // 通用法宝施法/生效私密回执（保证所有角色均有明确私密结果告知）
 }
 
-export const brawlCommandPayloadSchema = z.object({
-  action: z.literal('useSkill'),
-  skillId: z.string(),
-  targetPlayerId: z.string().optional(),
-  targetPlayerId2: z.string().optional(),
-});
+export const brawlCommandPayloadSchema = z.discriminatedUnion('action', [
+  z.object({
+    action: z.literal('useSkill'),
+    skillId: z.string(),
+    targetPlayerId: z.string().optional(),
+    targetPlayerId2: z.string().optional(),
+  }).strict(),
+  z.object({
+    action: z.literal('wagerInspect'),
+    targetPlayerId: z.string().min(1),
+  }).strict(),
+]);
 
 export type BrawlCommandPayload = z.infer<typeof brawlCommandPayloadSchema>;

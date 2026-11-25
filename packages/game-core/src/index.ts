@@ -3,9 +3,9 @@ export { roleWeight, ROLE_ASSIGNMENT_VERSION, ROLE_WEIGHT_VERSION } from './role
 export type { RoleProtectionOptions } from './role-assignment.js';
 export { randomBigIntBelow } from './random.js';
 import type { Command, GameResult, GameView, LoyalGuardian, FemaleDemon, Player, Role, RoundView, Settings, Team, PrivateInspection, EarlyWindow, TeamBallot, GuardianClue, SelfTreasures, HeartBellAdvice, RoleAssignmentAudit, BrawlGameState, BrawlPlayerState, BrawlCommandPayload, BrawlCamp, BrawlTriggerPhase } from '@avalon/contracts';
-export { drawBrawlRoles, BRAWL_ROLE_REGISTRY, sampleWithoutReplacement } from './brawl-registry.js';
+export { drawBrawlRoles, BRAWL_ROLE_REGISTRY, BRAWL_SKILL_PROBS, sampleWithoutReplacement } from './brawl-registry.js';
 export type { BrawlRoleDef } from '@avalon/contracts';
-import { drawBrawlRoles, BRAWL_ROLE_REGISTRY, sampleWithoutReplacement } from './brawl-registry.js';
+import { drawBrawlRoles, BRAWL_ROLE_REGISTRY, BRAWL_SKILL_PROBS, sampleWithoutReplacement } from './brawl-registry.js';
 import {
   createBrawlGameState,
   appendBattleEvent,
@@ -14,7 +14,23 @@ import {
   validateBrawlMissionVote,
   projectSelfBrawlView,
   resetRoundBrawlEffects,
+  getEffectiveSkillRole,
+  hasBrawlSkillRole,
+  assignCoreBonusSkills,
 } from './brawl-engine.js';
+import {
+  BRAWL_MAX_REJECTIONS_BEFORE_FORCE,
+  BRAWL_ORDEAL_REGISTRY,
+  createInitialOrdealState,
+  createInitialWagerState,
+  getActiveOrdealId,
+  collectMissionBannedPlayerIds,
+  canSafelyBanPlayer,
+  advanceMissionOrdeals,
+  applyCelestialSwap,
+  pickPhantomEvilTarget,
+  canCaptainStakeWager,
+} from './brawl-ordeals.js';
 export const RULESET_VERSION = 'standard-no-lancelot-v6';
 export const GUANYIN_WINDOW_MS = 5_000;
 export const LOYAL_GUARDIAN_POOL: readonly LoyalGuardian[] = ['bailong', 'zhubajie', 'shawujing', 'jingang'];
@@ -546,11 +562,88 @@ export function createGame(
       ...redResult.assignedPlayerStates,
     };
 
+    // 5~8 人局乱斗提纯：为 4 位固定核心角色额外配发 1 个未出场同阵营主动副法宝
+    const bonusGrants = sorted.length <= 8 ? assignCoreBonusSkills(playerStates, Math.random) : [];
+
     brawlState = createBrawlGameState(
       playerStates,
       blueResult.nonCoreAssignedRoleIds,
       redResult.nonCoreAssignedRoleIds
     );
+    brawlState.ordeals = createInitialOrdealState(Boolean(settings.brawlOrdealsEnabled), Math.random);
+    brawlState.wager = createInitialWagerState();
+
+    // 画皮惑眼（高阶可选开关）：孙悟空眼中混入 1 位随机无辜蓝方假红气
+    if (settings.brawlPhantomVisionEnabled) {
+      const phantomId = pickPhantomEvilTarget(playerStates, Math.random);
+      if (phantomId) {
+        brawlState.phantomEvilId = phantomId;
+        const phantomP = sorted.find(x => x.id === phantomId);
+        recordBrawlReplayAction(brawlState, {
+          roundNumber: 0,
+          mission: 0,
+          phase: 'game_start',
+          actorId: '',
+          actorSeat: 0,
+          actorNickname: '天道异相',
+          roleId: 'ordeal_system',
+          roleName: '画皮惑眼',
+          skillName: '虚像灵光',
+          targetId: phantomP?.id,
+          targetSeat: phantomP?.seat,
+          targetNickname: phantomP?.nickname,
+          outcome: 'info',
+          detail: `本局开启【画皮惑眼】：蓝方仙友【${phantomP?.seat}号 · ${phantomP?.nickname}】身上笼罩虚幻妖气，在孙悟空火眼金睛中误显红光！`,
+        });
+      }
+    }
+
+    // 记录 5~8 人局核心副法宝分配到终局复盘
+    for (const grant of bonusGrants) {
+      const p = sorted.find(x => x.id === grant.userId);
+      const coreDef = BRAWL_ROLE_REGISTRY[grant.coreRoleId];
+      const bonusDef = BRAWL_ROLE_REGISTRY[grant.bonusRoleId];
+      if (p && coreDef && bonusDef) {
+        recordBrawlReplayAction(brawlState, {
+          roundNumber: 0,
+          mission: 0,
+          phase: 'game_start',
+          actorId: p.id,
+          actorSeat: p.seat,
+          actorNickname: p.nickname,
+          roleId: coreDef.id,
+          roleName: coreDef.name,
+          skillName: `附带仙宝 · ${bonusDef.skill.skillName}`,
+          outcome: 'info',
+          detail: `小局乱斗提纯：核心【${coreDef.name}】额外获赐【${bonusDef.name}】的独门法宝【${bonusDef.skill.skillName}】！`,
+        });
+      }
+    }
+
+    // 若开启八十一难奇劫，首难翻牌并公屏播报
+    if (brawlState.ordeals?.currentOrdealId) {
+      const firstOrdeal = BRAWL_ORDEAL_REGISTRY[brawlState.ordeals.currentOrdealId];
+      appendBattleEvent(
+        brawlState,
+        'ordeal_system',
+        `【第 1 难 · ${firstOrdeal.icon} ${firstOrdeal.name}】${firstOrdeal.description}`,
+        firstOrdeal.tagline,
+        'anonymous_broadcast',
+      );
+      recordBrawlReplayAction(brawlState, {
+        roundNumber: 0,
+        mission: 1,
+        phase: 'game_start',
+        actorId: '',
+        actorSeat: 0,
+        actorNickname: '八十一难奇劫',
+        roleId: 'ordeal_system',
+        roleName: firstOrdeal.name,
+        skillName: '第 1 难法则',
+        outcome: 'info',
+        detail: `第 1 难翻开奇劫【${firstOrdeal.name}】：${firstOrdeal.description}`,
+      });
+    }
 
     // 构造特定情报特权（二郎神看 1 妖，百眼魔君看 1 仙，老鼠精看 1 仙）
     brawlPeekedMap = {};
@@ -740,12 +833,12 @@ function triggerDapengExclude(g: GameState) {
   if (!g.brawl || g.brawl.dapengExcludedPlayerId) return;
   const candidateBluePlayers = g.players.filter(p => {
     const pState = g.brawl?.playerStates[p.id];
-    return pState?.camp === 'blue' && pState?.roleId !== 'sun_wukong';
+    return pState?.camp === 'blue' && pState?.roleId !== 'sun_wukong' && p.id !== g.brawl?.ordeals?.shituoExcludedPlayerId;
   });
   if (candidateBluePlayers.length > 0) {
     const excluded = candidateBluePlayers[Math.floor(Math.random() * candidateBluePlayers.length)];
     g.brawl.dapengExcludedPlayerId = excluded.id;
-    const dapengPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'jinchi_dapeng');
+    const dapengPlayer = g.players.find(p => hasBrawlSkillRole(g.brawl?.playerStates[p.id], 'jinchi_dapeng'));
     recordBrawlReplayAction(g.brawl, {
       roundNumber: g.rounds.length,
       mission: g.mission,
@@ -762,6 +855,53 @@ function triggerDapengExclude(g: GameState) {
       outcome: 'success',
       detail: `大鹏展翅云程万里俯瞰全场，终局刺杀阶段为红孩儿直接排除 1 个绝对不是孙悟空的席位：【${excluded.seat}号 · ${excluded.nickname}】！`,
     });
+  }
+}
+function triggerShituoExclude(g: GameState) {
+  if (!g.brawl?.ordeals?.shituoRedBountyArmed || g.brawl.ordeals.shituoExcludedPlayerId) return;
+  const candidateBluePlayers = g.players.filter(p => {
+    const pState = g.brawl?.playerStates[p.id];
+    return pState?.camp === 'blue' && pState?.roleId !== 'sun_wukong' && p.id !== g.brawl?.dapengExcludedPlayerId;
+  });
+  if (candidateBluePlayers.length > 0) {
+    const excluded = candidateBluePlayers[Math.floor(Math.random() * candidateBluePlayers.length)];
+    g.brawl.ordeals.shituoExcludedPlayerId = excluded.id;
+    recordBrawlReplayAction(g.brawl, {
+      roundNumber: g.rounds.length,
+      mission: g.mission,
+      phase: 'assassination',
+      actorId: '',
+      actorSeat: 0,
+      actorNickname: '狮驼死战',
+      roleId: 'ordeal_system',
+      roleName: '狮驼死战',
+      skillName: '妖魔重赏',
+      targetId: excluded.id,
+      targetSeat: excluded.seat,
+      targetNickname: excluded.nickname,
+      outcome: 'success',
+      detail: `狮驼死战红方重赏兑现：终局刺杀阶段为红孩儿额外排除 1 个绝对不是孙悟空的席位：【${excluded.seat}号 · ${excluded.nickname}】！`,
+    });
+  }
+}
+function validateTeamMemberBans(g: GameState, playerIds: string[]) {
+  if (g.treasuresState?.humanBag?.activeBannedMission === g.mission && g.treasuresState.humanBag.targetId) {
+    requireRule(!playerIds.includes(g.treasuresState.humanBag.targetId), 'PLAYER_BANNED_BY_HUMAN_BAG');
+  }
+  if (g.brawl?.imprisonedTargetId) {
+    requireRule(!playerIds.includes(g.brawl.imprisonedTargetId), 'PLAYER_IMPRISONED_BY_WUXINGSHAN');
+  }
+  if (g.brawl?.zhizhuBannedTargetId) {
+    requireRule(!playerIds.includes(g.brawl.zhizhuBannedTargetId), 'PLAYER_BANNED_BY_ZHIZHU_JING');
+  }
+  if (g.brawl?.ordeals?.quicksandBannedPlayerId) {
+    requireRule(!playerIds.includes(g.brawl.ordeals.quicksandBannedPlayerId), 'PLAYER_BANNED_BY_QUICKSAND');
+  }
+  if (g.brawl?.wager?.bannedMission === g.mission && g.brawl.wager.bannedPlayerId) {
+    requireRule(!playerIds.includes(g.brawl.wager.bannedPlayerId), 'PLAYER_BANNED_BY_WAGER');
+  }
+  if (getActiveOrdealId(g.brawl?.ordeals, g.mission) === 'selfless_captain') {
+    requireRule(!playerIds.includes(captain(g)), 'CAPTAIN_CANNOT_PICK_SELF_SELFLESS');
   }
 }
 function openEarlyWindowOrPropose(g: GameState) {
@@ -799,18 +939,13 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
     case 'updateTeamDraft': {
       requireRule(['role_reveal','proposing','discussion'].includes(g.phase), 'WRONG_PHASE');
       requireRule(userId === captain(g), 'NOT_CAPTAIN');
+      if (g.phase === 'discussion' && g.brawl?.ordeals?.lastSwap?.roundNumber === g.rounds.at(-1)?.number) {
+        throw new RuleError('CANNOT_EDIT_AFTER_CELESTIAL_SWAP');
+      }
       const { playerIds, direction } = action.payload as { playerIds: string[]; direction: RoundView['direction'] };
       const maxTeamSize = missionSizesFor(g.players.length, Boolean(g.brawl))[g.mission-1] + (g.brawl?.extraSeatLimit ?? 0);
       requireRule(playerIds.length <= maxTeamSize && new Set(playerIds).size === playerIds.length && playerIds.every(id => g.players.some(p => p.id === id)), 'INVALID_TEAM');
-      if (g.treasuresState?.humanBag?.activeBannedMission === g.mission && g.treasuresState.humanBag.targetId) {
-        requireRule(!playerIds.includes(g.treasuresState.humanBag.targetId), 'PLAYER_BANNED_BY_HUMAN_BAG');
-      }
-      if (g.brawl?.imprisonedTargetId) {
-        requireRule(!playerIds.includes(g.brawl.imprisonedTargetId), 'PLAYER_IMPRISONED_BY_WUXINGSHAN');
-      }
-      if (g.brawl?.zhizhuBannedTargetId) {
-        requireRule(!playerIds.includes(g.brawl.zhizhuBannedTargetId), 'PLAYER_BANNED_BY_ZHIZHU_JING');
-      }
+      validateTeamMemberBans(g, playerIds);
       g.draftTeam = { playerIds: [...playerIds], direction };
       if (g.phase === 'discussion') {
         g.rounds.at(-1)!.team = [...playerIds];
@@ -821,20 +956,105 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
     case 'proposeTeam': {
       requireRule(g.phase === 'proposing' || g.phase === 'role_reveal', 'WRONG_PHASE');
       requireRule(userId === captain(g), 'NOT_CAPTAIN');
-      const { playerIds, direction } = action.payload as { playerIds: string[]; direction: RoundView['direction'] };
-      const maxTeamSize = missionSizesFor(g.players.length, Boolean(g.brawl))[g.mission-1] + (g.brawl?.extraSeatLimit ?? 0);
+      const { playerIds, direction, militaryWager } = action.payload as { playerIds: string[]; direction: RoundView['direction']; militaryWager?: boolean };
+      const baseTeamSize = missionSizesFor(g.players.length, Boolean(g.brawl))[g.mission-1];
+      const maxTeamSize = baseTeamSize + (g.brawl?.extraSeatLimit ?? 0);
       requireRule(playerIds.length <= maxTeamSize && new Set(playerIds).size === playerIds.length && playerIds.every(id => g.players.some(p => p.id === id)), 'INVALID_TEAM');
-      if (g.treasuresState?.humanBag?.activeBannedMission === g.mission && g.treasuresState.humanBag.targetId) {
-        requireRule(!playerIds.includes(g.treasuresState.humanBag.targetId), 'PLAYER_BANNED_BY_HUMAN_BAG');
+      validateTeamMemberBans(g, playerIds);
+
+      if (militaryWager) {
+        requireRule(canCaptainStakeWager({ brawlEnabled: Boolean(g.brawl), mission: g.mission, ordeals: g.brawl?.ordeals, wager: g.brawl?.wager }), 'WAGER_UNAVAILABLE');
+        requireRule(playerIds.includes(userId), 'WAGER_REQUIRES_CAPTAIN_ON_TEAM');
       }
-      if (g.brawl?.imprisonedTargetId) {
-        requireRule(!playerIds.includes(g.brawl.imprisonedTargetId), 'PLAYER_IMPRISONED_BY_WUXINGSHAN');
+
+      const roundNumber = g.rounds.length + 1;
+      let finalTeam = g.players.filter(p => playerIds.includes(p.id)).map(p => p.id);
+
+      // 八十一难 · 天意篡改：队长提交名单进入论道时，系统公开从未上车的可选玩家中随机抽 1 人与车上 1 人对调
+      if (g.brawl && getActiveOrdealId(g.brawl.ordeals, g.mission) === 'celestial_swap' && finalTeam.length >= baseTeamSize) {
+        const bannedIds = collectMissionBannedPlayerIds({
+          mission: g.mission,
+          captainId: userId,
+          humanBagBanned: g.treasuresState?.humanBag,
+          imprisonedTargetId: g.brawl.imprisonedTargetId,
+          zhizhuBannedTargetId: g.brawl.zhizhuBannedTargetId,
+          ordeals: g.brawl.ordeals,
+          wager: g.brawl.wager,
+        });
+        const swapped = applyCelestialSwap({
+          roundNumber,
+          mission: g.mission,
+          team: finalTeam,
+          players: g.players,
+          bannedIds,
+          rng: Math.random,
+        });
+        finalTeam = swapped.newTeam;
+        if (swapped.swapRecord && g.brawl.ordeals) {
+          g.brawl.ordeals.lastSwap = swapped.swapRecord;
+          const sw = swapped.swapRecord;
+          appendBattleEvent(
+            g.brawl,
+            'ordeal_system',
+            `【🌀 天意篡改】风云骤变！天道将【${sw.removedSeat}号 · ${sw.removedNickname}】移出队伍，随机换入【${sw.addedSeat}号 · ${sw.addedNickname}】出征！`,
+            BRAWL_ORDEAL_REGISTRY.celestial_swap.description,
+            'anonymous_broadcast',
+          );
+          recordBrawlReplayAction(g.brawl, {
+            roundNumber,
+            mission: g.mission,
+            phase: 'team_building',
+            actorId: '',
+            actorSeat: 0,
+            actorNickname: '八十一难奇劫',
+            roleId: 'ordeal_system',
+            roleName: '天意篡改',
+            skillName: '随机对调',
+            targetId: sw.addedId,
+            targetSeat: sw.addedSeat,
+            targetNickname: sw.addedNickname,
+            outcome: 'success',
+            detail: `天意篡改生效：系统公开将【${sw.removedSeat}号 · ${sw.removedNickname}】移出名单，随机换入【${sw.addedSeat}号 · ${sw.addedNickname}】进入论道！`,
+          });
+        }
       }
-      if (g.brawl?.zhizhuBannedTargetId) {
-        requireRule(!playerIds.includes(g.brawl.zhizhuBannedTargetId), 'PLAYER_BANNED_BY_ZHIZHU_JING');
+
+      g.rounds.push({
+        number: roundNumber,
+        mission: g.mission,
+        captainId: userId,
+        team: finalTeam,
+        direction,
+        ...(militaryWager ? { militaryWager: true } : {}),
+      });
+
+      if (militaryWager && g.brawl) {
+        if (!g.brawl.wager) g.brawl.wager = createInitialWagerState();
+        g.brawl.wager.activeRoundNumber = roundNumber;
+        g.brawl.wager.activeCaptainId = userId;
+        const capP = g.players.find(p => p.id === userId);
+        appendBattleEvent(
+          g.brawl,
+          'wager_system',
+          `【📜 立军令状】领队【${capP?.seat}号 · ${capP?.nickname}】立下军令状亲征担保此车！成功将获天眼查验，翻车下难禁选上车！`,
+          '领队亲征立下军令状：护经成功获一次私密查验，失败则下一难全程禁选上车。',
+          'anonymous_broadcast',
+        );
+        recordBrawlReplayAction(g.brawl, {
+          roundNumber,
+          mission: g.mission,
+          phase: 'team_building',
+          actorId: userId,
+          actorSeat: capP?.seat ?? 0,
+          actorNickname: capP?.nickname ?? '领队',
+          roleId: 'wager_system',
+          roleName: '取经军令状',
+          skillName: '立军令状',
+          outcome: 'info',
+          detail: `领队【${capP?.seat}号 · ${capP?.nickname}】立下军令状亲征担保第 ${g.mission} 难出征阵容！`,
+        });
       }
-      g.rounds.push({ number: g.rounds.length+1, mission: g.mission, captainId: userId,
-        team: g.players.filter(p => playerIds.includes(p.id)).map(p => p.id), direction });
+
       delete g.draftTeam;
       g.phase = 'discussion'; g.teamVotes = {}; g.missionVotes = {};
       break;
@@ -844,9 +1064,29 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
       requireRule(userId === captain(g), 'NOT_CAPTAIN');
       const baseTeamSize = missionSizesFor(g.players.length, Boolean(g.brawl))[g.mission-1];
       const maxTeamSize = baseTeamSize + (g.brawl?.extraSeatLimit ?? 0);
-      const teamLen = g.rounds.at(-1)!.team.length;
+      const currentRound = g.rounds.at(-1)!;
+      const teamLen = currentRound.team.length;
       requireRule(teamLen >= baseTeamSize && teamLen <= maxTeamSize, 'INVALID_TEAM');
       delete g.draftTeam;
+
+      // 乱斗固定底盘规则【两流必发】：流局 2 次后，第 3 轮跳过表决强制发车直接出征！
+      if (g.brawl && g.rejectionCount >= BRAWL_MAX_REJECTIONS_BEFORE_FORCE) {
+        currentRound.vote = { approvals: 0, rejections: 0, abstentions: 0, passed: true, forced: true };
+        g.teamVotes = {};
+        g.brawl.doubleVoteUserId = undefined;
+        g.brawl.yishanTargetId = undefined;
+        delete g.bananaFanNotice;
+        appendBattleEvent(
+          g.brawl,
+          'ordeal_system',
+          `【🔥 两流必发】本难已流局 ${BRAWL_MAX_REJECTIONS_BEFORE_FORCE} 次，第 3 轮跳过组队表决，强制发车直接出征！`,
+          '大乱斗基础规则：每难流局 2 次后，第 3 轮跳过表决直接发车出征。',
+          'anonymous_broadcast',
+        );
+        g.phase = 'mission';
+        break;
+      }
+
       g.teamVoteStartedAt = new Date(context.now).toISOString();
       g.phase = 'team_vote';
       if (g.brawl?.imprisonedTargetId) {
@@ -882,8 +1122,8 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         // 沙悟净【降妖宝杖】：任意一轮组队表决未通过流局时，沙僧祭起降妖宝杖定风波，50% 概率将流局强行镇压反转为发车通过！
         if (!passed && g.brawl?.shawujingBaozhangArmed) {
           g.brawl.shawujingBaozhangArmed = false;
-          const shaPassed = Math.random() < 0.5;
-          const shaPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'sha_wujing');
+          const shaPassed = Math.random() < BRAWL_SKILL_PROBS.SHA_PASS;
+          const shaPlayer = g.players.find(p => hasBrawlSkillRole(g.brawl?.playerStates[p.id], 'sha_wujing'));
           if (shaPassed) {
             passed = true;
             appendBattleEvent(
@@ -922,7 +1162,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           g.brawl.zhubajieDaodaArmed = false;
           rejections -= 1;
           approvals += 1;
-          const zhuPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'zhu_bajie');
+          const zhuPlayer = g.players.find(p => hasBrawlSkillRole(g.brawl?.playerStates[p.id], 'zhu_bajie'));
           if (approvals > rejections) {
             passed = true;
             appendBattleEvent(
@@ -979,8 +1219,12 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           }
         } else {
           delete g.bananaFanNotice;
+          if (g.brawl?.wager && g.brawl.wager.activeRoundNumber === g.rounds.at(-1)?.number) {
+            g.brawl.wager.activeRoundNumber = undefined;
+            g.brawl.wager.activeCaptainId = undefined;
+          }
           g.rejectionCount++;
-          if (g.rejectionCount >= 5) finish(g, { winner: 'red', reason: 'five_rejections' });
+          if (!g.brawl && g.rejectionCount >= 5) finish(g, { winner: 'red', reason: 'five_rejections' });
           else { rotate(g); openEarlyWindowOrPropose(g); }
         }
       }
@@ -1006,7 +1250,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         if (g.brawl?.jinjiaoHuluTargetId) {
           const targetId = g.brawl.jinjiaoHuluTargetId;
           const targetP = g.players.find(p => p.id === targetId);
-          const jinjiaoPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'jinjiao_dawang');
+          const jinjiaoPlayer = g.players.find(p => hasBrawlSkillRole(g.brawl?.playerStates[p.id], 'jinjiao_dawang'));
 
           if (!round.team.includes(targetId)) {
             // 目标不在车上：技能直接落空，绝不转嫁给其他好人
@@ -1036,7 +1280,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
             });
           } else {
             const targetVotedSuccess = g.missionVotes[targetId];
-            const absorbed = targetVotedSuccess && Math.random() < 0.6;
+            const absorbed = targetVotedSuccess && Math.random() < BRAWL_SKILL_PROBS.JINJIAO_ABSORB;
             if (absorbed) {
               failures += 1;
               successes = Math.max(0, successes - 1);
@@ -1082,7 +1326,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         if (g.brawl?.yutuMihunTargetId) {
           const targetId = g.brawl.yutuMihunTargetId;
           const targetP = g.players.find(p => p.id === targetId);
-          const yutuPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'yutu_jing');
+          const yutuPlayer = g.players.find(p => hasBrawlSkillRole(g.brawl?.playerStates[p.id], 'yutu_jing'));
 
           if (!round.team.includes(targetId)) {
             // 目标不在车上：技能直接落空，绝不转嫁给其他好人
@@ -1112,7 +1356,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
             });
           } else {
             const targetVotedSuccess = g.missionVotes[targetId];
-            const discarded = targetVotedSuccess && Math.random() < 0.5;
+            const discarded = targetVotedSuccess && Math.random() < BRAWL_SKILL_PROBS.YUTU_DISCARD;
             if (discarded) {
               failures += 1;
               successes = Math.max(0, successes - 1);
@@ -1158,7 +1402,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         if (g.brawl?.baiyanDuchaTargetId) {
           const targetId = g.brawl.baiyanDuchaTargetId;
           const targetP = g.players.find(p => p.id === targetId);
-          const baiyanPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'baiyan_mojun');
+          const baiyanPlayer = g.players.find(p => hasBrawlSkillRole(g.brawl?.playerStates[p.id], 'baiyan_mojun'));
 
           if (!round.team.includes(targetId)) {
             // 目标不在车上：技能直接落空，绝不转嫁给其他好人
@@ -1183,7 +1427,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           } else {
             const targetVotedSuccess = g.missionVotes[targetId];
             const isBig = round.team.length >= 4;
-            const chance = isBig ? 0.6 : 0.5;
+            const chance = isBig ? BRAWL_SKILL_PROBS.BAIYAN_BIG_TEAM : BRAWL_SKILL_PROBS.BAIYAN_SMALL_TEAM;
             const poisoned = targetVotedSuccess && Math.random() < chance;
             if (poisoned) {
               failures += 1;
@@ -1222,7 +1466,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           failures += 1;
           successes = Math.max(0, successes - 1);
           g.brawl.baiguLijianResult = true;
-          const baiguPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'bai_gujing');
+          const baiguPlayer = g.players.find(p => hasBrawlSkillRole(g.brawl?.playerStates[p.id], 'bai_gujing'));
           recordBrawlReplayAction(g.brawl, {
             roundNumber: round.number,
             mission: g.mission,
@@ -1242,8 +1486,8 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         // 王母娘娘【九转仙桃】：出征前赐仙桃护体，本轮任务若出现失败牌，50% 概率当场化解赦免 1 张失败牌！
         if (g.brawl?.taoshouActive && failures > 0) {
           g.brawl.taoshouActive = false;
-          const taoSuccess = Math.random() < 0.5;
-          const wangmuPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'wangmu_niangniang');
+          const taoSuccess = Math.random() < BRAWL_SKILL_PROBS.WANGMU_PARDON;
+          const wangmuPlayer = g.players.find(p => hasBrawlSkillRole(g.brawl?.playerStates[p.id], 'wangmu_niangniang'));
           if (taoSuccess) {
             failures = Math.max(0, failures - 1);
             successes = round.team.length - failures;
@@ -1283,9 +1527,9 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         // 玉皇大帝【天尊玉旨】：任务失败时降旨赦免（1败 60% 概率逆转，2败 30% 概率逆转）
         if (!passed && failures > 0 && g.brawl?.yuhuangYuzhiArmed) {
           g.brawl.yuhuangYuzhiArmed = false;
-          const pardonChance = failures === 1 ? 0.6 : (failures === 2 ? 0.3 : 0);
+          const pardonChance = failures === 1 ? BRAWL_SKILL_PROBS.YUHUANG_ONE_FAIL : (failures === 2 ? BRAWL_SKILL_PROBS.YUHUANG_TWO_FAIL : 0);
           const yuhuangSuccess = pardonChance > 0 && Math.random() < pardonChance;
-          const yuhuangPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'yuhuang_dadi');
+          const yuhuangPlayer = g.players.find(p => hasBrawlSkillRole(g.brawl?.playerStates[p.id], 'yuhuang_dadi'));
           if (yuhuangSuccess) {
             passed = true;
             failures = 0;
@@ -1331,7 +1575,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
               targetId,
               targetSuccess: Boolean(targetVote),
             };
-            const guanyinPlayer = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'guanyin_pusa');
+            const guanyinPlayer = g.players.find(p => hasBrawlSkillRole(g.brawl?.playerStates[p.id], 'guanyin_pusa'));
             recordBrawlReplayAction(g.brawl, {
               roundNumber: round.number,
               mission: g.mission,
@@ -1353,20 +1597,190 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           }
         }
 
-        round.result = { successes, failures, passed };
+        const activeOrdealId = getActiveOrdealId(g.brawl?.ordeals, g.mission);
+        const isChaoticFog = activeOrdealId === 'chaotic_fog';
+        round.result = { successes, failures, passed, ...(isChaoticFog ? { masked: true } : {}) };
         g.missionVotes = {};
+
+        // 结算【军令状】：成功兑现私密查验（全局限量 1 次）；翻车下难全程禁选上车
+        if (g.brawl?.wager?.activeRoundNumber === round.number && g.brawl.wager.activeCaptainId) {
+          const capId = g.brawl.wager.activeCaptainId;
+          const capP = g.players.find(p => p.id === capId);
+          if (passed) {
+            g.brawl.wager.redeemedCount += 1;
+            g.brawl.wager.pendingInspectorId = capId;
+            appendBattleEvent(
+              g.brawl,
+              'wager_system',
+              `【📜 军令状兑现】领队【${capP?.seat}号 · ${capP?.nickname}】不负众望护经成功，获赐 1 次私密天眼查验特权！`,
+              '军令状成功兑现：领队可在真身面板私密查验任意 1 名仙友阵营（整局限量 1 次）。',
+              'anonymous_broadcast',
+            );
+            recordBrawlReplayAction(g.brawl, {
+              roundNumber: round.number,
+              mission: g.mission,
+              phase: 'mission_resolved',
+              actorId: capId,
+              actorSeat: capP?.seat ?? 0,
+              actorNickname: capP?.nickname ?? '领队',
+              roleId: 'wager_system',
+              roleName: '取经军令状',
+              skillName: '军令状兑现',
+              outcome: 'success',
+              detail: `领队【${capP?.seat}号 · ${capP?.nickname}】立军令状护经成功，获得 1 次私密天眼查验特权！`,
+            });
+          } else {
+            g.brawl.wager.bannedPlayerId = capId;
+            g.brawl.wager.bannedMission = g.mission + 1;
+            appendBattleEvent(
+              g.brawl,
+              'wager_system',
+              `【📜 军令状受罚】此车翻覆！领队【${capP?.seat}号 · ${capP?.nickname}】识人不明受罚，下一难全程禁止入选出征队伍！`,
+              '军令状翻车受罚：领队下一难强制禁选上车（即使为好人亦须受罚）。',
+              'anonymous_broadcast',
+            );
+            recordBrawlReplayAction(g.brawl, {
+              roundNumber: round.number,
+              mission: g.mission,
+              phase: 'mission_resolved',
+              actorId: capId,
+              actorSeat: capP?.seat ?? 0,
+              actorNickname: capP?.nickname ?? '领队',
+              roleId: 'wager_system',
+              roleName: '取经军令状',
+              skillName: '军令状受罚',
+              outcome: 'miss',
+              detail: `领队【${capP?.seat}号 · ${capP?.nickname}】军令状翻车，第 ${g.mission + 1} 难全程禁止入选出征阵容！`,
+            });
+          }
+          g.brawl.wager.activeRoundNumber = undefined;
+          g.brawl.wager.activeCaptainId = undefined;
+        }
+
+        // 结算【八十一难 · 狮驼死战】：保持 1 分计分，胜方斩获高价值赏罚
+        if (g.brawl?.ordeals && activeOrdealId === 'shituo_bounty') {
+          if (passed) {
+            const redStates = Object.values(g.brawl.playerStates).filter(ps => ps.camp === 'red');
+            const nonCoreReds = redStates.filter(ps => !BRAWL_ROLE_REGISTRY[ps.roleId]?.isCore);
+            let revealedName: string | undefined;
+            if (nonCoreReds.length > 0) {
+              const chosen = nonCoreReds[Math.floor(Math.random() * nonCoreReds.length)];
+              revealedName = BRAWL_ROLE_REGISTRY[chosen.roleId]?.name;
+            } else {
+              const bonusRedIds = redStates.map(ps => ps.bonusRoleId).filter((id): id is string => Boolean(id));
+              if (bonusRedIds.length > 0) {
+                const chosenId = bonusRedIds[Math.floor(Math.random() * bonusRedIds.length)];
+                revealedName = `${BRAWL_ROLE_REGISTRY[chosenId]?.name}（附带妖宝）`;
+              } else if (redStates.length > 0) {
+                revealedName = BRAWL_ROLE_REGISTRY[redStates[0].roleId]?.name;
+              }
+            }
+            if (revealedName) {
+              g.brawl.ordeals.shituoRevealedDemonName = revealedName;
+              appendBattleEvent(
+                g.brawl,
+                'ordeal_system',
+                `【🦁 狮驼死战 · 仙家重赏】蓝方守住险关！天机洞开：本局红方妖魔阵营暗藏【${revealedName}】！`,
+                BRAWL_ORDEAL_REGISTRY.shituo_bounty.description,
+                'anonymous_broadcast',
+              );
+              recordBrawlReplayAction(g.brawl, {
+                roundNumber: round.number,
+                mission: g.mission,
+                phase: 'mission_resolved',
+                actorId: '',
+                actorSeat: 0,
+                actorNickname: '狮驼死战',
+                roleId: 'ordeal_system',
+                roleName: '狮驼死战',
+                skillName: '仙家重赏',
+                outcome: 'success',
+                detail: `蓝方攻克狮驼死战，系统公屏揭露本局在场妖魔名号：【${revealedName}】！`,
+              });
+            }
+          } else {
+            g.brawl.ordeals.shituoRedBountyArmed = true;
+            appendBattleEvent(
+              g.brawl,
+              'ordeal_system',
+              `【🦁 狮驼死战 · 妖魔重赏】红方攻破险关！若进入终局刺杀，红孩儿将额外自动排除 1 名非孙悟空席位！`,
+              BRAWL_ORDEAL_REGISTRY.shituo_bounty.description,
+              'anonymous_broadcast',
+            );
+            recordBrawlReplayAction(g.brawl, {
+              roundNumber: round.number,
+              mission: g.mission,
+              phase: 'mission_resolved',
+              actorId: '',
+              actorSeat: 0,
+              actorNickname: '狮驼死战',
+              roleId: 'ordeal_system',
+              roleName: '狮驼死战',
+              skillName: '妖魔重赏',
+              outcome: 'success',
+              detail: '红方攻破狮驼死战，终局刺杀自动排除 1 名非大圣席位的重赏已蓄力待命！',
+            });
+          }
+        }
+
         const completed = g.rounds.filter(r => r.result), passedMissions = completed.filter(r => r.result!.passed).length;
         if (completed.length-passedMissions >= 3) finish(g, { winner: 'red', reason: 'three_failures' });
         else if (passedMissions >= 3) {
           g.phase = 'assassination';
           g.assassinationMode = 'normal';
           if (g.brawl?.dapengArmed) triggerDapengExclude(g);
+          if (g.brawl?.ordeals?.shituoRedBountyArmed) triggerShituoExclude(g);
         }
         else {
           g.mission++; rotate(g);
-          if (g.brawl) resetRoundBrawlEffects(g.brawl);
+          if (g.brawl) {
+            resetRoundBrawlEffects(g.brawl);
+            // 乱斗模式每难必重置流局计数（两流必发按单难独立计算）
+            g.rejectionCount = 0;
+            const nextBaseSize = missionSizesFor(g.players.length, true)[g.mission - 1];
+            const ordealAdvance = advanceMissionOrdeals({
+              mission: g.mission,
+              captainId: captain(g),
+              players: g.players,
+              previousMissionTeam: round.team,
+              baseTeamSize: nextBaseSize,
+              ordeals: g.brawl.ordeals,
+              wager: g.brawl.wager,
+              rng: Math.random,
+            });
+            if (ordealAdvance.ordealId) {
+              const def = BRAWL_ORDEAL_REGISTRY[ordealAdvance.ordealId];
+              const extraNote = ordealAdvance.quicksandBanned
+                ? `【${ordealAdvance.quicksandBanned.seat}号 · ${ordealAdvance.quicksandBanned.nickname}】不幸陷入流沙，本难禁止入选车队！`
+                : '';
+              appendBattleEvent(
+                g.brawl,
+                'ordeal_system',
+                `【第 ${g.mission} 难 · ${def.icon} ${def.name}】${extraNote || def.description}`,
+                def.tagline,
+                'anonymous_broadcast',
+              );
+              recordBrawlReplayAction(g.brawl, {
+                roundNumber: g.rounds.length + 1,
+                mission: g.mission,
+                phase: 'team_building',
+                actorId: '',
+                actorSeat: 0,
+                actorNickname: '八十一难奇劫',
+                roleId: 'ordeal_system',
+                roleName: def.name,
+                skillName: `第 ${g.mission} 难法则`,
+                targetId: ordealAdvance.quicksandBanned?.id,
+                targetSeat: ordealAdvance.quicksandBanned?.seat,
+                targetNickname: ordealAdvance.quicksandBanned?.nickname,
+                outcome: 'info',
+                detail: `第 ${g.mission} 难翻开奇劫【${def.name}】：${extraNote || def.description}`,
+              });
+            }
+          } else if (g.settings.rejectionScope === 'mission') {
+            g.rejectionCount = 0;
+          }
           openEarlyWindowOrPropose(g);
-          if (g.settings.rejectionScope === 'mission') g.rejectionCount = 0;
         }
       }
       break;
@@ -1384,6 +1798,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         g.missionVotes = {};
         g.phase = 'assassination';
         if (g.brawl?.dapengArmed) triggerDapengExclude(g);
+        if (g.brawl?.ordeals?.shituoRedBountyArmed) triggerShituoExclude(g);
       } else if (g.phase === 'early_window') {
         g.phase = 'proposing';
       }
@@ -1514,25 +1929,99 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
     case 'brawlCommand': {
       requireRule(g.brawl, 'BRAWL_NOT_ENABLED');
       const payload = action.payload as BrawlCommandPayload;
+      if (payload.action === 'wagerInspect') {
+        requireRule(g.brawl.wager?.pendingInspectorId === userId, 'NO_WAGER_INSPECT');
+        const targetPlayer = g.players.find(p => p.id === payload.targetPlayerId);
+        requireRule(targetPlayer && targetPlayer.id !== userId, 'INVALID_TARGET');
+        const targetPs = g.brawl.playerStates[targetPlayer.id];
+        requireRule(targetPs, 'INVALID_TARGET');
+        // 尊重黄眉老怪假佛隐身法则：验到黄眉老怪仍显示仙佛清光（蓝方）
+        const apparentTeam: BrawlCamp = targetPs.roleId === 'huangmei_laoguai' ? 'blue' : targetPs.camp;
+        g.brawl.wager.inspectResult = {
+          inspectorId: userId,
+          targetId: targetPlayer.id,
+          targetSeat: targetPlayer.seat,
+          targetNickname: targetPlayer.nickname,
+          team: apparentTeam,
+        };
+        g.brawl.wager.pendingInspectorId = undefined;
+        const actorP = g.players.find(p => p.id === userId);
+        recordBrawlReplayAction(g.brawl, {
+          roundNumber: g.rounds.length || 1,
+          mission: g.mission,
+          phase: 'team_building',
+          actorId: userId,
+          actorSeat: actorP?.seat ?? 0,
+          actorNickname: actorP?.nickname ?? '领队',
+          roleId: 'wager_system',
+          roleName: '取经军令状',
+          skillName: '天眼查验',
+          targetId: targetPlayer.id,
+          targetSeat: targetPlayer.seat,
+          targetNickname: targetPlayer.nickname,
+          outcome: 'info',
+          detail: `领队【${actorP?.seat}号 · ${actorP?.nickname}】行使军令状特权私密查验【${targetPlayer.seat}号 · ${targetPlayer.nickname}】，天眼显现为【${apparentTeam === 'blue' ? '仙佛清光（蓝方）' : '妖魔邪气（红方）'}】${targetPs.roleId === 'huangmei_laoguai' ? '（黄眉老怪假佛匿形）' : ''}！`,
+        });
+        break;
+      }
       if (payload.action === 'useSkill') {
         const playerState = g.brawl.playerStates[userId];
         requireRule(playerState, 'PLAYER_NOT_FOUND');
         requireRule(!playerState.skillUsed, 'SKILL_ALREADY_USED');
-        const role = BRAWL_ROLE_REGISTRY[playerState.roleId];
+        const role = getEffectiveSkillRole(playerState);
         requireRule(role, 'ROLE_NOT_FOUND');
+        requireRule(payload.skillId === role.skill.skillId, 'INVALID_SKILL');
+
+        // 阶段校验护栏：禁止在刺杀阶段释放非刺杀技能；禁止在强制发车轮浪费纯表决类技能
+        const isVoteOnlySkill = ['santou_liubi', 'pingtian_handi', 'yishan_yading', 'xiangyao_baozhang', 'daoda_yipa'].includes(role.skill.skillId);
+        if (isVoteOnlySkill) {
+          requireRule(!['mission', 'assassination'].includes(g.phase), 'WRONG_PHASE');
+          requireRule(g.rejectionCount < BRAWL_MAX_REJECTIONS_BEFORE_FORCE, 'FORCED_LAUNCH_NO_VOTE');
+        } else if (role.skill.skillId !== 'yuncheng_wanli') {
+          requireRule(g.phase !== 'assassination', 'WRONG_PHASE');
+        }
 
         const currentRoundNumber = g.phase === 'proposing'
           ? g.rounds.length + 1
           : (g.rounds.at(-1)?.number ?? (g.rounds.length || 1));
+
+        // 预先校验目标合法性与防死锁护栏（避免老君拦截前就消耗掉非法调用）
+        let targetText = '';
+        let targetPlayer: Player | undefined;
+        if (payload.targetPlayerId) {
+          targetPlayer = g.players.find(p => p.id === payload.targetPlayerId);
+          if (targetPlayer) {
+            targetText = `对【${targetPlayer.seat}号 · ${targetPlayer.nickname}】`;
+          }
+        }
+        if (role.skill.actionType === 'target_player' && role.skill.skillId !== 'sanmei_zhenhuo') {
+          requireRule(targetPlayer, 'TARGET_REQUIRED');
+        }
+        if (role.skill.skillId === 'wuxingshan_zhang' && targetPlayer) {
+          requireRule(targetPlayer.id !== userId, 'CANNOT_TARGET_SELF');
+        }
+        if (['wuxingshan_zhang', 'pansi_jiejian', 'dakou_tuntian'].includes(role.skill.skillId) && targetPlayer) {
+          const baseSize = missionSizesFor(g.players.length, true)[g.mission - 1];
+          const curBanned = collectMissionBannedPlayerIds({
+            mission: g.mission,
+            captainId: captain(g),
+            humanBagBanned: g.treasuresState?.humanBag,
+            imprisonedTargetId: g.brawl.imprisonedTargetId,
+            zhizhuBannedTargetId: g.brawl.zhizhuBannedTargetId,
+            ordeals: g.brawl.ordeals,
+            wager: g.brawl.wager,
+          });
+          requireRule(canSafelyBanPlayer(g.players.length, curBanned, targetPlayer.id, baseSize), 'TOO_MANY_BANNED');
+        }
 
         // 太上老君金刚琢拦截红方主动法宝
         if (playerState.camp === 'red' && g.brawl.laojunZhuoActive) {
           g.brawl.laojunZhuoActive = false;
           playerState.skillUsed = true;
           const interceptSummary = `【太上老君】金刚琢凌空显圣，半空中一道金光当场将【${role.name}】祭出的【${role.skill.skillName}】套走收缴，妖法作废失效！`;
-          appendBattleEvent(g.brawl, 'taishang_laojun', interceptSummary, '金刚琢套走妖魔绝技，收缴其法宝效果使其失效。');
+          appendBattleEvent(g.brawl, 'taishang_laojun', interceptSummary, '金刚琢套走妖魔绝技，收缴其法宝效果使其失效。', 'anonymous_broadcast');
           const actorP = g.players.find(p => p.id === userId);
-          const laojunP = g.players.find(p => g.brawl?.playerStates[p.id]?.roleId === 'taishang_laojun');
+          const laojunP = g.players.find(p => hasBrawlSkillRole(g.brawl?.playerStates[p.id], 'taishang_laojun'));
           recordBrawlReplayAction(g.brawl, {
             roundNumber: currentRoundNumber,
             mission: g.mission,
@@ -1566,15 +2055,6 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
         }
 
         playerState.skillUsed = true;
-
-        let targetText = '';
-        let targetPlayer: Player | undefined;
-        if (payload.targetPlayerId) {
-          targetPlayer = g.players.find(p => p.id === payload.targetPlayerId);
-          if (targetPlayer) {
-            targetText = `对【${targetPlayer.seat}号 · ${targetPlayer.nickname}】`;
-          }
-        }
 
         let customSummary: string | undefined;
 
@@ -1731,6 +2211,10 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           delete g.draftTeam;
           g.teamVotes = {};
           g.missionVotes = {};
+          if (g.brawl.wager && g.brawl.wager.activeRoundNumber === g.rounds.at(-1)?.number) {
+            g.brawl.wager.activeRoundNumber = undefined;
+            g.brawl.wager.activeCaptainId = undefined;
+          }
           rotate(g);
           g.phase = 'proposing';
         } else if (role.skill.skillId === 'zhaoyao_baojing') {
@@ -1777,7 +2261,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           let tierText = hasSupreme
             ? '🍃 芭蕉神风窥得天机：本局蓝方入局阵容包含【天庭至尊/灵山大能】（如来/玉帝/王母/老君/观音/镇元/菩提等顶级神仙）！'
             : '🍃 芭蕉神风窥得天机：本局蓝方无大能坐镇，全员皆为【散仙护法】（八戒/沙僧/白龙/哪吒等，无五行山或金刚琢威胁）！';
-          if (Math.random() < 0.5) {
+          if (Math.random() < BRAWL_SKILL_PROBS.TIESHAN_BONUS_ROLE) {
             const nonCoreBlues = blueInPlay.filter(id => id !== 'sun_wukong' && id !== 'tang_seng');
             const targetId = nonCoreBlues.length > 0 ? nonCoreBlues[Math.floor(Math.random() * nonCoreBlues.length)] : blueInPlay[0];
             const def = BRAWL_ROLE_REGISTRY[targetId];
@@ -1788,7 +2272,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
           g.brawl.tieshanSecret = tierText;
         } else if (role.skill.skillId === 'sanmei_shenfeng') {
           // 黄风怪【三昧神风】
-          if (Math.random() < 0.5) {
+          if (Math.random() < BRAWL_SKILL_PROBS.HUANGFENG_PEEK) {
             const blueRoles = g.players.map(p => g.brawl?.playerStates[p.id]).filter(ps => ps?.camp === 'blue' && ps?.roleId !== 'sun_wukong').map(ps => ps!.roleId);
             if (blueRoles.length > 0) {
               const targetRole = BRAWL_ROLE_REGISTRY[blueRoles[Math.floor(Math.random() * blueRoles.length)]];
@@ -1817,7 +2301,7 @@ export function transition(state: GameState, userId: string, action: Pick<Comman
             const ps = g.brawl?.playerStates[p.id];
             return ps?.camp === 'red';
           });
-          if (candidateBlues.length > 0 && candidateReds.length > 0 && Math.random() < 0.5) {
+          if (candidateBlues.length > 0 && candidateReds.length > 0 && Math.random() < BRAWL_SKILL_PROBS.PUTI_REVEAL) {
             const targetBlue = candidateBlues[Math.floor(Math.random() * candidateBlues.length)];
             const targetRed = candidateReds[Math.floor(Math.random() * candidateReds.length)];
             const redDef = BRAWL_ROLE_REGISTRY[g.brawl.playerStates[targetRed.id].roleId];
@@ -1885,6 +2369,7 @@ export function projectGame(g: GameState, userId?: string): GameView {
   const role = userId && g.phase !== 'dealing' ? g.roles[userId] : undefined;
   const evilIds = role === 'merlin'
     ? g.players.filter(p => {
+        if (g.brawl?.phantomEvilId && p.id === g.brawl.phantomEvilId) return true;
         if (teamOf(g.roles[p.id]) !== 'red') return false;
         if (g.brawl) {
           const brawlRoleId = g.brawl.playerStates[p.id]?.roleId;
@@ -1916,11 +2401,22 @@ export function projectGame(g: GameState, userId?: string): GameView {
       g.mission === bell.mission && !(bell.targetId in g.missionVotes) } : undefined;
   const bellTargets = role === 'minion' && userId ? heartBellTargets(g, userId) : [];
 
+  // 对局未结束时，对混沌迷雾难次的真实牌数执行物理脱敏（防止客户端抓包看牌数）
+  const projectedRounds = structuredClone(g.rounds).map(r => {
+    if (!g.result && r.result?.masked) {
+      return {
+        ...r,
+        result: { successes: -1, failures: -1, passed: r.result.passed, masked: true },
+      };
+    }
+    return r;
+  });
+
   return { id: g.id, rulesetVersion: g.rulesetVersion, phase: g.phase, players: structuredClone(g.players), mission: g.mission,
     ...(g.phase === 'dealing' ? { dealEndsAt: g.dealEndsAt } : {}),
     ...(g.phase === 'guanyin_window' ? { guanyinEndsAt: g.guanyinEndsAt } : {}),
     missionSizes: [...missionSizesFor(g.players.length, Boolean(g.brawl))], failuresRequired: failuresRequired(g), rejectionCount: g.rejectionCount,
-    captainId: captain(g), captainOrder: [...g.captainOrder], rounds: structuredClone(g.rounds),
+    captainId: captain(g), captainOrder: [...g.captainOrder], rounds: projectedRounds,
     ...(['role_reveal','proposing','discussion'].includes(g.phase) && g.draftTeam ? { draftTeam: structuredClone(g.draftTeam) } : {}),
     ...(g.phase === 'team_vote' ? { teamVote: { startedAt: g.teamVoteStartedAt, votedIds: Object.keys(g.teamVotes), ...(!g.settings.anonymousTeamVote ? { ballots: { ...g.teamVotes } } : {}) } } : {}),
     progress: { confirmed: g.confirmed.length, teamVotes: Object.keys(g.teamVotes).length, missionVotes: Object.keys(g.missionVotes).length },
@@ -1996,4 +2492,5 @@ export function projectGame(g: GameState, userId?: string): GameView {
 
 export * from './brawl-registry.js';
 export * from './brawl-engine.js';
+export * from './brawl-ordeals.js';
 

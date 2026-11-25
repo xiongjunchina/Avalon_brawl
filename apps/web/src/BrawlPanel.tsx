@@ -7,6 +7,7 @@ interface BrawlPanelProps {
   events?: BrawlBattleEvent[];
   onUseSkill?: (skillId: string, targetId?: string) => void;
   players?: { id: string; nickname: string; seat: number }[];
+  userId?: string;
   privacyMode?: boolean;
   onOpenIdentity?: () => void;
   defaultShowEvents?: boolean;
@@ -17,6 +18,7 @@ export function BrawlPanel({
   events = [],
   onUseSkill,
   players = [],
+  userId,
   privacyMode = false,
   onOpenIdentity,
   defaultShowEvents = false,
@@ -26,12 +28,16 @@ export function BrawlPanel({
 
   if (!selfBrawl) return null;
 
+  const isClickableSkill = selfBrawl.skill.actionType !== 'passive';
   const hasPendingAction = Boolean(
-    selfBrawl.skillAvailable && !selfBrawl.skillUsed && selfBrawl.skill.actionType !== 'passive'
+    (selfBrawl.skillAvailable && !selfBrawl.skillUsed && isClickableSkill) ||
+    selfBrawl.canWagerInspect
   );
 
   const hasFeedbackNotice = Boolean(
-    selfBrawl.skillUsed && (
+    selfBrawl.wagerInspectResult ||
+    selfBrawl.shituoExcludedPlayerId ||
+    (selfBrawl.skillUsed && (
       selfBrawl.jinjiaoNotice ||
       selfBrawl.yutuNotice ||
       selfBrawl.baiyanDuchaStatus ||
@@ -43,7 +49,7 @@ export function BrawlPanel({
       selfBrawl.zhaoyaoResult !== undefined ||
       selfBrawl.dapengExcludedPlayerId ||
       selfBrawl.generalFeedback
-    )
+    ))
   );
 
   return (
@@ -56,7 +62,11 @@ export function BrawlPanel({
             onClick={onOpenIdentity}
             title="点击打开真身面板私密发动"
           >
-            <span>✦ 你有神魔法宝待决，点击「真身」私下查看与发动 ❯</span>
+            <span>
+              {selfBrawl.canWagerInspect
+                ? '📜 军令状兑现！点击「真身」行使天眼查验特权 ❯'
+                : '✦ 你有神魔法宝待决，点击「真身」私下查看与发动 ❯'}
+            </span>
           </div>
         ) : hasFeedbackNotice ? (
           <div
@@ -64,13 +74,13 @@ export function BrawlPanel({
             onClick={onOpenIdentity}
             title="点击打开真身面板查看法宝私密反馈"
             style={{
-              background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.25), rgba(168, 85, 247, 0.25))',
-              borderColor: 'rgba(234, 179, 8, 0.5)',
-              boxShadow: '0 0 10px rgba(234, 179, 8, 0.3)',
+              background: 'linear-gradient(135deg, #fefcf5 0%, #fef3c7 100%)',
+              borderColor: '#d4af37',
+              boxShadow: '0 2px 8px rgba(212, 175, 55, 0.25)',
             }}
           >
-            <span style={{ color: '#fde047', fontWeight: 600 }}>
-              ✦ 法宝施法结果已出（无论成败），点击「真身」私密查阅 ❯
+            <span style={{ color: '#831843', fontWeight: 700 }}>
+              ✦ 法宝/天眼私密结果已出，点击「真身」私密查阅 ❯
             </span>
           </div>
         ) : null
@@ -80,28 +90,31 @@ export function BrawlPanel({
           <div
             className="brawl-skill-card"
             style={{
-              background: 'rgba(30, 41, 59, 0.7)',
-              border: '1px solid rgba(148, 163, 184, 0.2)',
+              background: 'linear-gradient(135deg, #ffffff 0%, #fefcf5 100%)',
+              border: '1.5px solid rgba(212, 175, 55, 0.55)',
               borderRadius: '10px',
               padding: '10px 14px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              color: '#241208',
             }}
           >
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontWeight: 'bold', color: selfBrawl.camp === 'blue' ? '#60a5fa' : selfBrawl.camp === 'red' ? '#f87171' : '#fbbf24' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontWeight: 'bold', color: selfBrawl.camp === 'blue' ? '#0369a1' : '#991b1b' }}>
                   【{selfBrawl.roleName}】
                 </span>
-                <span style={{ fontSize: '13px', color: '#e2e8f0' }}>{selfBrawl.skill.skillName}</span>
+                <span style={{ fontSize: '13px', color: '#78350f', fontWeight: 700 }}>
+                  {selfBrawl.bonusRoleName ? `附带仙宝(${selfBrawl.bonusRoleName}) · ` : ''}{selfBrawl.skill.skillName}
+                </span>
                 {selfBrawl.skillUsed && (
-                  <span style={{ fontSize: '11px', background: '#475569', color: '#94a3b8', padding: '2px 6px', borderRadius: '4px' }}>
+                  <span style={{ fontSize: '11px', background: '#f1f5f9', color: '#64748b', border: '1px solid #cbd5e1', padding: '2px 6px', borderRadius: '4px' }}>
                     已消耗
                   </span>
                 )}
               </div>
-              <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
+              <div style={{ fontSize: '12px', color: '#475569', marginTop: '4px' }}>
                 {selfBrawl.skill.description}
               </div>
 
@@ -205,21 +218,23 @@ export function BrawlPanel({
             </div>
 
             {/* 技能发动交互 */}
-            {selfBrawl.skillAvailable && !selfBrawl.skillUsed && selfBrawl.skill.actionType !== 'passive' && (
+            {selfBrawl.skillAvailable && !selfBrawl.skillUsed && isClickableSkill && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 {selfBrawl.skill.actionType === 'target_player' && (() => {
-                  const isQingshi = selfBrawl.roleId === 'qingmao_shizi';
-                  const isZhizhu = selfBrawl.roleId === 'zhizhu_jing';
-                  const isRulai = selfBrawl.roleId === 'rulai_fozu';
+                  const effectiveRoleId = selfBrawl.bonusRoleId ?? selfBrawl.roleId;
+                  const isQingshi = effectiveRoleId === 'qingmao_shizi';
+                  const isZhizhu = effectiveRoleId === 'zhizhu_jing';
+                  const isRulai = effectiveRoleId === 'rulai_fozu';
+                  const isYinjiao = effectiveRoleId === 'yinjiao_dawang';
 
                   return (
                     <select
                       value={selectedTarget}
                       onChange={e => setSelectedTarget(e.target.value)}
                       style={{
-                        background: '#0f172a',
-                        color: '#fff',
-                        border: '1px solid #475569',
+                        background: '#ffffff',
+                        color: '#241208',
+                        border: '1.5px solid #d4af37',
                         borderRadius: '6px',
                         padding: '4px 6px',
                         fontSize: '12px',
@@ -230,15 +245,8 @@ export function BrawlPanel({
                       {players.map(p => {
                         let label = `${p.seat}号 ${p.nickname}`;
                         let disabledOpt = false;
-                        if (isQingshi && p.id === selfBrawl.roleId) {
-                          disabledOpt = true;
-                          label += ' (自己)';
-                        }
-                        if (isZhizhu && p.id === selfBrawl.roleId) {
-                          disabledOpt = true;
-                          label += ' (自己)';
-                        }
-                        if (isRulai && p.id === selfBrawl.roleId) {
+                        const isSelf = Boolean(userId && p.id === userId);
+                        if ((isQingshi || isZhizhu || isRulai || isYinjiao) && isSelf) {
                           disabledOpt = true;
                           label += ' (自己)';
                         }
@@ -294,8 +302,8 @@ export function BrawlPanel({
           {showEvents && (
             <div
               style={{
-                background: 'rgba(15, 23, 42, 0.95)',
-                border: '1px solid #334155',
+                background: 'linear-gradient(180deg, #fefcf5 0%, #fbf4e2 100%)',
+                border: '1.5px solid rgba(212, 175, 55, 0.55)',
                 borderRadius: '8px',
                 padding: '8px 12px',
                 marginTop: '4px',
@@ -312,21 +320,21 @@ export function BrawlPanel({
                     key={ev.id}
                     style={{
                       fontSize: '12px',
-                      color: '#cbd5e1',
+                      color: '#241208',
                       marginBottom: '6px',
                       lineHeight: 1.5,
-                      borderBottom: '1px dashed rgba(148, 163, 184, 0.2)',
+                      borderBottom: '1px dashed rgba(212, 175, 55, 0.35)',
                       paddingBottom: '4px',
                     }}
                   >
                     <div>
-                      <span style={{ color: '#f59e0b', fontWeight: 700 }}>
+                      <span style={{ color: '#92400e', fontWeight: 700 }}>
                         [{ev.roleName} · {ev.skillName}]
                       </span>{' '}
                       {ev.summary}
                     </div>
                     {!hasDetailedSummary && detail && (
-                      <div style={{ fontSize: '11px', color: '#93c5fd', marginTop: '2px' }}>
+                      <div style={{ fontSize: '11px', color: '#0369a1', marginTop: '2px' }}>
                         ✦ 威能效用：{detail}
                       </div>
                     )}

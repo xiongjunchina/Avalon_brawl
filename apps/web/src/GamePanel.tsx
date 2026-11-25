@@ -3,7 +3,18 @@ import { useEffect, useRef, useState } from 'react';
 import { assetUrl } from './deployment';
 import type { Command, GameView, Player, RoomView, RoundView } from '@avalon/contracts';
 import { uuidToRtcUid } from '@avalon/contracts';
-import { ROLE_CONFIG, assignFemaleDemons, assignLoyalGuardians, failuresRequiredFor, BRAWL_ROLE_REGISTRY, BRAWL_PLAYER_CONFIG } from '@avalon/game-core';
+import {
+  ROLE_CONFIG,
+  assignFemaleDemons,
+  assignLoyalGuardians,
+  failuresRequiredFor,
+  BRAWL_ROLE_REGISTRY,
+  BRAWL_PLAYER_CONFIG,
+  BRAWL_ORDEAL_REGISTRY,
+  BRAWL_MAX_REJECTIONS_BEFORE_FORCE,
+  canCaptainStakeWager,
+  getActiveOrdealId,
+} from '@avalon/game-core';
 import { BrawlPanel } from './BrawlPanel';
 import { Emblem, PlayerAvatar, WuYueBackdrop, roleTeam, CloudFlourish, DragonPlinthDecor } from './Heraldry';
 import { RolePortrait } from './RolePortrait';
@@ -124,6 +135,8 @@ export function GamePanel({
   const [blueFailWarning, setBlueFailWarning] = useState(false);
   const [target, setTarget] = useState('');
   const [abortConfirm, setAbortConfirm] = useState(false);
+  const [militaryWager, setMilitaryWager] = useState(false);
+  const [liveEventsOpen, setLiveEventsOpen] = useState(false);
   const completedMissions = g.rounds.filter(r => r.result);
   const lastCompletedRound = completedMissions.at(-1);
   const [missionReportRound, setMissionReportRound] = useState<RoundView | null>(null);
@@ -153,10 +166,13 @@ export function GamePanel({
   }, [completedMissions.length, lastCompletedRound]);
 
   useEffect(() => {
-    if (g.selfBrawl?.dapengExcludedPlayerId && target === g.selfBrawl.dapengExcludedPlayerId) {
+    if (
+      (g.selfBrawl?.dapengExcludedPlayerId && target === g.selfBrawl.dapengExcludedPlayerId) ||
+      (g.selfBrawl?.shituoExcludedPlayerId && target === g.selfBrawl.shituoExcludedPlayerId)
+    ) {
       setTarget('');
     }
-  }, [g.selfBrawl?.dapengExcludedPlayerId, target]);
+  }, [g.selfBrawl?.dapengExcludedPlayerId, g.selfBrawl?.shituoExcludedPlayerId, target]);
 
   const [discussionCooldown, setDiscussionCooldown] = useState(false);
   useEffect(() => {
@@ -200,6 +216,7 @@ export function GamePanel({
     setChoice(null);
     setBlueFailWarning(false);
     setTarget('');
+    setMilitaryWager(false);
 
     const justFinishedDealing = prevPhaseRef.current === 'dealing' && g.phase !== 'dealing';
     const isInitialReveal = g.phase === 'role_reveal' && autoRevealedGameIdRef.current !== g.id;
@@ -233,11 +250,26 @@ export function GamePanel({
   const publicPlayers = g.players.map(p => ({ ...room.members.find(m => m.id === p.id), ...p }));
   const captain = g.captainId === userId;
   const captainPlayer = g.players.find(p => p.id === g.captainId);
-  const size = g.missionSizes[g.mission - 1];
+  const baseSize = g.missionSizes[g.mission - 1];
+  const size = baseSize + (g.brawl?.extraSeatLimit ?? 0);
+  const isTeamCountValid = selected.length >= baseSize && selected.length <= size;
   const identityVisible = identityOpen && connected;
   const successes = g.rounds.filter(r => r.result?.passed).length;
   const failures = g.rounds.filter(r => r.result && !r.result.passed).length;
   const isBrawl = Boolean(g.brawl || room.settings.brawlModeEnabled);
+  const isForcedLaunchTurn = isBrawl && g.rejectionCount >= BRAWL_MAX_REJECTIONS_BEFORE_FORCE;
+  const activeOrdealId = getActiveOrdealId(g.brawl?.ordeals, g.mission);
+  const activeOrdeal = activeOrdealId ? BRAWL_ORDEAL_REGISTRY[activeOrdealId] : undefined;
+  const isCelestialSwappedRound = Boolean(
+    g.phase === 'discussion' && round && g.brawl?.ordeals?.lastSwap?.roundNumber === round.number
+  );
+  const canStakeWager = canCaptainStakeWager({
+    brawlEnabled: Boolean(g.brawl),
+    mission: g.mission,
+    ordeals: g.brawl?.ordeals,
+    wager: g.brawl?.wager,
+  });
+  const livePublicEvents = !ended && g.brawl?.events ? g.brawl.events : [];
   const brawlConfig = isBrawl ? BRAWL_PLAYER_CONFIG[g.players.length] : undefined;
   const roleList = ROLE_CONFIG[g.players.length] ?? [];
   const blueCount = brawlConfig
@@ -352,14 +384,19 @@ export function GamePanel({
     });
   }
 
+  const isPlayerBannedForCurrentMission = (playerId: string) =>
+    g.humanBagBannedPlayerId === playerId ||
+    g.brawl?.imprisonedTargetId === playerId ||
+    g.brawl?.zhizhuBannedTargetId === playerId ||
+    g.brawl?.ordeals?.quicksandBannedPlayerId === playerId ||
+    (g.brawl?.wager?.bannedMission === g.mission && g.brawl.wager.bannedPlayerId === playerId) ||
+    (activeOrdealId === 'selfless_captain' && playerId === g.captainId);
+
   function handleSeatTap(playerId: string) {
     if (disabled) return;
     if (['proposing', 'discussion'].includes(effectivePhase) && captain) {
-      if (
-        g.humanBagBannedPlayerId === playerId ||
-        g.brawl?.imprisonedTargetId === playerId ||
-        g.brawl?.zhizhuBannedTargetId === playerId
-      ) return;
+      if (isCelestialSwappedRound) return;
+      if (isPlayerBannedForCurrentMission(playerId)) return;
       setSelected(ids =>
         ids.includes(playerId)
           ? ids.filter(id => id !== playerId)
@@ -370,7 +407,10 @@ export function GamePanel({
       return;
     }
     if (g.phase === 'assassination' && self?.role === 'assassin' && playerId !== userId) {
-      if (g.selfBrawl?.dapengExcludedPlayerId === playerId) return;
+      if (
+        g.selfBrawl?.dapengExcludedPlayerId === playerId ||
+        g.selfBrawl?.shituoExcludedPlayerId === playerId
+      ) return;
       setTarget(prev => (prev === playerId ? '' : playerId));
     }
   }
@@ -698,6 +738,54 @@ export function GamePanel({
         </div>
       )}
 
+      {/* 八十一难 · 本难奇劫置顶法则横幅 + 公法不公人天机异动条 */}
+      {!ended && (activeOrdeal || livePublicEvents.length > 0 || g.brawl?.ordeals?.shituoRevealedDemonName) && (
+        <div className="brawl-live-hud-stack">
+          {activeOrdeal && (
+            <div className="brawl-ordeal-banner" role="status" aria-label={`第${g.mission}难奇劫：${activeOrdeal.name}`}>
+              <div className="brawl-ordeal-main">
+                <span className="brawl-ordeal-tag">{activeOrdeal.icon} 第 {g.mission} 难奇劫 · {activeOrdeal.name}</span>
+                <span className="brawl-ordeal-desc">{activeOrdeal.description}</span>
+              </div>
+              {isCelestialSwappedRound && g.brawl?.ordeals?.lastSwap && (
+                <div className="brawl-swap-alert">
+                  🌀 天意篡改已生效：移出 <strong>{g.brawl.ordeals.lastSwap.removedSeat}号 {g.brawl.ordeals.lastSwap.removedNickname}</strong>，随机换入 <strong>{g.brawl.ordeals.lastSwap.addedSeat}号 {g.brawl.ordeals.lastSwap.addedNickname}</strong>（阵容已锁定，请论道表决）
+                </div>
+              )}
+              {g.brawl?.ordeals?.shituoRevealedDemonName && (
+                <div className="brawl-shituo-reveal">
+                  🦁 狮驼死战仙家重赏：本局潜伏妖魔含 <strong>【{g.brawl.ordeals.shituoRevealedDemonName}】</strong>
+                </div>
+              )}
+            </div>
+          )}
+          {livePublicEvents.length > 0 && (
+            <div className="brawl-live-events-strip">
+              <button
+                type="button"
+                className="brawl-live-events-toggle"
+                onClick={() => setLiveEventsOpen(v => !v)}
+                aria-expanded={liveEventsOpen}
+              >
+                <span className="live-event-latest">
+                  ⚡ 天机播报（{livePublicEvents.length}）：{livePublicEvents[livePublicEvents.length - 1].summary}
+                </span>
+                <span className="live-event-chevron">{liveEventsOpen ? '收起 ▲' : '展开 ▼'}</span>
+              </button>
+              {liveEventsOpen && (
+                <div className="brawl-live-events-list">
+                  {[...livePublicEvents].reverse().map(ev => (
+                    <div key={ev.id} className="brawl-live-event-row">
+                      <strong>[{ev.roleName}]</strong> {ev.summary}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 3. Celestial Feast Table Arena (Hidden for non-assassins during assassination phase) */}
       {!(g.phase === 'assassination' && self?.role !== 'assassin') && (() => {
         const renderSeat = (p: Player, flank: 'left' | 'right', style?: React.CSSProperties) => {
@@ -715,14 +803,11 @@ export function GamePanel({
           const isDapengExcluded =
             g.phase === 'assassination' &&
             self?.role === 'assassin' &&
-            g.selfBrawl?.dapengExcludedPlayerId === p.id;
-          const isBannedFromTeam =
-            g.humanBagBannedPlayerId === p.id ||
-            g.brawl?.imprisonedTargetId === p.id ||
-            g.brawl?.zhizhuBannedTargetId === p.id;
+            (g.selfBrawl?.dapengExcludedPlayerId === p.id || g.selfBrawl?.shituoExcludedPlayerId === p.id);
+          const isBannedFromTeam = isPlayerBannedForCurrentMission(p.id);
           const canTapSeat =
             !disabled &&
-            ((['proposing', 'discussion'].includes(effectivePhase) && captain && !isBannedFromTeam) ||
+            ((['proposing', 'discussion'].includes(effectivePhase) && captain && !isBannedFromTeam && !isCelestialSwappedRound) ||
               (g.phase === 'assassination' && self?.role === 'assassin' && p.id !== userId && !isDapengExcluded));
           const seatVoteChip = voteStatusMap[p.id] ?? null;
           const revealedRole = ended && g.revealedRoles ? g.revealedRoles[p.id] : undefined;
@@ -835,8 +920,23 @@ export function GamePanel({
                       ⛰️ 镇压
                     </span>
                   )}
-                  {g.phase === 'assassination' && g.selfBrawl?.dapengExcludedPlayerId === p.id && (
-                    <span className="seat-badge badge-banned" title="金翅大鹏雕已侦破此人非齐天大圣">
+                  {g.brawl?.ordeals?.quicksandBannedPlayerId === p.id && (
+                    <span className="seat-badge badge-banned" title="触发弱水流沙奇劫，本难禁止入选出征阵容">
+                      🌊 流沙
+                    </span>
+                  )}
+                  {g.brawl?.wager?.bannedMission === g.mission && g.brawl.wager.bannedPlayerId === p.id && (
+                    <span className="seat-badge badge-banned" title="上一难军令状翻车受罚，本难全程禁止上车">
+                      📜 罚禁
+                    </span>
+                  )}
+                  {!ended && activeOrdealId === 'selfless_captain' && isCaptain && ['proposing', 'discussion'].includes(effectivePhase) && (
+                    <span className="seat-badge badge-banned" title="触发舍己为公奇劫，队长本难不可自选上车">
+                      🪷 避嫌
+                    </span>
+                  )}
+                  {isDapengExcluded && (
+                    <span className="seat-badge badge-banned" title="已排除此人非齐天大圣">
                       ❌ 排除
                     </span>
                   )}
@@ -958,20 +1058,42 @@ export function GamePanel({
               className="dock-panel dock-propose-form"
               onSubmit={e => {
                 e.preventDefault();
-                send({ type: 'proposeTeam', payload: { playerIds: selected, direction } });
+                send({
+                  type: 'proposeTeam',
+                  payload: {
+                    playerIds: selected,
+                    direction,
+                    ...(militaryWager && canStakeWager ? { militaryWager: true } : {}),
+                  },
+                });
               }}
             >
               <fieldset disabled={disabled} className="dock-propose-fieldset">
                 <legend className="dock-rule-hint">
-                  —◇ 点击头像选人 · 预选阵容后进入论道 ◇—
+                  —◇ {isForcedLaunchTurn ? '🔥 流局满 2 次 · 本轮强制发车（跳过表决）' : '点击头像选人 · 预选阵容后进入论道'} ◇—
                 </legend>
+                {canStakeWager && (
+                  <label className={`wager-toggle-row ${militaryWager ? 'is-checked' : ''}`}>
+                    <input
+                      type="checkbox"
+                      checked={militaryWager}
+                      onChange={e => setMilitaryWager(e.target.checked)}
+                    />
+                    <span>
+                      📜 <strong>立军令状</strong>（须亲征：成功获天眼查验，翻车下难禁上车）
+                      {militaryWager && !selected.includes(userId) && (
+                        <em className="wager-self-warn"> · 请先选中自己</em>
+                      )}
+                    </span>
+                  </label>
+                )}
                 <div className="team-picker sr-only">
                   {g.players.map(p => (
                     <label className="choice" key={p.id}>
                       <input
                         type="checkbox"
                         checked={selected.includes(p.id)}
-                        disabled={!selected.includes(p.id) && selected.length >= size}
+                        disabled={isPlayerBannedForCurrentMission(p.id) || (!selected.includes(p.id) && selected.length >= size)}
                         onChange={e =>
                           setSelected(ids =>
                             e.target.checked ? [...ids, p.id] : ids.filter(id => id !== p.id)
@@ -995,12 +1117,14 @@ export function GamePanel({
                   <button
                     type="submit"
                     data-sound="confirm"
-                    disabled={disabled || selected.length !== size}
+                    disabled={disabled || !isTeamCountValid || (militaryWager && !selected.includes(userId))}
                     className="btn-primary-cta btn-dragon-cta"
                   >
                     <span className="btn-cloud-flourish left" aria-hidden="true"><CloudFlourish side="left" /></span>
                     <span className="btn-cta-text">
-                      {selected.length === size ? `预选阵容 (${selected.length}/${size})` : `待选队员 (${selected.length}/${size})`}
+                      {isTeamCountValid
+                        ? `${militaryWager ? '📜 立状预选' : '预选阵容'} (${selected.length}/${baseSize === size ? size : `${baseSize}~${size}`})`
+                        : `待选队员 (${selected.length}/${baseSize === size ? size : `${baseSize}~${size}`})`}
                     </span>
                     <span className="btn-cloud-flourish right" aria-hidden="true"><CloudFlourish side="right" /></span>
                   </button>
@@ -1024,13 +1148,21 @@ export function GamePanel({
 
         {g.phase === 'discussion' && (
           <div className="dock-panel">
-            {captain && <p className="dock-rule-hint">—◇ 众仙论道中 · 领队仍可点击头像微调阵容 · 全员陈述完毕后开启投票 ◇—</p>}
+            {captain && (
+              <p className="dock-rule-hint">
+                —◇ {isCelestialSwappedRound
+                  ? '🌀 天意篡改已锁定阵容（不可微调）· 陈述完毕后发车'
+                  : isForcedLaunchTurn
+                    ? '🔥 流局已满 2 次 · 本轮跳过表决，论道完毕后强制发车'
+                    : '众仙论道中 · 领队仍可点击头像微调阵容 · 全员陈述完毕后开启投票'} ◇—
+              </p>
+            )}
             <p className="dock-compact-text" aria-label={`发言顺序：${names(speakingOrder())}`}>
-              论道发言顺序：{speakingOrder().map(id => g.players.find(p => p.id === id)?.seat).join(' ➔ ')}
+              {round?.militaryWager ? '📜 领队已立军令状亲征 · ' : ''}论道发言顺序：{speakingOrder().map(id => g.players.find(p => p.id === id)?.seat).join(' ➔ ')}
             </p>
             {captain ? (
               <button
-                disabled={disabled || selected.length !== size || discussionCooldown}
+                disabled={disabled || !isTeamCountValid || discussionCooldown}
                 className="btn-primary-cta btn-dragon-cta"
                 onClick={() => send({ type: 'startTeamVote', payload: {} })}
               >
@@ -1038,9 +1170,9 @@ export function GamePanel({
                 <span className="btn-cta-text">
                   {discussionCooldown
                     ? '进入论道发言中…'
-                    : selected.length === size
-                    ? '已确认阵容 · 开启投票'
-                    : `待补全人选（${selected.length}/${size}）`}
+                    : isTeamCountValid
+                    ? (isForcedLaunchTurn ? '🔥 强制发车 · 直接出征' : '已确认阵容 · 开启投票')
+                    : `待补全人选（${selected.length}/${baseSize === size ? size : `${baseSize}~${size}`}）`}
                 </span>
                 <span className="btn-cloud-flourish right" aria-hidden="true"><CloudFlourish side="right" /></span>
               </button>
@@ -1210,11 +1342,16 @@ export function GamePanel({
                     <option value="">请点击上方玩家卡片或下拉选择目标</option>
                     {g.players
                       .filter(p => p.id !== userId)
-                      .map(p => (
-                        <option key={p.id} value={p.id}>
-                          {name(p.id)}
-                        </option>
-                      ))}
+                      .map(p => {
+                        const excluded =
+                          g.selfBrawl?.dapengExcludedPlayerId === p.id ||
+                          g.selfBrawl?.shituoExcludedPlayerId === p.id;
+                        return (
+                          <option key={p.id} value={p.id} disabled={excluded}>
+                            {name(p.id)}{excluded ? '（已排除·非大圣）' : ''}
+                          </option>
+                        );
+                      })}
                   </select>
                   <button className="assassin-execute-btn" disabled={!target}>
                     🔥 三昧真火 · 确认刺杀{target ? `：${name(target)}` : ''}
@@ -1232,6 +1369,7 @@ export function GamePanel({
           <BrawlPanel
             selfBrawl={g.selfBrawl}
             players={g.players}
+            userId={userId}
             privacyMode={true}
             onOpenIdentity={() => setIdentityOpen(true)}
             onUseSkill={(skillId, targetId) => send({ type: 'brawlCommand', payload: { action: 'useSkill', skillId, targetPlayerId: targetId } })}
@@ -1244,6 +1382,9 @@ export function GamePanel({
               className={`secondary tool-pill dock-utility-btn identity-trigger-btn ${
                 Boolean(
                   g.selfBrawl && (
+                    g.selfBrawl.canWagerInspect ||
+                    g.selfBrawl.wagerInspectResult ||
+                    g.selfBrawl.shituoExcludedPlayerId ||
                     (g.selfBrawl.skillAvailable && !g.selfBrawl.skillUsed && g.selfBrawl.skill.actionType !== 'passive') ||
                     (g.selfBrawl.skillUsed && (
                       g.selfBrawl.jinjiaoNotice ||
@@ -1361,10 +1502,14 @@ export function GamePanel({
         </div>
 
         {/* Bottom Row of Quest Board: Compact Imperial Summary Track matching Scheme A-2 */}
-        <div className="quest-vote-track-zone" aria-label={`护经进度：${successes}胜${failures}负，流局${g.rejectionCount}/5，${g.players.length}人局，仙${blueCount} 妖${redCount}`}>
+        <div className="quest-vote-track-zone" aria-label={`护经进度：${successes}胜${failures}负，流局${g.rejectionCount}/${isBrawl ? BRAWL_MAX_REJECTIONS_BEFORE_FORCE : 5}，${g.players.length}人局，仙${blueCount} 妖${redCount}`}>
           <span className="quest-summary-item">⚔ 护经 <strong>{successes}:{failures}</strong> 群妖</span>
           <span className="quest-summary-divider">◇</span>
-          <span className="quest-summary-item">♨ 流局 <strong>{g.rejectionCount}/5</strong></span>
+          <span className="quest-summary-item">
+            {isForcedLaunchTurn
+              ? <strong style={{ color: '#b91c1c' }}>🔥 强发轮</strong>
+              : <>♨ 流局 <strong>{g.rejectionCount}/{isBrawl ? BRAWL_MAX_REJECTIONS_BEFORE_FORCE : 5}</strong></>}
+          </span>
           <span className="quest-summary-divider">◇</span>
           <span className="quest-summary-item">👥 <strong>{g.players.length}</strong>人局</span>
           <span className="quest-summary-divider">◇</span>

@@ -140,7 +140,7 @@ export function ProfileEditor({user,onUser,onClose}:{user:User;onUser:(u:User)=>
   const selectedPreset=findBuiltinAvatar(activeImage)??(!activeImage?builtinAvatarFor(avatar):undefined);
   const activeSource=selectedPreset?`${selectedPreset.categoryLabel}（${selectedPreset.name}）`:avatarUrl?'自定义上传头像':'已有头像';
   const [activeCategory, setActiveCategory] = useState<AvatarCategoryId>(() => {
-    return selectedPreset?.category ?? 'treasures';
+    return findBuiltinAvatar(avatarUrl)?.category ?? 'chibi';
   });
 
   function selectPreset(src:string) {
@@ -200,7 +200,7 @@ export function ProfileEditor({user,onUser,onClose}:{user:User;onUser:(u:User)=>
           </span>
           <div className="profile-avatar-meta">
             <span className="avatar-source-tag">头像预览：{activeSource}</span>
-            <small className="hint">选择法宝头像或上传照片；昵称和头像通过内容检测后才会展示给其他玩家。</small>
+            <small className="hint">选择预置头像或上传照片；昵称和头像通过内容检测后才会展示给其他玩家。</small>
           </div>
         </div>
         <div className="profile-avatar-actions">

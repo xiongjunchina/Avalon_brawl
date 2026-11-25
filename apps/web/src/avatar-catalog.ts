@@ -10,9 +10,9 @@ export interface AvatarCategory {
 }
 
 export const AVATAR_CATEGORIES: AvatarCategory[] = [
+  { id: 'chibi', label: '萌趣仙童', icon: '🌸', hint: '十位修道小童仙子，活泼可爱' },
   { id: 'treasures', label: '仙家法宝', icon: '💎', hint: '十件通灵道释法宝，清莹出尘' },
   { id: 'beasts', label: '祥瑞灵兽', icon: '🐾', hint: '十尊三界仙兽神禽，生动祥瑞' },
-  { id: 'chibi', label: '萌趣仙童', icon: '🌸', hint: '十位修道小童仙子，活泼可爱' },
 ];
 
 export interface BuiltinAvatarItem {

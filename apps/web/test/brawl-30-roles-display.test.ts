@@ -59,6 +59,7 @@ test('UI 30-role display audit: every Brawl role renders exact camp class, name,
       const roleDef = slice[i];
       g.roles[pid] = roleDef.camp === 'blue' ? 'loyal' : 'minion';
       g.brawlRoles![pid] = roleDef.id;
+      if (!g.brawl!.playerStates) g.brawl!.playerStates = {};
       g.brawl!.playerStates[pid] = {
         userId: pid,
         seat: i + 1,
@@ -110,7 +111,7 @@ test('UI 30-role display audit: every Brawl role renders exact camp class, name,
     g.phase = 'mission';
     g.roles.p1 = roleDef.camp === 'blue' ? 'loyal' : 'minion';
     g.brawlRoles!.p1 = roleDef.id;
-    g.brawl!.playerStates.p1 = { userId: 'p1', seat: 1, roleId: roleDef.id, camp: roleDef.camp, skillUsed: false };
+    g.brawl!.playerStates!.p1 = { userId: 'p1', seat: 1, roleId: roleDef.id, camp: roleDef.camp, skillUsed: false };
     const view = projectGame(g, 'p1');
     const html = renderToStaticMarkup(createElement(IdentityDetails, {
       self: view.self!,

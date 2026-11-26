@@ -1997,9 +1997,11 @@ button.quest-medallion-wrap:hover:not(:disabled) { background: #e5c98b12; filter
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 6px 10px;
-  border-radius: 12px;
+  gap: 3px;
+  padding: 4px 8px;
+  margin: 0 auto 2px;
+  max-width: 674px;
+  border-radius: 10px;
   border: 1.5px solid #d4af37;
   background: linear-gradient(135deg, rgba(255, 252, 243, 0.98) 0%, rgba(247, 238, 218, 0.95) 100%);
   box-shadow:

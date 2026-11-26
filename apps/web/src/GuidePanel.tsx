@@ -1,7 +1,8 @@
 import { assetUrl } from './deployment';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { usePageSound } from './audio-interactions';
-import type { FemaleDemon, LoyalGuardian, Role, BrawlRoleDef } from '@avalon/contracts';
+import type { Role, BrawlRoleDef } from '@avalon/contracts';
+import type { FemaleDemon, LoyalGuardian } from './roles';
 import {
   ROLE_CONFIG,
   MISSION_SIZES,

@@ -24,7 +24,7 @@ test('module 0: Bai Longma feedback bug fixed & skill probability copy matches B
   const players = makePlayers(10);
   let game = createGame('fix-bailong', players, { ...defaultSettings, playerCount: 10, brawlModeEnabled: true }, a => a);
   const actorId = 'p1';
-  game.brawl!.playerStates[actorId] = {
+  game.brawl!.playerStates![actorId] = {
     userId: actorId,
     seat: 1,
     roleId: 'bai_longma',
@@ -50,7 +50,7 @@ test('module 0: server validates skillId, target requirement, self-target, and a
   const onlineIds = players.map(p => p.id);
   const game = createGame('guard-test', players, { ...defaultSettings, playerCount: 5, brawlModeEnabled: true }, a => a);
   game.phase = 'proposing';
-  game.brawl!.playerStates.p1 = { userId: 'p1', seat: 1, roleId: 'rulai_fozu', camp: 'blue', skillUsed: false };
+  game.brawl!.playerStates!.p1 = { userId: 'p1', seat: 1, roleId: 'rulai_fozu', camp: 'blue', skillUsed: false };
 
   // Forged skillId rejected
   assert.throws(() => transition(game, 'p1', {
@@ -73,7 +73,7 @@ test('module 0: server validates skillId, target requirement, self-target, and a
   // Deadlock guard: 5p mission 4 needs 3 players; if 2 already banned, banning a 3rd would leave only 2 (< 3)
   game.mission = 4;
   game.brawl!.zhizhuBannedTargetId = 'p2';
-  game.treasuresState = { humanBag: { used: true, targetId: 'p3', activeBannedMission: 4 } };
+  game.brawl!.qingshiTuntianTargetId = 'p3';
   assert.throws(() => transition(game, 'p1', {
     type: 'brawlCommand',
     payload: { action: 'useSkill', skillId: 'wuxingshan_zhang', targetPlayerId: 'p4' },
@@ -89,7 +89,7 @@ test('module 1: Brawl mode fixed rule [Two Rejections Force Launch] skips vote o
   game.captainIndex = 0;
 
   // Give p6 Nezha double vote to verify forced launch blocks vote-only skills
-  game.brawl!.playerStates.p6 = { userId: 'p6', seat: 6, roleId: 'nezha', camp: 'blue', skillUsed: false };
+  game.brawl!.playerStates!.p6 = { userId: 'p6', seat: 6, roleId: 'nezha', camp: 'blue', skillUsed: false };
 
   const teamSize = missionSizesFor(6, true)[0];
 
@@ -140,8 +140,8 @@ test('module 2: Public anonymous broadcast whitelist exposes overt skills live w
   const onlineIds = players.map(p => p.id);
   let game = createGame('broadcast-whitelist', players, { ...defaultSettings, playerCount: 10, brawlModeEnabled: true }, a => a);
   game.phase = 'proposing';
-  game.brawl!.playerStates.p1 = { userId: 'p1', seat: 1, roleId: 'bai_longma', camp: 'blue', skillUsed: false };
-  game.brawl!.playerStates.p2 = { userId: 'p2', seat: 2, roleId: 'bai_gujing', camp: 'red', skillUsed: false };
+  game.brawl!.playerStates!.p1 = { userId: 'p1', seat: 1, roleId: 'bai_longma', camp: 'blue', skillUsed: false };
+  game.brawl!.playerStates!.p2 = { userId: 'p2', seat: 2, roleId: 'bai_gujing', camp: 'red', skillUsed: false };
 
   // Silent skill (Bai Gujing) produces NO live public event
   game = transition(game, 'p2', { type: 'brawlCommand', payload: { action: 'useSkill', skillId: 'huapi_lijian' } }, onlineIds);
@@ -160,7 +160,7 @@ test('module 2: 5-8 player brawl assigns unique compatible bonus skills to all 4
   for (const count of [5, 6, 7, 8]) {
     const players = makePlayers(count);
     const game = createGame(`bonus-${count}p`, players, { ...defaultSettings, playerCount: count, brawlModeEnabled: true }, a => a);
-    const states = Object.values(game.brawl!.playerStates);
+    const states = Object.values(game.brawl!.playerStates!);
     const assignedRoles = new Set(states.map(s => s.roleId));
     const coreStates = states.filter(s => ['sun_wukong', 'tang_seng', 'hong_haier', 'liuer_mihou'].includes(s.roleId));
     assert.equal(coreStates.length, 4);
@@ -183,7 +183,7 @@ test('module 2: 5-8 player brawl assigns unique compatible bonus skills to all 4
 
   // 9-12 player games do NOT assign bonus skills
   const game9 = createGame('no-bonus-9p', makePlayers(9), { ...defaultSettings, playerCount: 9, brawlModeEnabled: true }, a => a);
-  assert.equal(Object.values(game9.brawl!.playerStates).some(s => s.bonusRoleId), false);
+  assert.equal(Object.values(game9.brawl!.playerStates!).some(s => s.bonusRoleId), false);
 });
 
 test('module 3: Ordeal deck draws 5 unique cards and never puts quicksand_ban on Mission 1; future deck scrubbed in projectGame', () => {
@@ -314,8 +314,8 @@ test('module 3: Ordeal [shituo_bounty] reveals demon on Blue win and excludes ex
   let gameRed = createGame('shituo-red', players, { ...defaultSettings, playerCount: 8, brawlModeEnabled: true, brawlOrdealsEnabled: true }, a => a);
   gameRed.brawl!.ordeals!.deck = ['shituo_bounty', 'chaotic_fog', 'selfless_captain', 'quicksand_ban', 'celestial_swap'];
   gameRed.brawl!.ordeals!.currentOrdealId = 'shituo_bounty';
-  const redP = players.find(p => gameRed.brawl!.playerStates[p.id].camp === 'red')!;
-  const bluePs = players.filter(p => gameRed.brawl!.playerStates[p.id].camp === 'blue');
+  const redP = players.find(p => gameRed.brawl!.playerStates![p.id].camp === 'red')!;
+  const bluePs = players.filter(p => gameRed.brawl!.playerStates![p.id].camp === 'blue');
   gameRed.phase = 'mission';
   gameRed.rounds.push({ number: 1, mission: 1, captainId: redP.id, team: [redP.id, bluePs[0].id, bluePs[1].id], direction: 'clockwise' });
   gameRed = transition(gameRed, redP.id, { type: 'missionVote', payload: { success: false } }, onlineIds);
@@ -324,8 +324,8 @@ test('module 3: Ordeal [shituo_bounty] reveals demon on Blue win and excludes ex
   assert.equal(gameRed.brawl?.ordeals?.shituoRedBountyArmed, true);
 
   // Trigger assassination -> shituoExcludedPlayerId is populated for Hong Haier, never Sun Wukong, scrubbed for Blue
-  const wukongId = players.find(p => gameRed.brawl!.playerStates[p.id].roleId === 'sun_wukong')!.id;
-  const honghaierId = players.find(p => gameRed.brawl!.playerStates[p.id].roleId === 'hong_haier')!.id;
+  const wukongId = players.find(p => gameRed.brawl!.playerStates![p.id].roleId === 'sun_wukong')!.id;
+  const honghaierId = players.find(p => gameRed.brawl!.playerStates![p.id].roleId === 'hong_haier')!.id;
   gameRed.rounds.push(
     { number: 2, mission: 2, captainId: 'p1', team: ['p1', 'p2'], direction: 'clockwise', result: { successes: 2, failures: 0, passed: true } },
     { number: 3, mission: 3, captainId: 'p1', team: ['p1', 'p2'], direction: 'clockwise', result: { successes: 2, failures: 0, passed: true } },
@@ -382,7 +382,7 @@ test('module 4: Military Wager enforces mission 2-4, captain-on-team, 1x redempt
   assert.equal(projectGame(game, 'p2').selfBrawl?.canWagerInspect, undefined);
 
   // Inspect Huangmei Laoguai -> appears blue (stealth respected!)
-  const huangmeiId = players.find(p => game.brawl!.playerStates[p.id].roleId === 'huangmei_laoguai' && p.id !== 'p1')?.id;
+  const huangmeiId = players.find(p => game.brawl!.playerStates![p.id].roleId === 'huangmei_laoguai' && p.id !== 'p1')?.id;
   const targetInspectId = huangmeiId ?? players.find(p => p.id !== 'p1')!.id;
   game = transition(game, 'p1', {
     type: 'brawlCommand',
@@ -406,7 +406,7 @@ test('module 4: Military Wager enforces mission 2-4, captain-on-team, 1x redempt
 
   // Test failure penalty in a separate game
   let failGame = createGame('wager-fail', players, { ...defaultSettings, playerCount: 9, brawlModeEnabled: true }, a => a);
-  const redCap = players.find(p => failGame.brawl!.playerStates[p.id].camp === 'red')!;
+  const redCap = players.find(p => failGame.brawl!.playerStates![p.id].camp === 'red')!;
   failGame.captainOrder = [redCap.id, ...onlineIds.filter(id => id !== redCap.id)];
   failGame.captainIndex = 0;
   failGame.mission = 2;
@@ -443,20 +443,20 @@ test('module 4: Phantom Vision [画皮惑眼] mixes 1 innocent blue into Sun Wuk
     brawlPhantomVisionEnabled: true,
   }, a => a);
 
-  const phantomId = game.brawl?.phantomEvilId;
+  const phantomId = game.brawl?.secrets?.phantomEvilId;
   assert.ok(phantomId, 'Phantom evil target assigned');
-  assert.equal(game.brawl!.playerStates[phantomId!].camp, 'blue');
-  assert.notEqual(game.brawl!.playerStates[phantomId!].roleId, 'sun_wukong');
-  assert.notEqual(game.brawl!.playerStates[phantomId!].roleId, 'tang_seng');
+  assert.equal(game.brawl!.playerStates![phantomId!].camp, 'blue');
+  assert.notEqual(game.brawl!.playerStates![phantomId!].roleId, 'sun_wukong');
+  assert.notEqual(game.brawl!.playerStates![phantomId!].roleId, 'tang_seng');
 
-  const wukongId = players.find(p => game.brawl!.playerStates[p.id].roleId === 'sun_wukong')!.id;
+  const wukongId = players.find(p => game.brawl!.playerStates![p.id].roleId === 'sun_wukong')!.id;
   const wukongView = projectGame(game, wukongId);
   assert.equal(wukongView.selfBrawl?.phantomVisionActive, true);
   assert.ok(wukongView.self?.evilIds.includes(phantomId!), 'Sun Wukong sees phantom evil blue player in evilIds');
-  assert.equal(wukongView.brawl?.phantomEvilId, undefined, 'phantomEvilId is scrubbed mid-game');
+  assert.equal(wukongView.brawl?.secrets, undefined, 'secrets is scrubbed mid-game');
 
   // Red players do NOT see the innocent blue player as a red teammate
-  const honghaierId = players.find(p => game.brawl!.playerStates[p.id].roleId === 'hong_haier')!.id;
+  const honghaierId = players.find(p => game.brawl!.playerStates![p.id].roleId === 'hong_haier')!.id;
   const redView = projectGame(game, honghaierId);
   assert.ok(!redView.self?.evilIds.includes(phantomId!), 'Red players do not see phantom blue as teammate');
 });
@@ -472,18 +472,18 @@ test('skill feedback & guards: Li Tianwang requires non-empty current team and r
   // Force p1=li_tianwang (blue), p2=blue, p3=red
   game.roles.p1 = 'loyal';
   game.brawlRoles!.p1 = 'li_tianwang';
-  game.brawl!.playerStates.p1 = { userId: 'p1', seat: 1, roleId: 'li_tianwang', camp: 'blue', skillUsed: false };
+  game.brawl!.playerStates!.p1 = { userId: 'p1', seat: 1, roleId: 'li_tianwang', camp: 'blue', skillUsed: false };
   game.roles.p2 = 'loyal';
-  game.brawl!.playerStates.p2 = { userId: 'p2', seat: 2, roleId: 'bai_longma', camp: 'blue', skillUsed: false };
+  game.brawl!.playerStates!.p2 = { userId: 'p2', seat: 2, roleId: 'bai_longma', camp: 'blue', skillUsed: false };
   game.roles.p3 = 'assassin';
-  game.brawl!.playerStates.p3 = { userId: 'p3', seat: 3, roleId: 'hong_haier', camp: 'red', skillUsed: false };
+  game.brawl!.playerStates!.p3 = { userId: 'p3', seat: 3, roleId: 'hong_haier', camp: 'red', skillUsed: false };
 
   // Empty team rejected with TEAM_NOT_READY without consuming skill!
   assert.throws(() => transition(game, 'p1', {
     type: 'brawlCommand',
     payload: { action: 'useSkill', skillId: 'zhaoyao_baojing' },
   }, onlineIds), /TEAM_NOT_READY/);
-  assert.equal(game.brawl!.playerStates.p1.skillUsed, false, 'Skill NOT consumed when team is empty');
+  assert.equal(game.brawl!.playerStates!.p1.skillUsed, false, 'Skill NOT consumed when team is empty');
 
   // Propose team [p2, p3] -> Li Tianwang inspects during discussion -> sees demon
   game = transition(game, 'p1', { type: 'proposeTeam', payload: { playerIds: ['p2', 'p3'], direction: 'clockwise' } }, onlineIds);
@@ -494,7 +494,7 @@ test('skill feedback & guards: Li Tianwang requires non-empty current team and r
   assert.ok(viewDuringM1.selfBrawl?.zhaoyaoDetail?.includes('有妖魔潜伏'));
   // Scrubbed for other players
   assert.equal(projectGame(game, 'p2').selfBrawl?.zhaoyaoResult, undefined);
-  assert.equal(projectGame(game, 'p2').brawl?.privateReceipts, undefined);
+  assert.equal(projectGame(game, 'p2').brawl?.secrets, undefined);
 
   // Advance through vote & Mission 1 into Mission 2 -> Li Tianwang's result MUST persist!
   game = transition(game, 'p1', { type: 'startTeamVote', payload: {} }, onlineIds);
@@ -519,29 +519,29 @@ test('skill feedback & refund: armed mission skills auto-refund on rejected vote
   game.phase = 'proposing';
 
   game.roles.p1 = 'loyal';
-  game.brawl!.playerStates.p1 = { userId: 'p1', seat: 1, roleId: 'wangmu_niangniang', camp: 'blue', skillUsed: false };
+  game.brawl!.playerStates!.p1 = { userId: 'p1', seat: 1, roleId: 'wangmu_niangniang', camp: 'blue', skillUsed: false };
   game.roles.p2 = 'loyal';
-  game.brawl!.playerStates.p2 = { userId: 'p2', seat: 2, roleId: 'guanyin_pusa', camp: 'blue', skillUsed: false };
+  game.brawl!.playerStates!.p2 = { userId: 'p2', seat: 2, roleId: 'guanyin_pusa', camp: 'blue', skillUsed: false };
   game.roles.p3 = 'minion';
-  game.brawl!.playerStates.p3 = { userId: 'p3', seat: 3, roleId: 'bai_gujing', camp: 'red', skillUsed: false };
+  game.brawl!.playerStates!.p3 = { userId: 'p3', seat: 3, roleId: 'bai_gujing', camp: 'red', skillUsed: false };
 
   game = transition(game, 'p1', { type: 'proposeTeam', payload: { playerIds: ['p1', 'p2'], direction: 'clockwise' } }, onlineIds);
   // Arm Wangmu, Guanyin, and Baigujing during discussion
   game = transition(game, 'p1', { type: 'brawlCommand', payload: { action: 'useSkill', skillId: 'jiuzhuan_xiantao' } }, onlineIds);
   game = transition(game, 'p2', { type: 'brawlCommand', payload: { action: 'useSkill', skillId: 'jingping_ganlu', targetPlayerId: 'p1' } }, onlineIds);
   game = transition(game, 'p3', { type: 'brawlCommand', payload: { action: 'useSkill', skillId: 'huapi_lijian' } }, onlineIds);
-  assert.equal(game.brawl!.playerStates.p1.skillUsed, true);
-  assert.equal(game.brawl!.playerStates.p2.skillUsed, true);
-  assert.equal(game.brawl!.playerStates.p3.skillUsed, true);
+  assert.equal(game.brawl!.playerStates!.p1.skillUsed, true);
+  assert.equal(game.brawl!.playerStates!.p2.skillUsed, true);
+  assert.equal(game.brawl!.playerStates!.p3.skillUsed, true);
 
   // Proposal gets REJECTED in teamVote -> all 3 skills auto-refund!
   game = transition(game, 'p1', { type: 'startTeamVote', payload: {} }, onlineIds);
   for (const pid of onlineIds) {
     game = transition(game, pid, { type: 'teamVote', payload: { approve: false } }, onlineIds);
   }
-  assert.equal(game.brawl!.playerStates.p1.skillUsed, false, 'Wangmu refunded after rejected vote');
-  assert.equal(game.brawl!.playerStates.p2.skillUsed, false, 'Guanyin refunded after rejected vote');
-  assert.equal(game.brawl!.playerStates.p3.skillUsed, false, 'Baigujing refunded after rejected vote');
+  assert.equal(game.brawl!.playerStates!.p1.skillUsed, false, 'Wangmu refunded after rejected vote');
+  assert.equal(game.brawl!.playerStates!.p2.skillUsed, false, 'Guanyin refunded after rejected vote');
+  assert.equal(game.brawl!.playerStates!.p3.skillUsed, false, 'Baigujing refunded after rejected vote');
   assert.ok(projectGame(game, 'p1').selfBrawl?.generalFeedback?.includes('自动退还'), 'Wangmu gets refund receipt');
 
   // Re-arm Wangmu & Baigujing on passing 0-failure mission -> both get explicit no-failure receipts & replay entries
@@ -571,20 +571,15 @@ test('Scheme A isolation: 5-12p Brawl games never leak classic loyalGuardian/fem
       { ...defaultSettings, playerCount: count, brawlModeEnabled: true, guardianPerksEnabled: true },
       a => a,
     );
-    assert.equal(game.guardianClues, undefined, `${count}p Brawl must not generate classic guardianClues`);
     for (const p of players) {
       const view = projectGame(game, p.id);
       assert.ok(view.selfBrawl, `${count}p Brawl seat ${p.seat} must have selfBrawl`);
       assert.ok(BRAWL_ROLE_REGISTRY[view.selfBrawl!.roleId], `${count}p Brawl seat ${p.seat} roleId in registry`);
-      assert.equal(view.self?.loyalGuardian, undefined, `${count}p Brawl seat ${p.seat} must not leak loyalGuardian`);
-      assert.equal(view.self?.femaleDemon, undefined, `${count}p Brawl seat ${p.seat} must not leak femaleDemon`);
-      assert.equal(view.self?.guardianClue, undefined, `${count}p Brawl seat ${p.seat} must not leak guardianClue`);
-      assert.equal(view.self?.guinevereCandidates, undefined, `${count}p Brawl seat ${p.seat} must not leak guinevereCandidates`);
     }
 
     // Also test legacy fallback: even if top-level brawlRoles is stripped, ended projectGame reconstructs revealedBrawlRoles from brawl.playerStates
     const endedGame = structuredClone(game);
-    delete endedGame.brawlRoles;
+    endedGame.brawlRoles = undefined as any;
     endedGame.phase = 'finished';
     endedGame.result = { winner: 'blue', reason: 'merlin_survived' };
     const endedView = projectGame(endedGame, players[0].id);

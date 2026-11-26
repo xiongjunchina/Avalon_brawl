@@ -695,7 +695,7 @@ function App() {
     const botPlayers = next.players.filter(p => p.id !== humanId);
 
     for (const bot of botPlayers) {
-      if (isEnded(next) || !next.brawl) break;
+      if (isEnded(next) || !next.brawl || !next.brawl.playerStates) break;
       const pState = next.brawl.playerStates[bot.id];
       if (!pState || pState.skillUsed) continue;
       const roleDef = getEffectiveSkillRole(pState);
@@ -707,8 +707,8 @@ function App() {
       try {
         // 1. 百眼魔君【黄花毒茶】: 车队敲定后暗中下毒
         if (skill.skillId === 'huanghua_ducha' && (next.phase === 'discussion' || next.phase === 'team_vote' || next.phase === 'mission')) {
-          if (currentTeam.length > 0 && !next.brawl.baiyanDuchaTargetId) {
-            const blueTargets = currentTeam.filter(id => next.brawl?.playerStates[id]?.camp === 'blue' || id === humanId);
+          if (currentTeam.length > 0 && !next.brawl.secrets?.baiyanDuchaTargetId) {
+            const blueTargets = currentTeam.filter(id => next.brawl?.playerStates?.[id]?.camp === 'blue' || id === humanId);
             const targetId = blueTargets.length > 0
               ? blueTargets[Math.floor(Math.random() * blueTargets.length)]
               : currentTeam[0];
@@ -720,8 +720,8 @@ function App() {
         }
         // 2. 金角大王【紫金葫芦】: 车队敲定后吸收成功牌
         else if (skill.skillId === 'zijin_hulu' && (next.phase === 'discussion' || next.phase === 'team_vote' || next.phase === 'mission')) {
-          if (currentTeam.length > 0 && !next.brawl.jinjiaoHuluTargetId) {
-            const blueTargets = currentTeam.filter(id => next.brawl?.playerStates[id]?.camp === 'blue' || id === humanId);
+          if (currentTeam.length > 0 && !next.brawl.secrets?.jinjiaoHuluTargetId) {
+            const blueTargets = currentTeam.filter(id => next.brawl?.playerStates?.[id]?.camp === 'blue' || id === humanId);
             const targetId = blueTargets.length > 0
               ? blueTargets[Math.floor(Math.random() * blueTargets.length)]
               : currentTeam[0];
@@ -733,8 +733,8 @@ function App() {
         }
         // 3. 玉兔精【捣药迷魂】: 车队敲定后迷魂好人
         else if (skill.skillId === 'daoyao_mihun' && (next.phase === 'discussion' || next.phase === 'team_vote' || next.phase === 'mission')) {
-          if (currentTeam.length > 0 && !next.brawl.yutuMihunTargetId) {
-            const blueTargets = currentTeam.filter(id => next.brawl?.playerStates[id]?.camp === 'blue' || id === humanId);
+          if (currentTeam.length > 0 && !next.brawl.secrets?.yutuMihunTargetId) {
+            const blueTargets = currentTeam.filter(id => next.brawl?.playerStates?.[id]?.camp === 'blue' || id === humanId);
             const targetId = blueTargets.length > 0
               ? blueTargets[Math.floor(Math.random() * blueTargets.length)]
               : currentTeam[0];
@@ -746,7 +746,7 @@ function App() {
         }
         // 4. 白骨精【画皮离间】: 准备在出征失败时虚增失败牌
         else if (skill.skillId === 'huapi_lijian' && (next.phase === 'discussion' || next.phase === 'team_vote' || next.phase === 'proposing')) {
-          if (!next.brawl.baiguLijianArmed) {
+          if (!next.brawl.secrets?.baiguLijianArmed) {
             next = transition(next, bot.id, {
               type: 'brawlCommand',
               payload: { action: 'useSkill', skillId: skill.skillId }
@@ -773,7 +773,7 @@ function App() {
         }
         // 7. 托塔李天王【照妖宝镜】: 密照车队
         else if (skill.skillId === 'zhaoyao_baojing' && next.phase === 'discussion') {
-          if (currentTeam.length > 0 && !next.brawl.zhaoyaoResult) {
+          if (currentTeam.length > 0 && !next.brawl.secrets?.zhaoyaoResult) {
             next = transition(next, bot.id, {
               type: 'brawlCommand',
               payload: { action: 'useSkill', skillId: skill.skillId }
@@ -783,7 +783,7 @@ function App() {
         // 8. 观音菩萨【净瓶甘露】: 考察车上一位队员
         else if (skill.skillId === 'jingping_ganlu' && next.phase === 'discussion') {
           const otherMembers = currentTeam.filter(id => id !== bot.id);
-          if (otherMembers.length > 0 && !next.brawl.guanyinGanluTargetId) {
+          if (otherMembers.length > 0 && !next.brawl.secrets?.guanyinGanluTargetId) {
             const targetId = otherMembers[Math.floor(Math.random() * otherMembers.length)];
             next = transition(next, bot.id, {
               type: 'brawlCommand',
@@ -807,7 +807,7 @@ function App() {
         }
         // 11. 黄眉老怪【假设雷音】: 栽赃一名蓝方
         else if (skill.skillId === 'jiashe_leiyin' && (next.phase === 'discussion' || next.phase === 'proposing')) {
-          const blueTargets = next.players.filter(p => p.id !== bot.id && next.brawl?.playerStates[p.id]?.camp === 'blue');
+          const blueTargets = next.players.filter(p => p.id !== bot.id && next.brawl?.playerStates?.[p.id]?.camp === 'blue');
           if (blueTargets.length > 0) {
             const targetId = blueTargets[Math.floor(Math.random() * blueTargets.length)].id;
             next = transition(next, bot.id, {
@@ -846,7 +846,7 @@ function App() {
         // 15. 银角大王【移山压顶】: 表决阶段镇压对手票权
         else if (skill.skillId === 'yishan_yading' && next.phase === 'team_vote') {
           if (!next.brawl.yishanTargetId) {
-            const opponents = next.players.filter(p => p.id !== bot.id && next.brawl?.playerStates[p.id]?.camp === 'blue');
+            const opponents = next.players.filter(p => p.id !== bot.id && next.brawl?.playerStates?.[p.id]?.camp === 'blue');
             if (opponents.length > 0) {
               const targetId = opponents[Math.floor(Math.random() * opponents.length)].id;
               next = transition(next, bot.id, {
@@ -873,7 +873,7 @@ function App() {
           }, onlineIds);
         }
         // 18. 金翅大鹏雕【云程万里】: 终局刺杀前提前蓄力
-        else if (skill.skillId === 'yuncheng_wanli' && !next.brawl.dapengArmed) {
+        else if (skill.skillId === 'yuncheng_wanli' && !next.brawl.secrets?.dapengArmed) {
           next = transition(next, bot.id, {
             type: 'brawlCommand',
             payload: { action: 'useSkill', skillId: skill.skillId }
@@ -916,23 +916,7 @@ function App() {
         }
         next = stepPracticeBrawlBotSkills(next, practiceUserId, onlineIds);
       }
-      if (next.phase === 'guanyin_window') {
-        const guanyin = next.players.find(p => next.roles[p.id] === 'guinevere');
-        if (guanyin && guanyin.id !== practiceUserId) {
-          const round = next.rounds.at(-1);
-          const target = round?.team.find(id => id !== guanyin.id);
-          if (target) {
-            next = transition(next, guanyin.id, { type: 'useTreasure', payload: { action: 'guanyinMirror', targetId: target } }, onlineIds);
-          } else {
-            next = transition(next, guanyin.id, { type: 'useTreasure', payload: { action: 'guanyinMirror', skip: true } }, onlineIds);
-          }
-        }
-      }
-      // Let the human try the bell before practice bots immediately play their cards.
-      // This is local practice pacing only; multiplayer never waits for a treasure.
-      const tryingHeartBell = projectGame(next, practiceUserId).self?.treasures?.heartBell?.available ||
-        (action.type === 'useTreasure' && 'action' in action.payload && action.payload.action === 'heartBell');
-      if (next.phase === 'mission' && !tryingHeartBell) {
+      if (next.phase === 'mission') {
         const round = next.rounds.at(-1)!;
         for (const pid of round.team) {
           if (next.phase !== 'mission') break;
@@ -975,9 +959,9 @@ function App() {
         const bannedIds = collectMissionBannedPlayerIds({
           mission: next.mission,
           captainId: cap,
-          humanBagBanned: next.treasuresState?.humanBag,
           imprisonedTargetId: next.brawl?.imprisonedTargetId,
           zhizhuBannedTargetId: next.brawl?.zhizhuBannedTargetId,
+          qingshiTuntianTargetId: next.brawl?.qingshiTuntianTargetId,
           ordeals: next.brawl?.ordeals,
           wager: next.brawl?.wager,
         });
@@ -1002,17 +986,6 @@ function App() {
           }
         }
         next = stepPracticeBrawlBotSkills(next, practiceUserId, onlineIds);
-      } else if (next.phase === 'guanyin_window') {
-        const guanyin = next.players.find(p => next.roles[p.id] === 'guinevere');
-        if (guanyin) {
-          const round = next.rounds.at(-1);
-          const target = round?.team.find(id => id !== guanyin.id);
-          if (target) {
-            next = transition(next, guanyin.id, { type: 'useTreasure', payload: { action: 'guanyinMirror', targetId: target } }, onlineIds);
-          } else {
-            next = transition(next, guanyin.id, { type: 'useTreasure', payload: { action: 'guanyinMirror', skip: true } }, onlineIds);
-          }
-        }
       } else if (next.phase === 'mission') {
         const round = next.rounds.at(-1)!;
         for (const pid of round.team) {
@@ -1028,17 +1001,9 @@ function App() {
           }
         }
         next = stepPracticeBrawlBotSkills(next, practiceUserId, onlineIds);
-      } else if (next.phase === 'early_window') {
-        const assassin = next.players.find(p => next.roles[p.id] === 'assassin')!.id;
-        next = transition(
-          next,
-          assassin,
-          { type: 'earlyAssassinationDecision', payload: { attempt: false } },
-          onlineIds
-        );
       } else if (next.phase === 'assassination') {
         const assassin = next.players.find(p => next.roles[p.id] === 'assassin')!.id;
-        const excludedId = next.brawl?.dapengExcludedPlayerId;
+        const excludedId = next.brawl?.secrets?.dapengExcludedPlayerId;
         const blueCandidates = next.players.filter(p => teamOf(next.roles[p.id]) === 'blue' && p.id !== excludedId);
         const pool = blueCandidates.length > 0 ? blueCandidates : next.players.filter(p => p.id !== assassin && p.id !== excludedId);
         const target = pool[Math.floor(Math.random() * pool.length)] ?? next.players.find(p => p.id !== assassin)!;

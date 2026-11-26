@@ -4450,26 +4450,26 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
 .table-seats-grid.altar-dual-flank-arena.grid-12,
 .is-live-table .table-seats-grid.altar-dual-flank-arena.grid-12,
 .is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.grid-12 {
-  height: clamp(340px, 44.5dvh, 374px) !important;
-  min-height: clamp(340px, 44.5dvh, 374px) !important;
+  height: clamp(255px, 34dvh, 285px) !important;
+  min-height: clamp(255px, 34dvh, 285px) !important;
 }
 .table-seats-grid.altar-dual-flank-arena.is-ended-grid,
 .is-live-table .table-seats-grid.altar-dual-flank-arena.is-ended-grid,
 .is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.is-ended-grid {
-  height: clamp(322px, 42.5dvh, 368px) !important;
-  min-height: clamp(322px, 42.5dvh, 368px) !important;
+  height: clamp(255px, 34dvh, 285px) !important;
+  min-height: clamp(255px, 34dvh, 285px) !important;
 }
 .table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-10,
 .is-live-table .table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-10,
 .is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-10 {
-  height: clamp(344px, 45dvh, 388px) !important;
-  min-height: clamp(344px, 45dvh, 388px) !important;
+  height: clamp(255px, 34dvh, 285px) !important;
+  min-height: clamp(255px, 34dvh, 285px) !important;
 }
 .table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-12,
 .is-live-table .table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-12,
 .is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-12 {
-  height: clamp(370px, 48.5dvh, 412px) !important;
-  min-height: clamp(370px, 48.5dvh, 412px) !important;
+  height: clamp(255px, 34dvh, 285px) !important;
+  min-height: clamp(255px, 34dvh, 285px) !important;
 }
 
 /* 3-Zone / Circular Ring Arena Container */
@@ -8753,20 +8753,20 @@ button.seat-mic-badge:active {
   min-height: clamp(312px, 41.5dvh, 348px) !important;
 }
 .is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.grid-12 {
-  height: clamp(340px, 44.5dvh, 374px) !important;
-  min-height: clamp(340px, 44.5dvh, 374px) !important;
+  height: clamp(255px, 34dvh, 285px) !important;
+  min-height: clamp(255px, 34dvh, 285px) !important;
 }
 .is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.is-ended-grid {
-  height: clamp(322px, 42.5dvh, 368px) !important;
-  min-height: clamp(322px, 42.5dvh, 368px) !important;
+  height: clamp(255px, 34dvh, 285px) !important;
+  min-height: clamp(255px, 34dvh, 285px) !important;
 }
 .is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-10 {
-  height: clamp(344px, 45dvh, 388px) !important;
-  min-height: clamp(344px, 45dvh, 388px) !important;
+  height: clamp(255px, 34dvh, 285px) !important;
+  min-height: clamp(255px, 34dvh, 285px) !important;
 }
 .is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-12 {
-  height: clamp(370px, 48.5dvh, 412px) !important;
-  min-height: clamp(370px, 48.5dvh, 412px) !important;
+  height: clamp(255px, 34dvh, 285px) !important;
+  min-height: clamp(255px, 34dvh, 285px) !important;
 }
 .is-live-table .game-play-priority .scheme-a-main-arena,
 .is-live-table .game-play-priority .circular-ring-arena {

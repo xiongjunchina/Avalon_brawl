@@ -7,7 +7,7 @@ const people = (count: number): Player[] => Array.from({ length: count }, (_, i)
 const permutations = <T>(items: T[]): T[][] => items.length === 0 ? [[]] :
   items.flatMap((value, i) => permutations(items.filter((_, j) => i !== j)).map(rest => [value, ...rest]));
 const fresh = (players: Player[], options: RoleProtectionOptions = {}, enabled = true) =>
-  createGame('weighted-test', players, { ...defaultSettings, playerCount: players.length, rolePreferenceEnabled: enabled }, a => a, { randomBelow: () => 0n, ...options });
+  createGame('weighted-test', players, { ...defaultSettings, brawlModeEnabled: false, playerCount: players.length, rolePreferenceEnabled: enabled }, a => a, { randomBelow: () => 0n, ...options });
 
 test('equal-weight five-player sampling covers all 120 complete assignments with symmetric seats', () => {
   const players = people(5), seen = new Set<string>();

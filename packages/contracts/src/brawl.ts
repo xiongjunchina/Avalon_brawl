@@ -45,7 +45,8 @@ export type BrawlTriggerPhase =
   | 'mission_resolved'
   | 'assassination'
   | 'passive'
-  | 'game_start';
+  | 'game_start'
+  | 'game_end';
 
 export type BrawlActionType =
   | 'passive'
@@ -190,48 +191,110 @@ export interface BrawlPlayerState {
   bonusRoleId?: string; // 5~8人局核心角色额外配发的同阵营随机副法宝来源角色 ID
 }
 
+export interface BrawlPeekedRole {
+  roleId: string;
+  roleName: string;
+  camp: BrawlCamp;
+}
+
+/**
+ * 服务端权威私密状态容器：
+ * 对局进行中由 `projectBrawlGameState` 整块物理剔除，绝不向任何公共快照泄露；
+ * 仅在 `projectSelfBrawlView` 按权限精准投影给本人，或在终局后解密供复盘使用。
+ */
+export interface BrawlSecretState {
+  /** 玩家本局法宝施展/结算私密永久回执（跨难次永久保留） */
+  privateReceipts: Record<string, string>;
+  /** 开局盲盒情报特权（二郎神看 1 红、百眼魔君看 1 蓝、老鼠精看 1 蓝） */
+  peekedMap?: Record<string, BrawlPeekedRole[]>;
+  /** 画皮惑眼：孙悟空眼中混入的无辜蓝方假红玩家 ID */
+  phantomEvilId?: string;
+  /** 托塔李天王照妖宝镜私密结果 */
+  zhaoyaoResult?: {
+    hasDemon: boolean;
+    teamPlayerIds: string[];
+    mission?: number;
+    roundNumber?: number;
+    teamSummary?: string;
+  };
+  /** 金翅大鹏雕云程万里蓄力及排除席位 */
+  dapengArmed?: boolean;
+  dapengExcludedPlayerId?: string;
+  /** 观音菩萨净瓶甘露 */
+  guanyinGanluTargetId?: string;
+  guanyinGanluResult?: { targetId: string; targetSuccess: boolean };
+  guanyinGanluNotOnTeam?: string;
+  /** 菩提祖师道法点化 */
+  putiDianhuaNotice?: { targetBlueUserId: string; redRoleName: string };
+  /** 黄眉老怪假设雷音假传佛旨 */
+  huangmeiDianhuaNotice?: { targetBlueUserId: string; targetSeat: number; targetNickname: string };
+  /** 金角大王紫金葫芦 */
+  jinjiaoHuluTargetId?: string;
+  jinjiaoResult?: { targetSeat: number; targetNickname: string; absorbed: boolean; notOnTeam?: boolean };
+  /** 玉兔精捣药迷魂 */
+  yutuMihunTargetId?: string;
+  yutuResult?: { targetSeat: number; targetNickname: string; discarded: boolean; notOnTeam?: boolean };
+  /** 百眼魔君黄花毒茶 */
+  baiyanDuchaTargetId?: string;
+  baiyanDuchaResult?: boolean;
+  baiyanDuchaNotOnTeam?: boolean;
+  /** 白骨精画皮离间 */
+  baiguLijianArmed?: boolean;
+  baiguLijianResult?: boolean;
+  /** 铁扇公主芭蕉神风 */
+  tieshanSecret?: string;
+  /** 黄风怪三昧神风 */
+  huangfengSecret?: string;
+}
+
 export interface BrawlGameState {
   enabled: boolean;
-  blindBox: BrawlBlindBox;
-  playerStates: Record<string, BrawlPlayerState>;
+  /** 仅服务端内部及终局解密态包含；局中公共快照物理剔除 */
+  blindBox?: BrawlBlindBox;
+  /** 仅服务端内部及终局解密态包含；局中公共快照物理剔除 */
+  playerStates?: Record<string, BrawlPlayerState>;
+  /** 局中仅保留 anonymous_broadcast 显性播报；终局含全部事件 */
   events: BrawlBattleEvent[];
-  replayTimeline?: BrawlReplayAction[]; // 对局全景复盘记录（局中对客户端物理保密，终局胜负已定时解密下发）
-  imprisonedTargetId?: string; // 如来佛祖五指山禁锢的玩家（本轮禁止出征与表决）
-  taoshouActive?: boolean;     // 王母娘娘九转仙桃庇佑（本轮需至少2张失败才算失败）
-  extraSeatLimit?: number;     // 白龙马负重增加的人数上限
-  laojunZhuoActive?: boolean;  // 太上老君金刚琢法宝生效中（拦截下一个妖魔主动技能）
-  zhizhuBannedTargetId?: string; // 蜘蛛精盘丝结茧禁锢的玩家（本轮禁止出征）
-  doubleVoteUserId?: string;   // 哪吒三太子/牛魔王激活的双倍表决票用户
-  yishanTargetId?: string;     // 银角大王移山压顶目标（表决票强制被压制为弃权）
-  dapengArmed?: boolean;       // 金翅大鹏雕云程万里是否已发动待命
-  dapengExcludedPlayerId?: string; // 金翅大鹏雕云程万里排除的非大圣席位
-  zhaoyaoResult?: { hasDemon: boolean; teamPlayerIds: string[]; mission?: number; roundNumber?: number; teamSummary?: string }; // 托塔李天王照妖镜探查私密结果
-  privateReceipts?: Record<string, string>; // 玩家本局法宝施展/结算私密永久回执（局中仅对本人投影，物理脱敏）
-  shawujingBaozhangArmed?: boolean; // 沙悟净降妖宝杖平票定海待命
-  zhubajieDaodaArmed?: boolean;     // 猪八戒倒打一耙反转票待命
-  tieshanShenfengArmed?: boolean;   // 铁扇公主芭蕉神风待命
-  tieshanSecret?: string;           // 铁扇公主芭蕉神风窥破仙阶私密情报
-  huangfengMihuoActive?: boolean;   // 黄风怪三昧神风生效中
-  yuhuangYuzhiArmed?: boolean;      // 玉皇大帝天尊玉旨赦免待命
-  guanyinGanluTargetId?: string;    // 观音菩萨净瓶甘露标记目标
-  guanyinGanluResult?: { targetId: string; targetSuccess: boolean }; // 观音菩萨净瓶甘露探查结果
-  guanyinGanluNotOnTeam?: string;   // 观音菩萨甘露目标未随队出征
-  putiDianhuaNotice?: { targetBlueUserId: string; redRoleName: string }; // 菩提祖师点化揭露的红方真名
-  jinjiaoHuluTargetId?: string;     // 金角大王紫金葫芦锁定的队员
-  jinjiaoResult?: { targetSeat: number; targetNickname: string; absorbed: boolean; notOnTeam?: boolean }; // 金角大王紫金葫芦结算结果
-  yutuMihunTargetId?: string;       // 玉兔精捣药迷魂锁定的队员
-  yutuResult?: { targetSeat: number; targetNickname: string; discarded: boolean; notOnTeam?: boolean }; // 玉兔精捣药迷魂结算结果
-  qingshiTuntianTargetId?: string;  // 青毛狮子怪大口吞天锁定的队员
-  baiguLijianArmed?: boolean;       // 白骨精画皮离间待命中
-  baiguLijianResult?: boolean;      // 白骨精画皮离间是否已生效虚增
-  huangfengSecret?: string;         // 黄风怪三昧神风刺探出的神仙真名
-  huangmeiDianhuaNotice?: { targetBlueUserId: string; targetSeat: number; targetNickname: string }; // 黄眉老怪假设雷音假传佛旨
-  baiyanDuchaTargetId?: string;     // 百眼魔君黄花毒茶锁定的队员
-  baiyanDuchaResult?: boolean;      // 百眼魔君黄花毒茶是否成功毒化出失败
-  baiyanDuchaNotOnTeam?: boolean;   // 百眼魔君黄花毒茶目标是否未在出征车队中
-  ordeals?: BrawlOrdealState;       // 八十一难 · 每难一劫状态
-  wager?: BrawlWagerState;          // 队长自愿立军令状状态
-  phantomEvilId?: string;           // 画皮惑眼：孙悟空视野混入的无辜蓝方假红 ID（局中物理脱敏，终局揭晓）
+  /** 对局全景复盘记录（局中物理剔除，终局解密） */
+  replayTimeline?: BrawlReplayAction[];
+  /** 服务端私密状态容器（局中整块物理剔除） */
+  secrets?: BrawlSecretState;
+
+  // ==================== 局中公开生效的显性状态 ====================
+  imprisonedTargetId?: string;     // 如来佛祖五行山掌禁锢的玩家（禁选禁投）
+  zhizhuBannedTargetId?: string;   // 蜘蛛精盘丝结茧禁选的玩家
+  qingshiTuntianTargetId?: string; // 青毛狮子怪大口吞天禁选的玩家
+  extraSeatLimit?: number;         // 白龙马龙马负重增加的本难人数上限
+  laojunZhuoActive?: boolean;      // 太上老君金刚琢悬空拦截待命
+  doubleVoteUserId?: string;       // 哪吒三太子/牛魔王激活的双倍表决票用户
+  yishanTargetId?: string;         // 银角大王移山压顶强制弃权目标
+  taoshouActive?: boolean;         // 王母娘娘九转仙桃护体待命
+  yuhuangYuzhiArmed?: boolean;     // 玉皇大帝天尊玉旨赦免待命
+  shawujingBaozhangArmed?: boolean;// 沙悟净降妖宝杖定海待命
+  zhubajieDaodaArmed?: boolean;    // 猪八戒倒打一耙反转票待命
+  ordeals?: BrawlOrdealState;      // 八十一难 · 每难一劫状态
+  wager?: BrawlWagerState;         // 队长自愿立军令状状态
+}
+
+/** 服务端单一数据源计算的技能可选目标项 */
+export interface BrawlSkillTargetOption {
+  playerId: string;
+  seat: number;
+  nickname: string;
+  disabled: boolean;
+  /** 目标附加状态标签（如「出征队员」「未入队」「队长·不可选」「你自己·不可选」） */
+  tag?: string;
+  /** 排序权重（车上队员=0 排前，其余=1 按座号排） */
+  priority?: number;
+}
+
+/** 服务端单一数据源计算的技能操作态（前端零规则分支，直接渲染） */
+export interface BrawlSkillControlState {
+  visible: boolean;
+  canCast: boolean;
+  blockedReason?: string;
+  requiresTarget: boolean;
+  targetOptions?: BrawlSkillTargetOption[];
 }
 
 export interface SelfBrawlView {
@@ -244,29 +307,31 @@ export interface SelfBrawlView {
   skill: BrawlSkillDef;
   skillAvailable: boolean;
   skillUsed: boolean;
+  /** 服务端权威计算的技能发动控制态与合法目标列表 */
+  skillControl?: BrawlSkillControlState;
   bonusRoleId?: string;
   bonusRoleName?: string;
   isAwakened?: boolean;
-  wishRank?: number; // 命中心愿的志愿序号 (1 ~ 5)
-  peekedRoles?: { roleId: string; roleName: string; camp: BrawlCamp }[];
-  zhaoyaoResult?: boolean; // 李天王专属：当前车队是否有妖魔
-  zhaoyaoDetail?: string; // 李天王专属：含难次与被查验阵容明细的完整探查结论
-  dapengExcludedPlayerId?: string; // 终局刺杀阶段排除的非孙悟空席位
-  shituoExcludedPlayerId?: string; // 狮驼死战红方胜出终局额外排除的非孙悟空席位
-  phantomVisionActive?: boolean; // 孙悟空专属：本局开启画皮惑眼（视野含1名假红）
-  canWagerInspect?: boolean; // 军令状：当前玩家有待执行的私密查验特权
-  wagerInspectResult?: { targetSeat: number; targetNickname: string; team: BrawlCamp }; // 军令状查验私密结果
-  putiDianhuaNotice?: string; // 菩提祖师专属私密点化天机（或黄眉老怪假托之天机）
-  guanyinGanluResult?: { targetSeat: number; targetNickname: string; success: boolean }; // 观音菩萨专属私密出征探查
-  guanyinNotice?: string; // 观音菩萨专属净瓶甘露显圣状态/结果回执
-  tieshanSecret?: string; // 铁扇公主专属芭蕉神风窥破仙阶天机
-  huangfengSecret?: string; // 黄风怪专属三昧神风吹探天机
-  huangmeiNotice?: string; // 黄眉老怪专属假传佛旨状态回执
-  baiguLijianStatus?: string; // 白骨精专属画皮离间状态回执
-  baiyanDuchaStatus?: string; // 百眼魔君专属黄花毒茶状态回执
-  jinjiaoNotice?: string; // 金角大王专属紫金葫芦吸收回执
-  yutuNotice?: string; // 玉兔精专属捣药迷魂封印回执
-  generalFeedback?: string; // 通用法宝施法/生效私密回执（保证所有角色均有明确私密结果告知）
+  wishRank?: number;
+  peekedRoles?: BrawlPeekedRole[];
+  zhaoyaoResult?: boolean;
+  zhaoyaoDetail?: string;
+  dapengExcludedPlayerId?: string;
+  shituoExcludedPlayerId?: string;
+  phantomVisionActive?: boolean;
+  canWagerInspect?: boolean;
+  wagerInspectResult?: { targetSeat: number; targetNickname: string; team: BrawlCamp };
+  putiDianhuaNotice?: string;
+  guanyinGanluResult?: { targetSeat: number; targetNickname: string; success: boolean };
+  guanyinNotice?: string;
+  tieshanSecret?: string;
+  huangfengSecret?: string;
+  huangmeiNotice?: string;
+  baiguLijianStatus?: string;
+  baiyanDuchaStatus?: string;
+  jinjiaoNotice?: string;
+  yutuNotice?: string;
+  generalFeedback?: string;
 }
 
 export const brawlCommandPayloadSchema = z.discriminatedUnion('action', [

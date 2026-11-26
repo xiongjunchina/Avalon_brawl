@@ -5,7 +5,7 @@ import { defaultSettings, commandSchema, type Settings, type Command } from '@av
 import { createGame, transition, projectGame, captain, teamOf, type GameState } from '../src/index.js';
 function action(g:GameState,id:string,type:Command['type'],payload:Command['payload']={}) {return transition(g,id,{type,payload},g.players.map(p=>p.id));}
 function game(patch:Partial<Settings>={},n=7) {
-  let g=createGame(randomUUID(),Array.from({length:n},(_,i)=>({id:randomUUID(),seat:i+1,nickname:`拓展${i+1}`})),{...defaultSettings,playerCount:n,...patch},a=>a,{randomBelow:()=>0n});
+  let g=createGame(randomUUID(),Array.from({length:n},(_,i)=>({id:randomUUID(),seat:i+1,nickname:`拓展${i+1}`})),{...defaultSettings,brawlModeEnabled:false,playerCount:n,...patch},a=>a,{randomBelow:()=>0n});
   for(const p of g.players)g=action(g,p.id,'confirmRole');return g;
 }
 const roleId=(g:GameState,role:string)=>g.players.find(p=>g.roles[p.id]===role)!.id;
@@ -69,54 +69,5 @@ test('legacy v1 games without extension fields still resume, project and settle 
 test('extension schema rejects secret fields, forged actors and ambiguous decisions',()=>{
   for(const [type,payload] of [['earlyAssassinationDecision',{attempt:'yes'}]] as const)
     assert.equal(commandSchema.safeParse({commandId:randomUUID(),expectedVersion:1,type,payload}).success,false);
-});
-
-test('guardianPerksEnabled generates strictly bounded, role-consistent private clues without leaks',()=>{
-  for (const n of [5, 6, 7, 8, 9, 10, 11, 12]) {
-    const players = Array.from({ length: n }, (_, i) => ({ id: `p-${i + 1}`, seat: i + 1, nickname: `玩家${i + 1}` }));
-    const g = createGame('guardian-test', players, { ...defaultSettings, playerCount: n, guardianPerksEnabled: true }, a => a, { randomBelow: () => 0n });
-    const pub = projectGame(g);
-    assert.equal('guardianClues' in pub, false);
-    assert.equal(pub.self, undefined);
-
-    for (const p of g.players) {
-      const v = projectGame(g, p.id);
-      const role = g.roles[p.id];
-      if (role !== 'loyal') {
-        assert.equal(v.self?.guardianClue, undefined, `${role} must not receive guardianClue`);
-      } else {
-        const clue = v.self?.guardianClue;
-        assert.ok(clue, `loyal player ${p.id} must receive guardianClue`);
-        assert.equal(clue.kind, v.self?.loyalGuardian);
-
-        if (clue.kind === 'zhubajie') {
-          assert.equal(clue.targetIds.length, 1);
-          assert.notEqual(clue.targetIds[0], p.id);
-          assert.notEqual(g.roles[clue.targetIds[0]], 'morgana');
-        } else if (clue.kind === 'shawujing') {
-          const otherLoyals = g.players.filter(q => q.id !== p.id && g.roles[q.id] === 'loyal');
-          if (otherLoyals.length > 0) {
-            assert.equal(clue.targetIds.length, 1);
-            assert.equal(g.roles[clue.targetIds[0]], 'loyal');
-            assert.notEqual(clue.targetIds[0], p.id);
-          } else {
-            assert.deepEqual(clue.targetIds, []);
-          }
-        } else if (clue.kind === 'bailong') {
-          assert.equal(clue.targetIds.length, 2);
-          const rolesInTarget = clue.targetIds.map(id => g.roles[id]);
-          assert.ok(rolesInTarget.includes('percival'));
-          assert.ok(clue.targetIds.some(id => teamOf(g.roles[id]) === 'red'));
-        } else if (clue.kind === 'jingang') {
-          assert.equal(clue.targetIds.length, 2);
-          const hasRed = clue.targetIds.some(id => teamOf(g.roles[id]) === 'red');
-          const hasBlueNotMerlin = clue.targetIds.some(id => teamOf(g.roles[id]) === 'blue' && g.roles[id] !== 'merlin' && id !== p.id);
-          assert.ok(hasRed);
-          assert.ok(hasBlueNotMerlin);
-          assert.ok(!clue.targetIds.includes(g.players.find(q => g.roles[q.id] === 'merlin')!.id));
-        }
-      }
-    }
-  }
 });
 

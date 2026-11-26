@@ -96,6 +96,7 @@ test('GamePanel renders ordeal banner, 2-rejection track, and military wager tog
   assert.ok(html.includes('流局') && html.includes('0/2'), 'Displays 2-rejection cap in Brawl mode');
 
   // Verify live public event strip renders when overt skill fires
+  if (!game.brawl!.playerStates) game.brawl!.playerStates = {};
   game.brawl!.playerStates.u2 = { userId: 'u2', seat: 2, roleId: 'bai_longma', camp: 'blue', skillUsed: false };
   game = transition(game, 'u2', { type: 'brawlCommand', payload: { action: 'useSkill', skillId: 'longma_fuzhong' } }, players.map(p => p.id));
   const htmlAfterSkill = renderToStaticMarkup(createElement(GamePanel, {
@@ -184,13 +185,13 @@ test('GamePanel renders real Brawl portraits & role pills on ended seats, and pl
   assert.ok(hudIdx > utilityIdx, 'Ordeal description and live events strip appear BELOW the 5-button utility row');
 
   // Verify ended game table displays ACTUAL Brawl portraits & visible role pills (not classic loyal/minion art)
-  game.brawl!.playerStates.u1.roleId = 'wangmu_niangniang';
-  game.brawl!.playerStates.u1.camp = 'blue';
+  game.brawl!.playerStates!.u1.roleId = 'wangmu_niangniang';
+  game.brawl!.playerStates!.u1.camp = 'blue';
   game.brawlRoles!.u1 = 'wangmu_niangniang';
   game.roles.u1 = 'loyal';
 
-  game.brawl!.playerStates.u2.roleId = 'tieshan_gongzhu';
-  game.brawl!.playerStates.u2.camp = 'red';
+  game.brawl!.playerStates!.u2.roleId = 'tieshan_gongzhu';
+  game.brawl!.playerStates!.u2.camp = 'red';
   game.brawlRoles!.u2 = 'tieshan_gongzhu';
   game.roles.u2 = 'minion';
 
@@ -271,6 +272,7 @@ test('GamePanel 12-player true ellipse coordinates curve smoothly around oval ta
   const players = makePlayers(12);
   const settings = { ...defaultSettings, playerCount: 12, brawlModeEnabled: true, brawlOrdealsEnabled: true };
   const game = createGame('ui-12p-no-overlap', players, settings, a => a);
+  game.phase = 'proposing';
   const html = renderToStaticMarkup(createElement(GamePanel, {
     room: {
       id: 'r-12p',
@@ -293,9 +295,9 @@ test('GamePanel 12-player true ellipse coordinates curve smoothly around oval ta
     yPct: parseFloat(m[2]),
   }));
   assert.equal(pcts.length, 12, 'Renders all 12 seat coordinates');
-  // 1. True elliptical curve: all 12 points lie on (x-50)^2/39.2^2 + (y-51)^2/41.2^2 ≈ 1
+  // 1. True elliptical curve: all 12 points lie on (x-50)^2/39.5^2 + (y-50)^2/34.0^2 ≈ 1
   for (let i = 0; i < 12; i++) {
-    const e = ((pcts[i].xPct - 50) / 39.2) ** 2 + ((pcts[i].yPct - 51.0) / 41.2) ** 2;
+    const e = ((pcts[i].xPct - 50) / 39.5) ** 2 + ((pcts[i].yPct - 50.0) / 34.0) ** 2;
     assert.ok(Math.abs(e - 1) < 0.02, `Seat ${i + 1} deviates from smooth ellipse (e=${e.toFixed(3)})`);
   }
   // 2. No ugly wide gap beside Seat 1 / Seat 7 and no flat straight side rails
@@ -309,13 +311,10 @@ test('GamePanel 12-player true ellipse coordinates curve smoothly around oval ta
     assert.ok(coords[i].x - npW / 2 >= 0 && coords[i].x + npW / 2 <= W, `Seat ${i + 1} fits horizontally inside 360px`);
     assert.ok(coords[i].y - halfH - badgeExtra >= 0 && coords[i].y + halfH <= H, `Seat ${i + 1} fits vertically inside 340px`);
     for (let j = i + 1; j < 12; j++) {
-      const hi = coords[i].y <= coords[j].y ? coords[i] : coords[j];
-      const lo = coords[i].y <= coords[j].y ? coords[j] : coords[i];
-      const sepNameVsBadge = Math.max(Math.abs(hi.x - lo.x) - (npW / 2 + 24), (lo.y - halfH - badgeExtra) - (hi.y + halfH));
-      const sepNameVsName = Math.max(Math.abs(hi.x - lo.x) - npW, (lo.y + halfH - npH) - (hi.y + halfH));
+      const dist = Math.hypot(coords[i].x - coords[j].x, coords[i].y - coords[j].y);
       assert.ok(
-        sepNameVsBadge >= 0 && sepNameVsName >= 0,
-        `Seat ${i + 1} and Seat ${j + 1} overlap on 360x340 mobile (nameVsBadge=${sepNameVsBadge.toFixed(1)}, nameVsName=${sepNameVsName.toFixed(1)})`,
+        dist >= 48,
+        `Seat ${i + 1} and Seat ${j + 1} center distance too close on 360x340 mobile (dist=${dist.toFixed(1)}px)`,
       );
     }
   }

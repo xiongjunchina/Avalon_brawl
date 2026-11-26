@@ -25,7 +25,7 @@ test('restoring, reconnecting and returning to the foreground never replay histo
   assert.deepEqual(gameAudioCues(null, { ...a, phase: 'dealing' }), ['deal']);
 });
 test('countdown completion and practice entrance play start once, restored games stay silent', () => {
-  const tracker = new AudioEventTracker(), a = view();
+  const tracker = new AudioEventTracker(), a = { ...view(), phase: 'proposing' as const };
   tracker.update(null,true);
   assert.deepEqual(tracker.update({ ...a, phase: 'dealing' },true),['deal']);
   assert.deepEqual(tracker.update(a,true),['game-start']);
@@ -41,7 +41,7 @@ test('private roles, vote choices, submission progress and inspections never pro
   assert.deepEqual(gameAudioCues(a, privateChange), []);
 });
 test('public round transitions sound once; terminal result takes precedence over next phase', () => {
-  let g = fresh(); const ids = players.map(p => p.id);
+  let g = fresh(); g.phase = 'proposing'; const ids = players.map(p => p.id);
   const send = (id: string, type: string, payload: object = {}) => { g = transition(g, id, { type, payload } as Parameters<typeof transition>[2], ids); };
   send('p0', 'proposeTeam', { playerIds: ['p0','p1'], direction: 'clockwise' });
   send('p0', 'startTeamVote');
@@ -69,7 +69,7 @@ test('assassination plays one sword draw and does not replay when restored', () 
   const assassination = { ...a, phase: 'assassination' as const };
   assert.deepEqual(tracker.update(assassination, true), ['sword']);
   assert.deepEqual(tracker.update(assassination, true), []);
-  assert.deepEqual(gameAudioCues({ ...a, phase: 'early_window' }, assassination), ['sword']);
+  assert.deepEqual(gameAudioCues({ ...a, phase: 'mission' }, assassination), ['sword']);
   tracker.reset();
   assert.deepEqual(tracker.update(assassination, true), []);
 });

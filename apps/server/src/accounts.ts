@@ -16,7 +16,7 @@ export const historyQuery=z.object({cursor:z.string().min(1).max(512).optional()
 type GameRow={id:string;state:GameState;created_at:Date;ended_at:Date;cursor_at:string;favorite:boolean};
 const summary=(r:GameRow,userId:string):GameSummary=>{
   const g=r.state,p=g.players.find(p=>p.id===userId)!;
-  const brawlRoleId = g.brawlRoles?.[userId] || g.brawl?.playerStates[userId]?.roleId;
+  const brawlRoleId = g.brawlRoles?.[userId] || g.brawl?.playerStates?.[userId]?.roleId;
   const brawlRoleName = brawlRoleId ? BRAWL_ROLE_REGISTRY[brawlRoleId]?.name : undefined;
   return {id:r.id,startedAt:r.created_at.toISOString(),endedAt:r.ended_at.toISOString(),rulesetVersion:g.rulesetVersion,
     playerCount:g.players.length,self:{nickname:p.nickname,seat:p.seat,role:g.roles[userId],team:teamOf(g.roles[userId]),

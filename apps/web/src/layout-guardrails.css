@@ -69,12 +69,31 @@
 }
 
 /* Single full-width stat cards (e.g. masked Chaotic Fog) must never inherit narrow 2-column max-width */
-.mission-report-card-stats .stat-card.stat-masked {
+:is(.stat-card.stat-masked, .mission-report-card-stats .stat-card.stat-masked) {
   flex: 1 1 100% !important;
   width: 100% !important;
   max-width: none !important;
+  box-sizing: border-box !important;
+  display: flex !important;
   flex-direction: row !important;
   flex-wrap: wrap !important;
   justify-content: center !important;
   align-items: center !important;
+  gap: 6px 12px !important;
+}
+
+:is(.stat-card.stat-masked, .mission-report-card-stats .stat-card.stat-masked) .stat-label {
+  writing-mode: horizontal-tb !important;
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  flex-shrink: 0 !important;
+  min-width: max-content !important;
+}
+
+:is(.stat-card.stat-masked, .mission-report-card-stats .stat-card.stat-masked) .stat-val {
+  writing-mode: horizontal-tb !important;
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  flex-shrink: 0 !important;
+  min-width: max-content !important;
 }

@@ -72,7 +72,7 @@ test('30-role matrix: all 24 active skills execute cleanly, respect broadcast wh
     const targetId = 'p2';
     game.roles[actorId] = roleDef.camp === 'blue' ? 'loyal' : 'minion';
     game.brawlRoles![actorId] = roleDef.id;
-    game.brawl!.playerStates[actorId] = {
+    game.brawl!.playerStates![actorId] = {
       userId: actorId,
       seat: 5,
       roleId: roleDef.id,
@@ -89,7 +89,7 @@ test('30-role matrix: all 24 active skills execute cleanly, respect broadcast wh
     const replayBefore = game.brawl!.replayTimeline!.length;
     game = transition(game, actorId, { type: 'brawlCommand', payload }, onlineIds);
 
-    assert.equal(game.brawl!.playerStates[actorId].skillUsed, true, `${roleDef.id}: skill marked used`);
+    assert.equal(game.brawl!.playerStates![actorId].skillUsed, true, `${roleDef.id}: skill marked used`);
     assert.ok(game.brawl!.replayTimeline!.length > replayBefore, `${roleDef.id}: replay timeline recorded`);
 
     // Verify public broadcast whitelist strictly matches
@@ -149,7 +149,7 @@ test('30-role matrix: passive/core 6 roles project exact vision, blind-box peeks
   for (const [id, brawlId, baseRole, camp] of layout) {
     game.roles[id] = baseRole;
     game.brawlRoles![id] = brawlId;
-    game.brawl!.playerStates[id] = {
+    game.brawl!.playerStates![id] = {
       userId: id,
       seat: Number(id.slice(1)),
       roleId: brawlId,
@@ -157,9 +157,12 @@ test('30-role matrix: passive/core 6 roles project exact vision, blind-box peeks
       skillUsed: false,
     };
   }
-  game.brawlPeekedMap = {
-    erlang_shen: [{ roleId: 'laoshu_jing', roleName: '老鼠精', camp: 'red' }],
-    laoshu_jing: [{ roleId: 'nezha', roleName: '哪吒三太子', camp: 'blue' }],
+  game.brawl!.secrets = {
+    ...(game.brawl!.secrets ?? { privateReceipts: {} }),
+    peekedMap: {
+      erlang_shen: [{ roleId: 'laoshu_jing', roleName: '老鼠精', camp: 'red' }],
+      laoshu_jing: [{ roleId: 'nezha', roleName: '哪吒三太子', camp: 'blue' }],
+    },
   };
 
   // Sun Wukong sees p7, p8, p10 — NOT p9 (Huangmei)
@@ -202,10 +205,10 @@ test('bugfix audit: illegal Red skill clicks NEVER consume Taishang Laojun Jinga
   game.captainIndex = 0; // p1 is captain
   game.phase = 'proposing';
 
-  game.brawl!.playerStates.p2 = { userId: 'p2', seat: 2, roleId: 'taishang_laojun', camp: 'blue', skillUsed: false };
-  game.brawl!.playerStates.p3 = { userId: 'p3', seat: 3, roleId: 'qingmao_shizi', camp: 'red', skillUsed: false };
-  game.brawl!.playerStates.p4 = { userId: 'p4', seat: 4, roleId: 'zhizhu_jing', camp: 'red', skillUsed: false };
-  game.brawl!.playerStates.p5 = { userId: 'p5', seat: 5, roleId: 'yinjiao_dawang', camp: 'red', skillUsed: false };
+  game.brawl!.playerStates!.p2 = { userId: 'p2', seat: 2, roleId: 'taishang_laojun', camp: 'blue', skillUsed: false };
+  game.brawl!.playerStates!.p3 = { userId: 'p3', seat: 3, roleId: 'qingmao_shizi', camp: 'red', skillUsed: false };
+  game.brawl!.playerStates!.p4 = { userId: 'p4', seat: 4, roleId: 'zhizhu_jing', camp: 'red', skillUsed: false };
+  game.brawl!.playerStates!.p5 = { userId: 'p5', seat: 5, roleId: 'yinjiao_dawang', camp: 'red', skillUsed: false };
 
   // Arm Laojun
   game = transition(game, 'p2', { type: 'brawlCommand', payload: { action: 'useSkill', skillId: 'jingang_zhuo' } }, onlineIds);
@@ -217,7 +220,7 @@ test('bugfix audit: illegal Red skill clicks NEVER consume Taishang Laojun Jinga
     payload: { action: 'useSkill', skillId: 'dakou_tuntian', targetPlayerId: 'p1' },
   }, onlineIds), /CANNOT_BAN_CAPTAIN/);
   assert.equal(game.brawl!.laojunZhuoActive, true);
-  assert.equal(game.brawl!.playerStates.p3.skillUsed, false);
+  assert.equal(game.brawl!.playerStates!.p3.skillUsed, false);
 
   // 2. Zhizhu tries to ban self -> rejected, Laojun stays armed!
   assert.throws(() => transition(game, 'p4', {
@@ -225,7 +228,7 @@ test('bugfix audit: illegal Red skill clicks NEVER consume Taishang Laojun Jinga
     payload: { action: 'useSkill', skillId: 'pansi_jiejian', targetPlayerId: 'p4' },
   }, onlineIds), /CANNOT_BAN_SELF/);
   assert.equal(game.brawl!.laojunZhuoActive, true);
-  assert.equal(game.brawl!.playerStates.p4.skillUsed, false);
+  assert.equal(game.brawl!.playerStates!.p4.skillUsed, false);
 
   // 3. Yinjiao tries to target self -> rejected, Laojun stays armed!
   assert.throws(() => transition(game, 'p5', {
@@ -233,7 +236,7 @@ test('bugfix audit: illegal Red skill clicks NEVER consume Taishang Laojun Jinga
     payload: { action: 'useSkill', skillId: 'yishan_yading', targetPlayerId: 'p5' },
   }, onlineIds), /CANNOT_TARGET_SELF/);
   assert.equal(game.brawl!.laojunZhuoActive, true);
-  assert.equal(game.brawl!.playerStates.p5.skillUsed, false);
+  assert.equal(game.brawl!.playerStates!.p5.skillUsed, false);
 
   // 4. Legal Red skill IS intercepted by Laojun!
   game = transition(game, 'p5', {
@@ -241,7 +244,7 @@ test('bugfix audit: illegal Red skill clicks NEVER consume Taishang Laojun Jinga
     payload: { action: 'useSkill', skillId: 'yishan_yading', targetPlayerId: 'p6' },
   }, onlineIds);
   assert.equal(game.brawl!.laojunZhuoActive, false);
-  assert.equal(game.brawl!.playerStates.p5.skillUsed, true);
+  assert.equal(game.brawl!.playerStates!.p5.skillUsed, true);
   assert.equal(game.brawl!.yishanTargetId, undefined);
 });
 
@@ -254,7 +257,7 @@ test('bugfix audit: Yinjiao and Rulai suppressing last unvoted player in team_vo
   g1.captainOrder = [...onlineIds];
   g1.captainIndex = 0;
   g1.phase = 'proposing';
-  g1.brawl!.playerStates.p5 = { userId: 'p5', seat: 5, roleId: 'yinjiao_dawang', camp: 'red', skillUsed: false };
+  g1.brawl!.playerStates!.p5 = { userId: 'p5', seat: 5, roleId: 'yinjiao_dawang', camp: 'red', skillUsed: false };
 
   g1 = transition(g1, 'p1', { type: 'proposeTeam', payload: { playerIds: ['p1', 'p2'], direction: 'clockwise' } }, onlineIds);
   g1 = transition(g1, 'p1', { type: 'startTeamVote', payload: {} }, onlineIds);
@@ -275,7 +278,7 @@ test('bugfix audit: Yinjiao and Rulai suppressing last unvoted player in team_vo
   g2.captainOrder = [...onlineIds];
   g2.captainIndex = 0;
   g2.phase = 'proposing';
-  g2.brawl!.playerStates.p5 = { userId: 'p5', seat: 5, roleId: 'rulai_fozu', camp: 'blue', skillUsed: false };
+  g2.brawl!.playerStates!.p5 = { userId: 'p5', seat: 5, roleId: 'rulai_fozu', camp: 'blue', skillUsed: false };
 
   g2 = transition(g2, 'p1', { type: 'proposeTeam', payload: { playerIds: ['p1', 'p2'], direction: 'clockwise' } }, onlineIds);
   g2 = transition(g2, 'p1', { type: 'startTeamVote', payload: {} }, onlineIds);
@@ -293,7 +296,7 @@ test('bugfix audit: Yinjiao and Rulai suppressing last unvoted player in team_vo
   g3.captainOrder = [...onlineIds];
   g3.captainIndex = 0;
   g3.phase = 'proposing';
-  g3.brawl!.playerStates.p5 = { userId: 'p5', seat: 5, roleId: 'zhizhu_jing', camp: 'red', skillUsed: false };
+  g3.brawl!.playerStates!.p5 = { userId: 'p5', seat: 5, roleId: 'zhizhu_jing', camp: 'red', skillUsed: false };
   g3 = transition(g3, 'p1', { type: 'proposeTeam', payload: { playerIds: ['p1', 'p2'], direction: 'clockwise' } }, onlineIds);
   g3 = transition(g3, 'p1', { type: 'startTeamVote', payload: {} }, onlineIds);
   g3 = transition(g3, 'p1', { type: 'teamVote', payload: { approve: true } }, onlineIds);
@@ -314,16 +317,16 @@ test('bugfix audit: team-building control skills cannot be wasted in mission pha
   game.captainIndex = 0;
   game.phase = 'proposing';
 
-  game.brawl!.playerStates.p1 = { userId: 'p1', seat: 1, roleId: 'yuhuang_dadi', camp: 'blue', skillUsed: false };
-  game.brawl!.playerStates.p2 = { userId: 'p2', seat: 2, roleId: 'bai_longma', camp: 'blue', skillUsed: false };
-  game.brawl!.playerStates.p3 = { userId: 'p3', seat: 3, roleId: 'rulai_fozu', camp: 'blue', skillUsed: false };
-  game.brawl!.playerStates.p4 = { userId: 'p4', seat: 4, roleId: 'qingmao_shizi', camp: 'red', skillUsed: false };
-  game.brawl!.playerStates.p5 = { userId: 'p5', seat: 5, roleId: 'zhizhu_jing', camp: 'red', skillUsed: false };
+  game.brawl!.playerStates!.p1 = { userId: 'p1', seat: 1, roleId: 'yuhuang_dadi', camp: 'blue', skillUsed: false };
+  game.brawl!.playerStates!.p2 = { userId: 'p2', seat: 2, roleId: 'bai_longma', camp: 'blue', skillUsed: false };
+  game.brawl!.playerStates!.p3 = { userId: 'p3', seat: 3, roleId: 'rulai_fozu', camp: 'blue', skillUsed: false };
+  game.brawl!.playerStates!.p4 = { userId: 'p4', seat: 4, roleId: 'qingmao_shizi', camp: 'red', skillUsed: false };
+  game.brawl!.playerStates!.p5 = { userId: 'p5', seat: 5, roleId: 'zhizhu_jing', camp: 'red', skillUsed: false };
 
   // Arm Yuhuang -> rejected vote MUST refund Yuhuang!
   game = transition(game, 'p1', { type: 'brawlCommand', payload: { action: 'useSkill', skillId: 'tianzun_yuzhi' } }, onlineIds);
   assert.equal(game.brawl!.yuhuangYuzhiArmed, true);
-  assert.equal(game.brawl!.playerStates.p1.skillUsed, true);
+  assert.equal(game.brawl!.playerStates!.p1.skillUsed, true);
 
   game = transition(game, 'p1', { type: 'proposeTeam', payload: { playerIds: ['p1', 'p2'], direction: 'clockwise' } }, onlineIds);
   game = transition(game, 'p1', { type: 'startTeamVote', payload: {} }, onlineIds);
@@ -333,13 +336,13 @@ test('bugfix audit: team-building control skills cannot be wasted in mission pha
     type: 'brawlCommand',
     payload: { action: 'useSkill', skillId: 'longma_fuzhong' },
   }, onlineIds), /WRONG_PHASE/);
-  assert.equal(game.brawl!.playerStates.p2.skillUsed, false);
+  assert.equal(game.brawl!.playerStates!.p2.skillUsed, false);
 
   for (const pid of onlineIds) {
     game = transition(game, pid, { type: 'teamVote', payload: { approve: false } }, onlineIds);
   }
   assert.equal(game.brawl!.yuhuangYuzhiArmed, false, 'Yuhuang disarmed on rejected vote');
-  assert.equal(game.brawl!.playerStates.p1.skillUsed, false, 'Yuhuang skill refunded on rejected vote');
+  assert.equal(game.brawl!.playerStates!.p1.skillUsed, false, 'Yuhuang skill refunded on rejected vote');
   assert.ok(projectGame(game, 'p1').selfBrawl?.generalFeedback?.includes('自动退还'));
 
   // Enter mission phase -> control skills rejected without consuming skillUsed
@@ -356,7 +359,7 @@ test('bugfix audit: team-building control skills cannot be wasted in mission pha
       type: 'brawlCommand',
       payload: { action: 'useSkill', skillId: sid, ...(target ? { targetPlayerId: target } : {}) },
     }, onlineIds), /WRONG_PHASE/, `${sid} must be blocked in mission phase`);
-    assert.equal(game.brawl!.playerStates[uid].skillUsed, false, `${sid} must not be consumed on WRONG_PHASE`);
+    assert.equal(game.brawl!.playerStates![uid].skillUsed, false, `${sid} must not be consumed on WRONG_PHASE`);
   }
 });
 
@@ -364,12 +367,13 @@ test('bugfix audit: Puti + Huangmei hitting same blue player preserves both noti
   const players = makePlayers(6);
   const game = createGame('audit-notice-and-scrub', players, { ...defaultSettings, playerCount: 6, brawlModeEnabled: true }, a => a);
 
-  game.brawl!.putiDianhuaNotice = { targetBlueUserId: 'p2', redRoleName: '白骨精' };
-  game.brawl!.huangmeiDianhuaNotice = { targetBlueUserId: 'p2', targetSeat: 3, targetNickname: '仙友3' };
-  game.brawl!.baiyanDuchaNotOnTeam = true;
+  if (!game.brawl!.secrets) game.brawl!.secrets = { privateReceipts: {} };
+  game.brawl!.secrets.putiDianhuaNotice = { targetBlueUserId: 'p2', redRoleName: '白骨精' };
+  game.brawl!.secrets.huangmeiDianhuaNotice = { targetBlueUserId: 'p2', targetSeat: 3, targetNickname: '仙友3' };
+  game.brawl!.secrets.baiyanDuchaNotOnTeam = true;
 
   const p2View = projectGame(game, 'p2');
   assert.ok(p2View.selfBrawl?.putiDianhuaNotice?.includes('白骨精'), 'Preserves Puti notice');
   assert.ok(p2View.selfBrawl?.putiDianhuaNotice?.includes('3号 · 仙友3'), 'Preserves Huangmei fake notice too');
-  assert.equal(p2View.brawl?.baiyanDuchaNotOnTeam, undefined, 'baiyanDuchaNotOnTeam scrubbed during active game');
+  assert.equal(p2View.brawl?.secrets, undefined, "secrets scrubbed during active game");
 });

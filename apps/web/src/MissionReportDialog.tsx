@@ -61,10 +61,46 @@ export function MissionReportDialog({
           </div>
           <div className="mission-report-card-stats">
             {result.masked && result.successes < 0 ? (
-              <span className="stat-card stat-masked">
-                <span className="stat-icon" aria-hidden="true">🌫️</span>
-                <span className="stat-label">混沌迷雾遮蔽</span>
-                <strong className="stat-val">具体张数隐藏（? 张）</strong>
+              <span
+                className="stat-card stat-masked"
+                style={{
+                  width: '100%',
+                  maxWidth: '100%',
+                  flex: '1 1 100%',
+                  display: 'flex',
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '6px 12px',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <span className="stat-icon" aria-hidden="true" style={{ flexShrink: 0 }}>🌫️</span>
+                <span
+                  className="stat-label"
+                  style={{
+                    writingMode: 'horizontal-tb',
+                    whiteSpace: 'nowrap',
+                    wordBreak: 'keep-all',
+                    flexShrink: 0,
+                    minWidth: 'max-content',
+                  }}
+                >
+                  混沌迷雾遮蔽
+                </span>
+                <strong
+                  className="stat-val"
+                  style={{
+                    writingMode: 'horizontal-tb',
+                    whiteSpace: 'nowrap',
+                    wordBreak: 'keep-all',
+                    flexShrink: 0,
+                    minWidth: 'max-content',
+                  }}
+                >
+                  具体张数隐藏（? 张）
+                </strong>
               </span>
             ) : (
               <>

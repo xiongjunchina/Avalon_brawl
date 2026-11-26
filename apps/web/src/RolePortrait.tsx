@@ -1,8 +1,8 @@
 import { assetUrl } from './deployment';
 import { useState } from 'react';
-import type { FemaleDemon, LoyalGuardian, Role } from '@avalon/contracts';
+import type { Role } from '@avalon/contracts';
 import { Emblem, roleTeam } from './Heraldry';
-import { FEMALE_DEMONS, LOYAL_GUARDIANS, defaultRoleArtPrefix, formatRoleName, roleMottos, roleNames, roleTitles } from './roles';
+import { FEMALE_DEMONS, LOYAL_GUARDIANS, defaultRoleArtPrefix, formatRoleName, roleMottos, roleNames, roleTitles, type FemaleDemon, type LoyalGuardian } from './roles';
 
 // Generic artwork is public. Mount a player's portrait only where their role may be revealed.
 export function RolePortrait({

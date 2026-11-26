@@ -4,7 +4,7 @@ import { createGame, roleWeight, ROLE_CONFIG } from '../src/index.js';
 import { defaultSettings, type Player, type Role } from '@avalon/contracts';
 
 const players: Player[] = Array.from({ length: 5 }, (_, i) => ({ id: `p${i}`, nickname: `玩家${i}`, seat: i + 1 }));
-const settings = { ...defaultSettings, playerCount: 5, rolePreferenceEnabled: true };
+const settings = { ...defaultSettings, brawlModeEnabled: false, playerCount: 5, rolePreferenceEnabled: true };
 
 test('preferences provide 8/4/2/1 relative weights rather than a guaranteed first available choice', () => {
   const preferences: Role[] = ['merlin', 'assassin', 'percival'];

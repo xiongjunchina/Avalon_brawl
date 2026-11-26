@@ -112,7 +112,6 @@ export function getActiveOrdealId(ordeals: BrawlOrdealState | undefined, mission
 export function collectMissionBannedPlayerIds(params: {
   mission: number;
   captainId: string;
-  humanBagBanned?: { activeBannedMission?: number; targetId?: string };
   imprisonedTargetId?: string;
   zhizhuBannedTargetId?: string;
   qingshiTuntianTargetId?: string;
@@ -120,9 +119,6 @@ export function collectMissionBannedPlayerIds(params: {
   wager?: BrawlWagerState;
 }): Set<string> {
   const banned = new Set<string>();
-  if (params.humanBagBanned?.activeBannedMission === params.mission && params.humanBagBanned.targetId) {
-    banned.add(params.humanBagBanned.targetId);
-  }
   if (params.imprisonedTargetId) {
     banned.add(params.imprisonedTargetId);
   }
@@ -316,3 +312,74 @@ export function canCaptainStakeWager(params: {
   if (getActiveOrdealId(params.ordeals, params.mission) === 'selfless_captain') return false;
   return true;
 }
+
+export function drawNextOrdeal(
+  ordeals: BrawlOrdealState | undefined,
+  mission: number,
+  _rng: () => number = Math.random,
+): BrawlOrdealId | undefined {
+  if (!ordeals?.enabled) return undefined;
+  const nextOrdealId = ordeals.deck[mission - 1];
+  ordeals.currentOrdealId = nextOrdealId;
+  ordeals.quicksandBannedPlayerId = undefined;
+  ordeals.lastSwap = undefined;
+  return nextOrdealId;
+}
+
+export function isPlayerBannedFromMission(
+  playerId: string,
+  params: {
+    mission: number;
+    captainId: string;
+    imprisonedTargetId?: string;
+    zhizhuBannedTargetId?: string;
+    qingshiTuntianTargetId?: string;
+    ordeals?: BrawlOrdealState;
+    wager?: BrawlWagerState;
+  },
+): boolean {
+  const banned = collectMissionBannedPlayerIds(params);
+  return banned.has(playerId);
+}
+
+export function shouldHideFailureCountInReport(ordeals?: BrawlOrdealState): boolean {
+  return ordeals?.currentOrdealId === 'chaotic_fog';
+}
+
+export function triggerDapengExclude(g: any): void {
+  if (!g.brawl) return;
+  const secrets = g.brawl.secrets;
+  if (!secrets || !secrets.dapengArmed || secrets.dapengExcludedPlayerId) return;
+  const candidatePlayers = g.players.filter((p: any) => {
+    const ps = g.brawl?.playerStates?.[p.id];
+    return ps?.roleId !== 'sun_wukong' && ps?.roleId !== 'hong_haier';
+  });
+  if (candidatePlayers.length > 0) {
+    const excluded = candidatePlayers[Math.floor(Math.random() * candidatePlayers.length)];
+    secrets.dapengExcludedPlayerId = excluded.id;
+  }
+}
+
+export function triggerShituolingExclude(g: any): void {
+  if (!g.brawl?.ordeals?.shituoRedBountyArmed) return;
+  const secrets = g.brawl.secrets;
+  const candidatePlayers = g.players.filter((p: any) => {
+    const ps = g.brawl?.playerStates?.[p.id];
+    return ps?.roleId !== 'sun_wukong' && ps?.roleId !== 'hong_haier' && p.id !== secrets?.dapengExcludedPlayerId;
+  });
+  if (candidatePlayers.length > 0) {
+    const excluded = candidatePlayers[Math.floor(Math.random() * candidatePlayers.length)];
+    g.brawl.ordeals.shituoExcludedPlayerId = excluded.id;
+  }
+}
+
+export function applyMissionOrdealEffects(
+  _g: any,
+  _round: any,
+  failures: number,
+  successes: number,
+  passed: boolean,
+): { failures: number; successes: number; passed: boolean } {
+  return { failures, successes, passed };
+}
+

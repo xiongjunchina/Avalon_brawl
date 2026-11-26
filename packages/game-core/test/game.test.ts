@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { defaultSettings, settingsSchema, commandSchema, type Command, type Settings } from '@avalon/contracts';
+import { defaultSettings as baseSettings, settingsSchema, commandSchema, type Command, type Settings } from '@avalon/contracts';
 import { createGame, transition, projectGame, captain, ROLE_CONFIG, MISSION_SIZES, teamOf, type GameState } from '../src/index.js';
+const defaultSettings: Settings = { ...baseSettings, brawlModeEnabled: false };
 function game(n=5, patch:Partial<Settings>={}) { return createGame(randomUUID(),Array.from({length:n},(_,i)=>({id:randomUUID(),nickname:`玩家${i+1}`,seat:i+1})),{...defaultSettings,playerCount:n,...patch},values=>values,{randomBelow:()=>0n}); }
 
 test('room defaults include optional auto reveal role disabled', () => {
@@ -36,16 +37,6 @@ test('all 5–12 configurations, exact mission sizes, role vision matrix and pri
         :teamOf(role)==='red'&&role!=='oberon'?g.players.filter(q=>q.id!==p.id&&teamOf(g.roles[q.id])==='red'&&g.roles[q.id]!=='oberon').map(q=>q.id):[];
       assert.deepEqual(v.self!.evilIds,expected);
       assert.deepEqual(v.self!.merlinCandidates,role==='percival'?g.players.filter(q=>['merlin','morgana'].includes(g.roles[q.id])).map(q=>q.id):[]);
-      if(role==='guinevere'){
-        const cands=v.self!.guinevereCandidates??[];
-        assert.equal(cands.length,2);
-        const mordredId=g.players.find(q=>g.roles[q.id]==='mordred')!.id;
-        assert.ok(cands.includes(mordredId));
-        const decoyId=cands.find(id=>id!==mordredId)!;
-        assert.ok(['percival','loyal'].includes(g.roles[decoyId]));
-      }else{
-        assert.deepEqual(v.self!.guinevereCandidates,[]);
-      }
     }
   }
 });

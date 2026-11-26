@@ -29,6 +29,7 @@ test('battle history preserves all missions and rejected proposals in order', ()
 
 test('end-game controls follow room ownership, independently of captain or viewing player', () => {
   const game = createGame('host-controls', players, defaultSettings, a => a);
+  game.phase = 'proposing';
   game.captainIndex = game.captainOrder.indexOf('p2');
   const hostId = 'p1';
   for (const userId of ['p1', 'p2', 'p3']) {
@@ -46,6 +47,7 @@ test('end-game controls follow room ownership, independently of captain or viewi
 
 test('gameplay actions precede all five inspectable missions', () => {
   const game = createGame('play-first', players, defaultSettings, a => a);
+  game.phase = 'proposing';
   const room: RoomView = {
     id: 'room', code: 'TEST', hostId: 'p1', version: 1, phase: 'playing',
     settings: defaultSettings, acceptingNewMembers: false,
@@ -81,38 +83,4 @@ test('public teammate badges follow drafts, discussion edits and accepted missio
   html = render();
   assert.equal((html.match(/badge-team">出征/g) ?? []).length, 2);
   assert.doesNotMatch(html, /badge-team">已选/);
-});
-
-test('GamePanel renders active Jingu Seal notification and ally seat badge for Percival', () => {
-  const p8 = Array.from({ length: 8 }, (_, i) => ({ id: `p${i + 1}`, seat: i + 1, nickname: `仙友${i + 1}` }));
-  const roles = ['percival', 'merlin', 'morgana', 'loyal', 'loyal', 'loyal', 'assassin', 'mordred'];
-  const game = createGame('jingu-test', p8, { ...defaultSettings, playerCount: 8, treasuresEnabled: true }, values => roles as unknown as typeof values, { randomBelow: () => 0n });
-  // Trigger jinguSeal by loyal player p4
-  game.treasuresState = { jinguSeal: { used: true, activatedBy: 'p4' } };
-
-  const percivalView = projectGame(game, 'p1');
-  assert.equal(percivalView.self?.treasures?.jinguAllyId, 'p4');
-
-  const room: RoomView = {
-    id: 'room-jingu', code: 'JINGU', hostId: 'p1', version: 1, phase: 'playing',
-    settings: { ...defaultSettings, playerCount: 8, treasuresEnabled: true },
-    acceptingNewMembers: false,
-    members: p8.map(p => ({ ...p, online: true, ready: true })),
-    game: percivalView,
-  };
-
-  const html = renderToStaticMarkup(createElement(GamePanel, {
-    room,
-    userId: 'p1',
-    disabled: false,
-    connected: true,
-    send: () => {},
-  }));
-
-  // Percival sees the active notification modal
-  assert.match(html, /金箍显圣 · 护法归位/);
-  assert.match(html, /阿弥陀佛，贫僧知晓了/);
-  // Percival sees the badge on ally's seat
-  assert.match(html, /badge-jingu-ally/);
-  assert.match(html, /📿 护法/);
 });

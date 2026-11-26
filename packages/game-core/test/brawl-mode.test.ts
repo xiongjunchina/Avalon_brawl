@@ -231,7 +231,7 @@ test('brawl: createGame with brawlModeEnabled assigns full brawl roles, projectG
     type: 'brawlCommand',
     payload: { action: 'useSkill', skillId: viewActor.selfBrawl!.skill.skillId },
   }, players.map(p => p.id));
-  assert.equal(next.brawl?.playerStates[nonSilentPlayer.id].skillUsed, true, 'Skill marked as used');
+  assert.equal(next.brawl?.playerStates![nonSilentPlayer.id].skillUsed, true, 'Skill marked as used');
   assert.equal(next.brawl?.events.length, 1, 'Event appended');
 });
 
@@ -282,7 +282,7 @@ test('brawl: 8-player and 10-player games strictly maintain Avalon standard Blue
   assert.ok(game8.brawl);
   assert.ok(game8.brawlRoles);
 
-  const playerStates8 = Object.values(game8.brawl.playerStates);
+  const playerStates8 = Object.values(game8.brawl!.playerStates!!);
   const blue8 = playerStates8.filter(p => p.camp === 'blue').length;
   const red8 = playerStates8.filter(p => p.camp === 'red').length;
 
@@ -296,7 +296,7 @@ test('brawl: 8-player and 10-player games strictly maintain Avalon standard Blue
     seat: i + 1,
   }));
   const game10 = createGame('brawl-10', players10, { ...defaultSettings, playerCount: 10, brawlModeEnabled: true }, a => a);
-  const playerStates10 = Object.values(game10.brawl!.playerStates);
+  const playerStates10 = Object.values(game10.brawl!.playerStates!);
   const blue10 = playerStates10.filter(p => p.camp === 'blue').length;
   const red10 = playerStates10.filter(p => p.camp === 'red').length;
 
@@ -308,7 +308,7 @@ test('brawl: 9-player (5B:4R), 11-player (6B:5R), and 12-player (7B:5R) custom b
   // 1. 9-player Brawl Game (5 Blue : 4 Red)
   const p9 = Array.from({ length: 9 }, (_, i) => ({ id: `p${i + 1}`, nickname: `P${i + 1}`, seat: i + 1 }));
   const game9 = createGame('brawl-9', p9, { ...defaultSettings, playerCount: 9, brawlModeEnabled: true }, a => a);
-  const pStates9 = Object.values(game9.brawl!.playerStates);
+  const pStates9 = Object.values(game9.brawl!.playerStates!);
   assert.equal(pStates9.filter(p => p.camp === 'blue').length, 5, '9-player brawl has 5 Blue');
   assert.equal(pStates9.filter(p => p.camp === 'red').length, 4, '9-player brawl has 4 Red');
   assert.deepEqual(projectGame(game9).missionSizes, [3, 4, 4, 5, 5], '9-player mission sizes');
@@ -333,7 +333,7 @@ test('brawl: 9-player (5B:4R), 11-player (6B:5R), and 12-player (7B:5R) custom b
   assert.equal(failuresRequiredFor(10, 5, true), 1);
   const p10 = Array.from({ length: 10 }, (_, i) => ({ id: `p${i + 1}`, nickname: `P${i + 1}`, seat: i + 1 }));
   const game10 = createGame('brawl-10', p10, { ...defaultSettings, playerCount: 10, brawlModeEnabled: true }, a => a);
-  const pStates10 = Object.values(game10.brawl!.playerStates);
+  const pStates10 = Object.values(game10.brawl!.playerStates!);
   assert.ok(pStates10.some(p => p.roleId === 'guanyin_pusa'), '10-player brawl guarantees Guanyin Pusa');
   assert.ok(pStates10.some(p => p.roleId === 'huangmei_laoguai'), '10-player brawl guarantees Huangmei Laoguai');
   const roleIds10 = pStates10.map(p => p.roleId);
@@ -342,7 +342,7 @@ test('brawl: 9-player (5B:4R), 11-player (6B:5R), and 12-player (7B:5R) custom b
   // 2. 11-player Brawl Game (6 Blue : 5 Red)
   const p11 = Array.from({ length: 11 }, (_, i) => ({ id: `p${i + 1}`, nickname: `P${i + 1}`, seat: i + 1 }));
   const game11 = createGame('brawl-11', p11, { ...defaultSettings, playerCount: 11, brawlModeEnabled: true }, a => a);
-  const pStates11 = Object.values(game11.brawl!.playerStates);
+  const pStates11 = Object.values(game11.brawl!.playerStates!);
   assert.equal(pStates11.filter(p => p.camp === 'blue').length, 6, '11-player brawl has 6 Blue');
   assert.equal(pStates11.filter(p => p.camp === 'red').length, 5, '11-player brawl has 5 Red');
   assert.deepEqual(projectGame(game11).missionSizes, [3, 4, 5, 5, 6], '11-player mission sizes: [3, 4, 5, 5, 6]');
@@ -360,7 +360,7 @@ test('brawl: 9-player (5B:4R), 11-player (6B:5R), and 12-player (7B:5R) custom b
   // 3. 12-player Brawl Game (7 Blue : 5 Red)
   const p12 = Array.from({ length: 12 }, (_, i) => ({ id: `p${i + 1}`, nickname: `P${i + 1}`, seat: i + 1 }));
   const game12 = createGame('brawl-12', p12, { ...defaultSettings, playerCount: 12, brawlModeEnabled: true }, a => a);
-  const pStates12 = Object.values(game12.brawl!.playerStates);
+  const pStates12 = Object.values(game12.brawl!.playerStates!);
   assert.equal(pStates12.filter(p => p.camp === 'blue').length, 7, '12-player brawl has 7 Blue');
   assert.equal(pStates12.filter(p => p.camp === 'red').length, 5, '12-player brawl has 5 Red');
   assert.deepEqual(projectGame(game12).missionSizes, [3, 4, 5, 6, 6], '12-player mission sizes: [3, 4, 5, 6, 6]');
@@ -399,7 +399,7 @@ test('brawl: Qingmao Shizi [dakou_tuntian] ejects drafted team member and bans c
   const targetId = game.captainOrder[1];
   const qingshiId = game.captainOrder[2];
 
-  game.brawl!.playerStates[qingshiId] = {
+  game.brawl!.playerStates![qingshiId] = {
     userId: qingshiId,
     seat: 3,
     roleId: 'qingmao_shizi',
@@ -430,7 +430,6 @@ test('brawl: Qingmao Shizi [dakou_tuntian] ejects drafted team member and bans c
   // 2. 验证前端投影包含青毛狮子怪专属禁选状态（且绝不误写成经典模式后天人种袋）
   const view = projectGame(nextGame, captainId);
   assert.equal(view.brawl?.qingshiTuntianTargetId, targetId, 'View marks target as banned by Qingmao Shizi');
-  assert.equal(view.humanBagBannedPlayerId, undefined, 'Brawl Qingmao Shizi must NOT piggyback classic humanBag');
 
   // 3. 验证队长若再次尝试把被吸走的目标加入队伍，会被系统规则拦截
   assert.throws(
@@ -454,14 +453,14 @@ test('brawl: Taishang Laojun [jingang_zhuo] intercepts Qingmao Shizi [dakou_tunt
   const qingshiId = game.captainOrder[2];
   const laojunId = game.captainOrder[3];
 
-  game.brawl!.playerStates[laojunId] = {
+  game.brawl!.playerStates![laojunId] = {
     userId: laojunId,
     seat: 4,
     roleId: 'taishang_laojun',
     camp: 'blue',
     skillUsed: false,
   };
-  game.brawl!.playerStates[qingshiId] = {
+  game.brawl!.playerStates![qingshiId] = {
     userId: qingshiId,
     seat: 3,
     roleId: 'qingmao_shizi',
@@ -505,7 +504,6 @@ test('brawl: Taishang Laojun [jingang_zhuo] intercepts Qingmao Shizi [dakou_tunt
   // 5. 验证青狮怪法宝被收缴作废，targetId 未被剔除，依然在队伍中！
   assert.ok(state.draftTeam?.playerIds.includes(targetId), 'Target should remain in team because skill was confiscated');
   assert.equal(state.brawl?.qingshiTuntianTargetId, undefined, 'No Qingmao Shizi ban should be active');
-  assert.equal(state.treasuresState?.humanBag?.targetId, undefined, 'No human bag ban should be active');
 });
 
 test('brawl: Zhizhu Jing [pansi_jiejian] ejects player and bans captain nomination', () => {
@@ -516,7 +514,7 @@ test('brawl: Zhizhu Jing [pansi_jiejian] ejects player and bans captain nominati
   const targetId = game.captainOrder[1];
   const zhizhuId = game.captainOrder[2];
 
-  game.brawl!.playerStates[zhizhuId] = {
+  game.brawl!.playerStates![zhizhuId] = {
     userId: zhizhuId,
     seat: 3,
     roleId: 'zhizhu_jing',
@@ -561,7 +559,7 @@ test('brawl: Zhenyuan Daxian [xiuli_qiankun] forces proposal rotation without co
   const firstCaptain = game.captainOrder[0];
   const zhenyuanId = game.captainOrder[2];
 
-  game.brawl!.playerStates[zhenyuanId] = {
+  game.brawl!.playerStates![zhenyuanId] = {
     userId: zhenyuanId,
     seat: 3,
     roleId: 'zhenyuan_daxian',
@@ -595,21 +593,21 @@ test('brawl: Li Tianwang [zhaoyao_baojing] reveals presence of evil demons in te
   const demonId = game.captainOrder[1];
   const blueId = game.captainOrder[2];
 
-  game.brawl!.playerStates[litianwangId] = {
+  game.brawl!.playerStates![litianwangId] = {
     userId: litianwangId,
     seat: 1,
     roleId: 'li_tianwang',
     camp: 'blue',
     skillUsed: false,
   };
-  game.brawl!.playerStates[demonId] = {
+  game.brawl!.playerStates![demonId] = {
     userId: demonId,
     seat: 2,
     roleId: 'hong_haier',
     camp: 'red',
     skillUsed: false,
   };
-  game.brawl!.playerStates[blueId] = {
+  game.brawl!.playerStates![blueId] = {
     userId: blueId,
     seat: 3,
     roleId: 'sun_wukong',
@@ -643,7 +641,7 @@ test('brawl: Nezha [santou_liubi] doubles vote weight during team vote resolutio
   const game = createGame('brawl-nezha', players, { ...defaultSettings, playerCount: 10, brawlModeEnabled: true }, a => a);
 
   const nezhaId = game.captainOrder[0];
-  game.brawl!.playerStates[nezhaId] = {
+  game.brawl!.playerStates![nezhaId] = {
     userId: nezhaId,
     seat: 1,
     roleId: 'nezha',
@@ -702,28 +700,28 @@ test('brawl: Jinchi Dapeng [yuncheng_wanli] excludes non-Wukong seat for Hong Ha
   const wukongId = game.players[2].id;
   const tangsengId = game.players[3].id;
 
-  game.brawl!.playerStates[honghaierId] = {
+  game.brawl!.playerStates![honghaierId] = {
     userId: honghaierId,
     seat: 1,
     roleId: 'hong_haier',
     camp: 'red',
     skillUsed: false,
   };
-  game.brawl!.playerStates[dapengId] = {
+  game.brawl!.playerStates![dapengId] = {
     userId: dapengId,
     seat: 2,
     roleId: 'jinchi_dapeng',
     camp: 'red',
     skillUsed: false,
   };
-  game.brawl!.playerStates[wukongId] = {
+  game.brawl!.playerStates![wukongId] = {
     userId: wukongId,
     seat: 3,
     roleId: 'sun_wukong',
     camp: 'blue',
     skillUsed: false,
   };
-  game.brawl!.playerStates[tangsengId] = {
+  game.brawl!.playerStates![tangsengId] = {
     userId: tangsengId,
     seat: 4,
     roleId: 'tang_seng',
@@ -740,7 +738,7 @@ test('brawl: Jinchi Dapeng [yuncheng_wanli] excludes non-Wukong seat for Hong Ha
       skillId: 'yuncheng_wanli',
     },
   }, [dapengId]);
-  assert.equal(nextGame.brawl?.dapengArmed, true, 'Dapeng skill armed successfully before assassination');
+  assert.equal(nextGame.brawl?.secrets?.dapengArmed, true, 'Dapeng skill armed successfully before assassination');
 
   // 2. 模拟蓝方完成 3 胜进入刺杀阶段
   nextGame.rounds.push(
@@ -755,7 +753,7 @@ test('brawl: Jinchi Dapeng [yuncheng_wanli] excludes non-Wukong seat for Hong Ha
 
   assert.equal(nextGame.phase, 'assassination');
 
-  const excludedId = nextGame.brawl?.dapengExcludedPlayerId;
+  const excludedId = nextGame.brawl?.secrets?.dapengExcludedPlayerId;
   assert.ok(excludedId, 'Excluded target should be assigned upon entering assassination');
   assert.notEqual(excludedId, wukongId, 'Excluded target must NOT be Sun Wukong');
 
@@ -781,7 +779,7 @@ test('brawl: Sha Wujing [xiangyao_baozhang] forces tie vote to pass', () => {
   const game = createGame('brawl-sha', players, { ...defaultSettings, playerCount: 6, brawlModeEnabled: true }, a => a);
   const shaId = 'p1';
   game.captainOrder = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'];
-  game.brawl!.playerStates[shaId] = {
+  game.brawl!.playerStates![shaId] = {
     userId: shaId,
     seat: 1,
     roleId: 'sha_wujing',
@@ -831,7 +829,7 @@ test('brawl: Zhu Bajie [daoda_yipa] reverses rejection ballot to approval and pa
   }));
   const game = createGame('brawl-zhu', players, { ...defaultSettings, playerCount: 6, brawlModeEnabled: true }, a => a);
   const zhuId = 'p2';
-  game.brawl!.playerStates[zhuId] = {
+  game.brawl!.playerStates![zhuId] = {
     userId: zhuId,
     seat: 2,
     roleId: 'zhu_bajie',
@@ -871,7 +869,7 @@ test('brawl: Bai Longma [longma_fuzhong] allows +1 extra team member and propose
   }));
   const game = createGame('brawl-longma', players, { ...defaultSettings, playerCount: 6, brawlModeEnabled: true }, a => a);
   const longmaId = 'p3';
-  game.brawl!.playerStates[longmaId] = {
+  game.brawl!.playerStates![longmaId] = {
     userId: longmaId,
     seat: 3,
     roleId: 'bai_longma',
@@ -907,7 +905,7 @@ test('brawl: Tieshan [bajiao_shenfeng] probes blue camp tiers and reveals secret
   }));
   const game = createGame('brawl-tieshan-secret', players, { ...defaultSettings, playerCount: 6, brawlModeEnabled: true }, a => a);
   const tieshanId = 'p4';
-  game.brawl!.playerStates[tieshanId] = {
+  game.brawl!.playerStates![tieshanId] = {
     userId: tieshanId,
     seat: 4,
     roleId: 'tieshan_gongzhu',
@@ -921,12 +919,12 @@ test('brawl: Tieshan [bajiao_shenfeng] probes blue camp tiers and reveals secret
     payload: { action: 'useSkill', skillId: 'bajiao_shenfeng' },
   }, [tieshanId]);
 
-  assert.equal(next.brawl?.playerStates[tieshanId].skillUsed, true);
-  assert.ok(next.brawl?.tieshanSecret, 'Secret tier information should be generated');
+  assert.equal(next.brawl?.playerStates![tieshanId].skillUsed, true);
+  assert.ok(next.brawl?.secrets?.tieshanSecret, 'Secret tier information should be generated');
 
   // 验证铁扇公主的自视角能看到仙阶情报
   const tieshanView = projectGame(next, tieshanId);
-  assert.equal(tieshanView.selfBrawl?.tieshanSecret, next.brawl?.tieshanSecret);
+  assert.equal(tieshanView.selfBrawl?.tieshanSecret, next.brawl?.secrets?.tieshanSecret);
 });
 
 test('brawl: Huangmei Laoguai is strictly hidden from Sun Wukong vision in brawl mode', () => {
@@ -941,13 +939,13 @@ test('brawl: Huangmei Laoguai is strictly hidden from Sun Wukong vision in brawl
   const normalRedId = 'p6';
 
   game.roles[wukongId] = 'merlin';
-  game.brawl!.playerStates[wukongId] = { userId: wukongId, seat: 1, roleId: 'sun_wukong', camp: 'blue', skillUsed: false };
+  game.brawl!.playerStates![wukongId] = { userId: wukongId, seat: 1, roleId: 'sun_wukong', camp: 'blue', skillUsed: false };
 
   game.roles[huangmeiId] = 'minion'; // 哪怕底牌角色不是 mordred
-  game.brawl!.playerStates[huangmeiId] = { userId: huangmeiId, seat: 5, roleId: 'huangmei_laoguai', camp: 'red', skillUsed: false };
+  game.brawl!.playerStates![huangmeiId] = { userId: huangmeiId, seat: 5, roleId: 'huangmei_laoguai', camp: 'red', skillUsed: false };
 
   game.roles[normalRedId] = 'assassin';
-  game.brawl!.playerStates[normalRedId] = { userId: normalRedId, seat: 6, roleId: 'hong_haier', camp: 'red', skillUsed: false };
+  game.brawl!.playerStates![normalRedId] = { userId: normalRedId, seat: 6, roleId: 'hong_haier', camp: 'red', skillUsed: false };
 
   const wukongView = projectGame(game, wukongId);
   assert.ok(wukongView.self?.evilIds.includes(normalRedId), 'Wukong should see normal red role Hong Haier');
@@ -962,7 +960,7 @@ test('brawl: Yuhuang Dadi [tianzun_yuzhi] pardons mission failure', () => {
   }));
   const game = createGame('brawl-yuhuang', players, { ...defaultSettings, playerCount: 6, brawlModeEnabled: true }, a => a);
   const yuhuangId = 'p2';
-  game.brawl!.playerStates[yuhuangId] = { userId: yuhuangId, seat: 2, roleId: 'yuhuang_dadi', camp: 'blue', skillUsed: false };
+  game.brawl!.playerStates![yuhuangId] = { userId: yuhuangId, seat: 2, roleId: 'yuhuang_dadi', camp: 'blue', skillUsed: false };
 
   // 玉帝激活天尊玉旨
   let next = transition(game, yuhuangId, {
@@ -976,7 +974,7 @@ test('brawl: Yuhuang Dadi [tianzun_yuzhi] pardons mission failure', () => {
   next.rounds.push({ number: 1, mission: 1, captainId: 'p1', team: ['p1', 'p2'], direction: 'clockwise' });
   next.roles.p1 = 'assassin';
   next.roles.p2 = 'merlin';
-  next.brawl!.playerStates.p1.camp = 'red';
+  next.brawl!.playerStates!.p1.camp = 'red';
 
   // 使用确定的 Math.random 使得赦免判定成功
   const originalRandom = Math.random;
@@ -1000,7 +998,7 @@ test('brawl: Wangmu Niangniang [jiuzhuan_xiantao] pardons 1 failure card in any 
   }));
   const game = createGame('brawl-wangmu', players, { ...defaultSettings, playerCount: 5, brawlModeEnabled: true }, a => a);
   const wangmuId = 'p3';
-  game.brawl!.playerStates[wangmuId] = { userId: wangmuId, seat: 3, roleId: 'wangmu_niangniang', camp: 'blue', skillUsed: false };
+  game.brawl!.playerStates![wangmuId] = { userId: wangmuId, seat: 3, roleId: 'wangmu_niangniang', camp: 'blue', skillUsed: false };
 
   // 王母娘娘赐仙桃
   let next = transition(game, wangmuId, {
@@ -1014,7 +1012,7 @@ test('brawl: Wangmu Niangniang [jiuzhuan_xiantao] pardons 1 failure card in any 
   next.rounds.push({ number: 1, mission: 1, captainId: 'p1', team: ['p1', 'p2'], direction: 'clockwise' });
   next.roles.p1 = 'assassin';
   next.roles.p2 = 'merlin';
-  next.brawl!.playerStates.p1.camp = 'red';
+  next.brawl!.playerStates!.p1.camp = 'red';
 
   const originalRandom = Math.random;
   try {
@@ -1037,8 +1035,8 @@ test('brawl: Guanyin Pusa [jingping_ganlu] inspects team member vote privately w
   }));
   const game = createGame('brawl-guanyin', players, { ...defaultSettings, playerCount: 6, brawlModeEnabled: true }, a => a);
   const guanyinId = 'p4';
-  game.brawl!.playerStates[guanyinId] = { userId: guanyinId, seat: 4, roleId: 'guanyin_pusa', camp: 'blue', skillUsed: false };
-  game.brawl!.playerStates.p2 = { userId: 'p2', seat: 2, roleId: 'sun_wukong', camp: 'blue', skillUsed: false };
+  game.brawl!.playerStates![guanyinId] = { userId: guanyinId, seat: 4, roleId: 'guanyin_pusa', camp: 'blue', skillUsed: false };
+  game.brawl!.playerStates!.p2 = { userId: 'p2', seat: 2, roleId: 'sun_wukong', camp: 'blue', skillUsed: false };
 
   // 队伍敲定包含 p1, p2
   game.phase = 'proposing';
@@ -1049,14 +1047,14 @@ test('brawl: Guanyin Pusa [jingping_ganlu] inspects team member vote privately w
     type: 'brawlCommand',
     payload: { action: 'useSkill', skillId: 'jingping_ganlu', targetPlayerId: 'p1' },
   }, [guanyinId]);
-  assert.equal(next.brawl?.guanyinGanluTargetId, 'p1');
+  assert.equal(next.brawl?.secrets?.guanyinGanluTargetId, 'p1');
 
   // 进入出征阶段
   next.phase = 'mission';
   next.rounds.push({ number: 1, mission: 1, captainId: 'p1', team: ['p1', 'p2'], direction: 'clockwise' });
   next.roles.p1 = 'assassin';
   next.roles.p2 = 'merlin';
-  next.brawl!.playerStates.p1.camp = 'red';
+  next.brawl!.playerStates!.p1.camp = 'red';
 
   // p1 投失败，p2 投成功 -> 任务失败
   next = transition(next, 'p1', { type: 'missionVote', payload: { success: false } }, ['p1']);
@@ -1084,9 +1082,9 @@ test('brawl: Huangmei Laoguai [jiashe_leiyin] delivers fake Bodhi enlightenment 
   const targetId = 'p2'; // 黄眉选定栽赃的目标
   const blueReceiverId = 'p3'; // 蓝方非悟空玩家
 
-  game.brawl!.playerStates[huangmeiId] = { userId: huangmeiId, seat: 6, roleId: 'huangmei_laoguai', camp: 'red', skillUsed: false };
-  game.brawl!.playerStates[blueReceiverId] = { userId: blueReceiverId, seat: 3, roleId: 'zhu_bajie', camp: 'blue', skillUsed: false };
-  game.brawl!.playerStates.p1 = { userId: 'p1', seat: 1, roleId: 'sun_wukong', camp: 'blue', skillUsed: false };
+  game.brawl!.playerStates![huangmeiId] = { userId: huangmeiId, seat: 6, roleId: 'huangmei_laoguai', camp: 'red', skillUsed: false };
+  game.brawl!.playerStates![blueReceiverId] = { userId: blueReceiverId, seat: 3, roleId: 'zhu_bajie', camp: 'blue', skillUsed: false };
+  game.brawl!.playerStates!.p1 = { userId: 'p1', seat: 1, roleId: 'sun_wukong', camp: 'blue', skillUsed: false };
 
   const eventCountBefore = game.brawl!.events.length;
 
@@ -1100,7 +1098,7 @@ test('brawl: Huangmei Laoguai [jiashe_leiyin] delivers fake Bodhi enlightenment 
   assert.equal(next.brawl!.events.length, eventCountBefore, 'Public battle events MUST be silent (no self-doxxing)');
 
   // 2. 验证受害蓝方玩家私密收到了与菩提祖师格式完全相同的点化提示
-  const receiverId = next.brawl!.huangmeiDianhuaNotice!.targetBlueUserId;
+  const receiverId = next.brawl!.secrets?.huangmeiDianhuaNotice!.targetBlueUserId;
   const viewReceiver = projectGame(next, receiverId);
   assert.ok(viewReceiver.selfBrawl?.putiDianhuaNotice, 'Targeted blue player receives divine notice');
   assert.ok(viewReceiver.selfBrawl.putiDianhuaNotice.includes('菩提祖师道法点化真传'), 'Notice pretends to be Bodhi');
@@ -1123,7 +1121,7 @@ test('brawl: Bai Gujing [huapi_lijian] silently increments failure cards without
   }));
   const game = createGame('brawl-baigu-lijian', players, { ...defaultSettings, playerCount: 6, brawlModeEnabled: true }, a => a);
   const baiguId = 'p5';
-  game.brawl!.playerStates[baiguId] = { userId: baiguId, seat: 5, roleId: 'bai_gujing', camp: 'red', skillUsed: false };
+  game.brawl!.playerStates![baiguId] = { userId: baiguId, seat: 5, roleId: 'bai_gujing', camp: 'red', skillUsed: false };
 
   // 白骨精发动绝技【画皮离间】
   let next = transition(game, baiguId, {
@@ -1133,7 +1131,7 @@ test('brawl: Bai Gujing [huapi_lijian] silently increments failure cards without
 
   // 1. 发动时公屏完全静默（绝无自爆战报）
   assert.equal(next.brawl!.events.length, 0, 'No public battle event on activation');
-  assert.equal(next.brawl?.baiguLijianArmed, true);
+  assert.equal(next.brawl?.secrets?.baiguLijianArmed, true);
 
   // 2. 模拟出征：3 人队伍（1 红 2 蓝），实际只有 1 张失败票
   next.phase = 'mission';
@@ -1141,9 +1139,9 @@ test('brawl: Bai Gujing [huapi_lijian] silently increments failure cards without
   next.roles.p1 = 'assassin';
   next.roles.p2 = 'merlin';
   next.roles.p3 = 'loyal';
-  next.brawl!.playerStates.p1.camp = 'red';
-  next.brawl!.playerStates.p2.camp = 'blue';
-  next.brawl!.playerStates.p3.camp = 'blue';
+  next.brawl!.playerStates!.p1.camp = 'red';
+  next.brawl!.playerStates!.p2.camp = 'blue';
+  next.brawl!.playerStates!.p3.camp = 'blue';
 
   next = transition(next, 'p1', { type: 'missionVote', payload: { success: false } }, ['p1']); // 1 失败
   next = transition(next, 'p2', { type: 'missionVote', payload: { success: true } }, ['p2']);
@@ -1170,7 +1168,7 @@ test('brawl: Baiyan Mojun [huanghua_ducha] poisons success vote silently with ti
   }));
   const game = createGame('brawl-baiyan-ducha', players, { ...defaultSettings, playerCount: 6, brawlModeEnabled: true }, a => a);
   const baiyanId = 'p6';
-  game.brawl!.playerStates[baiyanId] = { userId: baiyanId, seat: 6, roleId: 'baiyan_mojun', camp: 'red', skillUsed: false };
+  game.brawl!.playerStates![baiyanId] = { userId: baiyanId, seat: 6, roleId: 'baiyan_mojun', camp: 'red', skillUsed: false };
 
   // 百眼魔君对 p2 下毒茶
   let next = transition(game, baiyanId, {
@@ -1180,7 +1178,7 @@ test('brawl: Baiyan Mojun [huanghua_ducha] poisons success vote silently with ti
 
   // 1. 发动时公屏完全静默（绝无自爆战报）
   assert.equal(next.brawl!.events.length, 0, 'No public battle event on activation');
-  assert.equal(next.brawl?.baiyanDuchaTargetId, 'p2');
+  assert.equal(next.brawl?.secrets?.baiyanDuchaTargetId, 'p2');
 
   // 2. 模拟 3 人车队出征（小车 <= 3人，1/3 概率生效）
   next.phase = 'mission';
@@ -1188,9 +1186,9 @@ test('brawl: Baiyan Mojun [huanghua_ducha] poisons success vote silently with ti
   next.roles.p1 = 'loyal';
   next.roles.p2 = 'merlin';
   next.roles.p3 = 'loyal';
-  next.brawl!.playerStates.p1.camp = 'blue';
-  next.brawl!.playerStates.p2.camp = 'blue';
-  next.brawl!.playerStates.p3.camp = 'blue';
+  next.brawl!.playerStates!.p1.camp = 'blue';
+  next.brawl!.playerStates!.p2.camp = 'blue';
+  next.brawl!.playerStates!.p3.camp = 'blue';
 
   const originalRandom = Math.random;
   try {
@@ -1225,12 +1223,11 @@ test('brawl: post-game replay timeline is strictly hidden during active game and
   const inGameView = projectGame(game, 'p1');
   assert.equal(inGameView.brawl?.replayTimeline, undefined, 'Replay timeline MUST be undefined during active game');
   assert.deepEqual(inGameView.brawl?.events, [], 'Public battle events MUST be empty during active game');
-  assert.equal(inGameView.brawl?.baiyanDuchaTargetId, undefined, 'Secret target MUST be scrubbed');
-  assert.equal(inGameView.brawl?.huangmeiDianhuaNotice, undefined, 'Fake notice MUST be scrubbed');
+  assert.equal('secrets' in (inGameView.brawl ?? {}), false, 'Secrets MUST be scrubbed from public view');
 
   // 2. 模拟百眼魔君暗中下毒
-  const baiyanId = game.players.find(p => game.brawl?.playerStates[p.id]?.camp === 'red')!.id;
-  game.brawl!.playerStates[baiyanId] = {
+  const baiyanId = game.players.find(p => game.brawl?.playerStates![p.id]?.camp === 'red')!.id;
+  game.brawl!.playerStates![baiyanId] = {
     userId: baiyanId,
     seat: 8,
     roleId: 'baiyan_mojun',
@@ -1311,8 +1308,8 @@ test('brawl: role preferences partition players strictly into blue/red teams res
     { rolePreferences: { u1: u1Prefs, u2: u2Prefs } }
   );
 
-  assert.equal(game.brawl!.playerStates['u1'].camp, 'red', 'Player with 5 red preferences must be assigned to Red camp');
-  assert.equal(game.brawl!.playerStates['u2'].camp, 'blue', 'Player with 5 blue preferences must be assigned to Blue camp');
+  assert.equal(game.brawl!.playerStates!['u1'].camp, 'red', 'Player with 5 red preferences must be assigned to Red camp');
+  assert.equal(game.brawl!.playerStates!['u2'].camp, 'blue', 'Player with 5 blue preferences must be assigned to Blue camp');
 });
 
 test('brawl: 10-player brawl contains no Oberon or Guinevere base roles, all Red players see each other', () => {
@@ -1335,14 +1332,14 @@ test('brawl: 10-player brawl contains no Oberon or Guinevere base roles, all Red
   assert.equal(baseRoles.includes('guinevere' as any), false, 'Base roles must NOT contain guinevere');
 
   // 验证红方视野：除孤狼牛魔王外互相可见
-  const redPlayers = players.filter(p => game.brawl!.playerStates[p.id].camp === 'red');
+  const redPlayers = players.filter(p => game.brawl!.playerStates![p.id].camp === 'red');
   assert.equal(redPlayers.length, 4, '10-player brawl has 4 red players');
   for (const redP of redPlayers) {
     const view = projectGame(game, redP.id);
-    if (game.brawl!.playerStates[redP.id].roleId === 'niu_mowang') {
+    if (game.brawl!.playerStates![redP.id].roleId === 'niu_mowang') {
       assert.equal(view.self!.evilIds.length, 0, 'Niu Mowang does not see other Red teammates');
     } else {
-      const expectedOtherReds = redPlayers.filter(p => p.id !== redP.id && game.brawl!.playerStates[p.id].roleId !== 'niu_mowang').map(p => p.id);
+      const expectedOtherReds = redPlayers.filter(p => p.id !== redP.id && game.brawl!.playerStates![p.id].roleId !== 'niu_mowang').map(p => p.id);
       for (const otherRed of expectedOtherReds) {
         assert.ok(view.self!.evilIds.includes(otherRed), `Red player ${redP.id} must see teammate ${otherRed}`);
       }
@@ -1364,7 +1361,7 @@ test('brawl: Niu Mowang is an isolated rogue demon (evilIds empty, other demons 
     a => a
   );
 
-  const redPlayers = players.filter(p => game.brawl!.playerStates[p.id].camp === 'red');
+  const redPlayers = players.filter(p => game.brawl!.playerStates![p.id].camp === 'red');
   const niuPlayer = redPlayers[0];
   const otherRed1 = redPlayers[1];
   const otherRed2 = redPlayers[2];
@@ -1372,11 +1369,11 @@ test('brawl: Niu Mowang is an isolated rogue demon (evilIds empty, other demons 
 
   // 强制将 niuPlayer 设为牛魔王，otherRed1 设为白骨精，otherRed2 设为铁扇公主
   game.brawlRoles![niuPlayer.id] = 'niu_mowang';
-  game.brawl!.playerStates[niuPlayer.id].roleId = 'niu_mowang';
+  game.brawl!.playerStates![niuPlayer.id].roleId = 'niu_mowang';
   game.brawlRoles![otherRed1.id] = 'bai_gujing';
-  game.brawl!.playerStates[otherRed1.id].roleId = 'bai_gujing';
+  game.brawl!.playerStates![otherRed1.id].roleId = 'bai_gujing';
   game.brawlRoles![otherRed2.id] = 'tieshan_gongzhu';
-  game.brawl!.playerStates[otherRed2.id].roleId = 'tieshan_gongzhu';
+  game.brawl!.playerStates![otherRed2.id].roleId = 'tieshan_gongzhu';
 
   // 1. 牛魔王视角：看不见任何红方队友 (evilIds 为空)
   const niuView = projectGame(game, niuPlayer.id);
@@ -1411,16 +1408,16 @@ test('brawl: Huangmei Laoguai has mutual vision with Red teammates, but is maske
     a => a
   );
 
-  const redPlayers = players.filter(p => game.brawl!.playerStates[p.id].camp === 'red');
+  const redPlayers = players.filter(p => game.brawl!.playerStates![p.id].camp === 'red');
   const huangmeiPlayer = redPlayers[0];
   const otherRed = redPlayers[1];
   const merlinPlayer = players.find(p => game.roles[p.id] === 'merlin')!;
 
   // 强制将 huangmeiPlayer 的 brawl 角色设为黄眉老怪，otherRed 设为普通妖魔（避免随机抽到孤狼牛魔王导致偶发抖动）
   game.brawlRoles![huangmeiPlayer.id] = 'huangmei_laoguai';
-  game.brawl!.playerStates[huangmeiPlayer.id].roleId = 'huangmei_laoguai';
+  game.brawl!.playerStates![huangmeiPlayer.id].roleId = 'huangmei_laoguai';
   game.brawlRoles![otherRed.id] = 'bai_gujing';
-  game.brawl!.playerStates[otherRed.id].roleId = 'bai_gujing';
+  game.brawl!.playerStates![otherRed.id].roleId = 'bai_gujing';
 
   // 1. 黄眉老怪看其他红方队友：可见
   const huangmeiView = projectGame(game, huangmeiPlayer.id);
@@ -1450,7 +1447,7 @@ test('brawl: Brawl mode completely disables Guanyin 5-second window, and Rulai c
   );
 
   // 验证 hasUnusedGuanyin 返回 false
-  assert.equal(hasUnusedGuanyin(game), false, 'hasUnusedGuanyin must be false in brawl mode');
+  assert.equal(hasUnusedGuanyin(), false, 'hasUnusedGuanyin must be false in brawl mode');
 
   // 模拟组队表决全票通过
   const captain = game.players[0].id;
@@ -1470,7 +1467,6 @@ test('brawl: Brawl mode completely disables Guanyin 5-second window, and Rulai c
 
   // 表决通过后应直接进入 mission 阶段，绝不触发 guanyin_window
   assert.equal(game.phase, 'mission', 'Must transition directly to mission phase');
-  assert.equal(game.guanyinEndsAt, undefined, 'Guanyin countdown must be undefined');
 });
 
 test('brawl: Red skills strictly check if target is on mission team without transferring, reporting misses cleanly', () => {
@@ -1482,10 +1478,10 @@ test('brawl: Red skills strictly check if target is on mission team without tran
 
   let game = createGame('brawl-red-target-check', players, { ...defaultSettings, playerCount: 10, brawlModeEnabled: true }, a => a);
 
-  const jinjiaoPlayer = players.find(p => game.brawl!.playerStates[p.id].camp === 'red')!;
+  const jinjiaoPlayer = players.find(p => game.brawl!.playerStates![p.id].camp === 'red')!;
   game.brawlRoles![jinjiaoPlayer.id] = 'jinjiao_dawang';
-  game.brawl!.playerStates[jinjiaoPlayer.id].roleId = 'jinjiao_dawang';
-  game.brawl!.playerStates[jinjiaoPlayer.id].skillUsed = false;
+  game.brawl!.playerStates![jinjiaoPlayer.id].roleId = 'jinjiao_dawang';
+  game.brawl!.playerStates![jinjiaoPlayer.id].skillUsed = false;
 
   // 1. 金角锁定 p10（不在发车队伍中）
   game = transition(game, jinjiaoPlayer.id, {
@@ -1496,7 +1492,7 @@ test('brawl: Red skills strictly check if target is on mission team without tran
   // 车上成员为 p1, p2, p3 (均为蓝方，p10 不在车上)
   const blueBoarders = ['p1', 'p2', 'p3'];
   for (const bId of blueBoarders) {
-    game.brawl!.playerStates[bId].camp = 'blue';
+    game.brawl!.playerStates![bId].camp = 'blue';
   }
 
   game.phase = 'mission';
@@ -1525,10 +1521,10 @@ test('brawl: Red skills strictly check if target is on mission team without tran
 
   // 2. 验证当目标确实在车上时，概率正常生效
   let game2 = createGame('brawl-red-target-hit', players, { ...defaultSettings, playerCount: 10, brawlModeEnabled: true }, a => a);
-  const jinjiaoP2 = players.find(p => game2.brawl!.playerStates[p.id].camp === 'red')!;
+  const jinjiaoP2 = players.find(p => game2.brawl!.playerStates![p.id].camp === 'red')!;
   game2.brawlRoles![jinjiaoP2.id] = 'jinjiao_dawang';
-  game2.brawl!.playerStates[jinjiaoP2.id].roleId = 'jinjiao_dawang';
-  game2.brawl!.playerStates[jinjiaoP2.id].skillUsed = false;
+  game2.brawl!.playerStates![jinjiaoP2.id].roleId = 'jinjiao_dawang';
+  game2.brawl!.playerStates![jinjiaoP2.id].skillUsed = false;
 
   // 金角锁定 p2（在发车车队中）
   game2 = transition(game2, jinjiaoP2.id, {
@@ -1537,7 +1533,7 @@ test('brawl: Red skills strictly check if target is on mission team without tran
   }, [jinjiaoP2.id]);
 
   for (const bId of blueBoarders) {
-    game2.brawl!.playerStates[bId].camp = 'blue';
+    game2.brawl!.playerStates![bId].camp = 'blue';
   }
   game2.phase = 'mission';
   game2.rounds.push({
@@ -1587,7 +1583,7 @@ test('brawl: anti-streak and protections rotate camps even when player has stron
   );
 
   // Due to 3 consecutive red streaks, u1 MUST be forced to Blue team despite Red preference
-  assert.equal(game.brawl!.playerStates['u1'].camp, 'blue', 'u1 must rotate to Blue camp after 3 red streaks');
+  assert.equal(game.brawl!.playerStates!['u1'].camp, 'blue', 'u1 must rotate to Blue camp after 3 red streaks');
 });
 
 test('brawl: Sun Wukong (Merlin) does not stick to the same player under boss cooldown', () => {
@@ -1624,9 +1620,9 @@ test('brawl: Guanyin Pusa receives private ganlu result when target goes on miss
   }));
 
   let game = createGame('brawl-guanyin-test', players, { ...defaultSettings, playerCount: 9, brawlModeEnabled: true }, a => a);
-  const guanyinPlayer = players.find(p => game.brawl!.playerStates[p.id].roleId === 'guanyin_pusa')!;
-  const targetPlayer = players.find(p => p.id !== guanyinPlayer.id && game.brawl!.playerStates[p.id].camp === 'blue')!;
-  const redPlayer = players.find(p => game.brawl!.playerStates[p.id].camp === 'red')!;
+  const guanyinPlayer = players.find(p => game.brawl!.playerStates![p.id].roleId === 'guanyin_pusa')!;
+  const targetPlayer = players.find(p => p.id !== guanyinPlayer.id && game.brawl!.playerStates![p.id].camp === 'blue')!;
+  const redPlayer = players.find(p => game.brawl!.playerStates![p.id].camp === 'red')!;
   const thirdPlayer = players.find(p => p.id !== guanyinPlayer.id && p.id !== targetPlayer.id && p.id !== redPlayer.id)!;
 
   // 观音对 targetPlayer 洒甘露
@@ -1665,10 +1661,10 @@ test('brawl: Qingmao Shizi [dakou_tuntian] ejects team member during discussion/
   }));
 
   let game = createGame('brawl-qingshi-test', players, { ...defaultSettings, playerCount: 9, brawlModeEnabled: true }, a => a);
-  const qingshiPlayer = players.find(p => game.brawl!.playerStates[p.id].camp === 'red')!;
+  const qingshiPlayer = players.find(p => game.brawl!.playerStates![p.id].camp === 'red')!;
   game.brawlRoles![qingshiPlayer.id] = 'qingmao_shizi';
-  game.brawl!.playerStates[qingshiPlayer.id].roleId = 'qingmao_shizi';
-  game.brawl!.playerStates[qingshiPlayer.id].skillUsed = false;
+  game.brawl!.playerStates![qingshiPlayer.id].roleId = 'qingmao_shizi';
+  game.brawl!.playerStates![qingshiPlayer.id].skillUsed = false;
 
   const captainPlayer = players.find(p => p.id !== qingshiPlayer.id)!;
   const targetPlayer = players.find(p => p.id !== qingshiPlayer.id && p.id !== captainPlayer.id)!;
@@ -1694,7 +1690,6 @@ test('brawl: Qingmao Shizi [dakou_tuntian] ejects team member during discussion/
   assert.equal(game.rounds[0].team.includes(targetPlayer.id), false, 'targetPlayer was ejected from team');
   assert.equal(game.phase, 'proposing', 'Phase rolled back to proposing');
   assert.equal(game.brawl?.qingshiTuntianTargetId, targetPlayer.id, 'Qingmao Shizi bans targetPlayer natively');
-  assert.equal(game.treasuresState?.humanBag?.targetId, undefined, 'Does not pollute classic humanBag');
 
   const qingshiView = projectGame(game, qingshiPlayer.id);
   assert.ok(qingshiView.selfBrawl?.generalFeedback?.includes('大口吞天'), 'Qingmao Shizi receives generalFeedback confirmation');
@@ -1734,24 +1729,24 @@ test('brawl: human-centric wish-direct engine assigns non-core roles directly fr
 
   // 验证仙佛阵营全员精准命中心愿
   assert.equal(game.brawlRoles!['u1'], 'sun_wukong');
-  assert.equal(game.brawl!.playerStates['u1'].wishRank, 1);
+  assert.equal(game.brawl!.playerStates!['u1'].wishRank, 1);
   assert.equal(game.brawlRoles!['u2'], 'tang_seng');
-  assert.equal(game.brawl!.playerStates['u2'].wishRank, 1);
+  assert.equal(game.brawl!.playerStates!['u2'].wishRank, 1);
   assert.equal(game.brawlRoles!['u3'], 'guanyin_pusa');
-  assert.equal(game.brawl!.playerStates['u3'].wishRank, 1);
+  assert.equal(game.brawl!.playerStates!['u3'].wishRank, 1);
   assert.equal(game.brawlRoles!['u4'], 'rulai_fozu');
-  assert.equal(game.brawl!.playerStates['u4'].wishRank, 1);
+  assert.equal(game.brawl!.playerStates!['u4'].wishRank, 1);
   assert.equal(game.brawlRoles!['u5'], 'zhenyuan_daxian');
-  assert.equal(game.brawl!.playerStates['u5'].wishRank, 1);
+  assert.equal(game.brawl!.playerStates!['u5'].wishRank, 1);
 
   // 验证红方金翅大鹏雕作为非核心角色，精准直达进入游戏
   assert.equal(game.brawlRoles!['u9'], 'jinchi_dapeng');
-  assert.equal(game.brawl!.playerStates['u9'].wishRank, 1);
+  assert.equal(game.brawl!.playerStates!['u9'].wishRank, 1);
 
   // 验证盲盒池与情报联动：盲盒池准确收录了玩家直选进场的非核心角色
-  assert.ok(game.brawl!.blindBox.bluePoolRoles.includes('rulai_fozu'));
-  assert.ok(game.brawl!.blindBox.bluePoolRoles.includes('zhenyuan_daxian'));
-  assert.ok(game.brawl!.blindBox.redPoolRoles.includes('jinchi_dapeng'));
+  assert.ok(game.brawl!.blindBox!.bluePoolRoles.includes('rulai_fozu'));
+  assert.ok(game.brawl!.blindBox!.bluePoolRoles.includes('zhenyuan_daxian'));
+  assert.ok(game.brawl!.blindBox!.redPoolRoles.includes('jinchi_dapeng'));
 
   // 验证投影视图 projectGame 成功透传 wishRank 给玩家前端
   const u4View = projectGame(game, 'u4');
@@ -1791,8 +1786,8 @@ test('brawl: wish competition resolution and cascade to lower ranks', () => {
   // 必然有一人拿到 如来佛祖 (wishRank: 1)，另一人顺延拿到第二志愿 (wishRank: 2)
   const u4Role = game.brawlRoles!['u4'];
   const u5Role = game.brawlRoles!['u5'];
-  const u4Rank = game.brawl!.playerStates['u4'].wishRank;
-  const u5Rank = game.brawl!.playerStates['u5'].wishRank;
+  const u4Rank = game.brawl!.playerStates!['u4'].wishRank;
+  const u5Rank = game.brawl!.playerStates!['u5'].wishRank;
 
   if (u4Role === 'rulai_fozu') {
     assert.equal(u4Rank, 1, 'u4 won rulai with rank 1');
@@ -1838,9 +1833,9 @@ test('brawl: smooth anti-streak allows natural same-camp continuation without ri
       { recentRoles }
     );
     // Count if any of u1, u2, u3 is Red again
-    const u1Camp = game.brawl!.playerStates['u1'].camp;
-    const u2Camp = game.brawl!.playerStates['u2'].camp;
-    const u3Camp = game.brawl!.playerStates['u3'].camp;
+    const u1Camp = game.brawl!.playerStates!['u1'].camp;
+    const u2Camp = game.brawl!.playerStates!['u2'].camp;
+    const u3Camp = game.brawl!.playerStates!['u3'].camp;
     if (u1Camp === 'red' || u2Camp === 'red' || u3Camp === 'red') {
       sameCampContinuationCount++;
     }
@@ -1865,7 +1860,7 @@ test('brawl: smooth anti-streak allows natural same-camp continuation without ri
       a => a,
       { recentRoles: hardRedStreakRoles }
     );
-    assert.equal(game.brawl!.playerStates['u1'].camp, 'blue', 'Player with 3 red streaks is strictly guaranteed Blue');
+    assert.equal(game.brawl!.playerStates!['u1'].camp, 'blue', 'Player with 3 red streaks is strictly guaranteed Blue');
   }
 });
 

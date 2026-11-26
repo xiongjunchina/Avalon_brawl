@@ -22,8 +22,8 @@ const outcome=(g:GameSummary)=>g.result.winner===null?'中断':g.result.winner==
 const outcomeKind=(g:GameSummary)=>g.result.winner===null?'aborted':g.result.winner===g.self.team?'victory':'defeat';
 
 export function HistoryRoster({replay:g}:{replay:Replay}) {
-  const guardians=g.brawlRoles?{}:assignLoyalGuardians(g.id,g.players,g.roles,g.rulesetVersion);
-  const demons=g.brawlRoles?{}:assignFemaleDemons(g.id,g.players,g.roles);
+  const guardians: Record<string, any> = {};
+  const demons: Record<string, any> = {};
   return <ul className="history-roster" aria-label="本局全员角色">{[...g.players].sort((a,b)=>a.seat-b.seat).map(p=>{
     const role=g.roles[p.id],team=roleTeam(role),self=p.seat===g.self.seat;
     const brawlRoleId = g.brawlRoles?.[p.id];

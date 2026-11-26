@@ -5,7 +5,7 @@ export const settingsSchema = z.object({
   playerCount: z.number().int().min(5).max(12),
   captainMode: z.enum(['seat_order', 'random_order']),
   anonymousTeamVote: z.boolean(),
-  rejectionScope: z.enum(['game', 'mission']),
+  rejectionScope: z.enum(['game', 'mission']).default('mission'),
   ladyEnabled: z.boolean().optional(),
   earlyAssassinationEnabled: z.boolean(),
   guardianPerksEnabled: z.boolean().default(false),
@@ -13,7 +13,7 @@ export const settingsSchema = z.object({
   autoRevealRoleEnabled: z.boolean().default(false),
   treasuresEnabled: z.boolean().default(false),
   rolePreferenceEnabled: z.boolean().default(false),
-  brawlModeEnabled: z.boolean().default(false),
+  brawlModeEnabled: z.boolean().default(true),
   brawlOrdealsEnabled: z.boolean().default(false),
   brawlPhantomVisionEnabled: z.boolean().default(false),
 }).strict();
@@ -47,13 +47,13 @@ export interface PlayerCodeAvailability {
 }
 export const defaultSettings: Settings = {
   playerCount: 6, captainMode: 'seat_order', anonymousTeamVote: true,
-  rejectionScope: 'game', earlyAssassinationEnabled: false,
+  rejectionScope: 'mission', earlyAssassinationEnabled: false,
   guardianPerksEnabled: false,
   voiceChatEnabled: false,
   autoRevealRoleEnabled: false,
   treasuresEnabled: false,
   rolePreferenceEnabled: false,
-  brawlModeEnabled: false,
+  brawlModeEnabled: true,
   brawlOrdealsEnabled: false,
   brawlPhantomVisionEnabled: false,
 };
@@ -72,6 +72,7 @@ export const defaultBrawlSettings: Settings = {
 export function normalizeBrawlSettings(settings: Settings): Settings {
   return {
     ...settings,
+    rejectionScope: 'mission',
     brawlModeEnabled: true,
     guardianPerksEnabled: false,
     treasuresEnabled: false,
@@ -106,24 +107,12 @@ export const commandSchema = z.discriminatedUnion('type', [
   z.object({ ...base, type: z.literal('setAdmission'), payload: z.object({ acceptingNewMembers: z.boolean() }).strict() }).strict(),
   ...(['startGame', 'confirmRole', 'startTeamVote', 'returnToLobby', 'requestAbort', 'endGame'] as const).map(type =>
     z.object({ ...base, type: z.literal(type), payload: z.object({}).strict() }).strict()),
-  z.object({ ...base, type: z.literal('proposeTeam'), payload: z.object({ playerIds: z.array(z.string().uuid()).max(6), direction: z.enum(['clockwise', 'counterclockwise']), militaryWager: z.boolean().optional() }).strict() }).strict(),
-  z.object({ ...base, type: z.literal('updateTeamDraft'), payload: z.object({ playerIds: z.array(z.string().uuid()).max(6), direction: z.enum(['clockwise', 'counterclockwise']) }).strict() }).strict(),
+  z.object({ ...base, type: z.literal('proposeTeam'), payload: z.object({ playerIds: z.array(z.string().uuid()).max(7), direction: z.enum(['clockwise', 'counterclockwise']), militaryWager: z.boolean().optional() }).strict() }).strict(),
+  z.object({ ...base, type: z.literal('updateTeamDraft'), payload: z.object({ playerIds: z.array(z.string().uuid()).max(7), direction: z.enum(['clockwise', 'counterclockwise']) }).strict() }).strict(),
   z.object({ ...base, type: z.literal('teamVote'), payload: z.object({ approve: z.union([z.boolean(), z.literal('abstain')]) }).strict() }).strict(),
   z.object({ ...base, type: z.literal('missionVote'), payload: z.object({ success: z.boolean() }).strict() }).strict(),
   z.object({ ...base, type: z.literal('earlyAssassinationDecision'), payload: z.object({ attempt: z.boolean() }).strict() }).strict(),
   z.object({ ...base, type: z.literal('assassinate'), payload: z.object({ targetId: z.string().uuid() }).strict() }).strict(),
-  z.object({
-    ...base,
-    type: z.literal('useTreasure'),
-    payload: z.discriminatedUnion('action', [
-      z.object({ action: z.literal('tinStaff'), targetId: z.string().uuid() }).strict(),
-      z.object({ action: z.literal('guanyinMirror'), targetId: z.string().uuid().optional(), skip: z.boolean().optional() }).strict(),
-      z.object({ action: z.literal('humanBag'), targetId: z.string().uuid() }).strict(),
-      z.object({ action: z.literal('jinguSeal') }).strict(),
-      z.object({ action: z.literal('bananaFan'), armed: z.boolean() }).strict(),
-      z.object({ action: z.literal('heartBell'), targetId: z.string().uuid(), advice: z.enum(['protect', 'sabotage']) }).strict(),
-    ]),
-  }).strict(),
   z.object({ ...base, type: z.literal('brawlCommand'), payload: brawlCommandPayloadSchema }).strict(),
   z.object({ ...base, type: z.literal('voteAbort'), payload: z.object({ approve: z.boolean() }).strict() }).strict(),
   z.object({ ...base, type: z.literal('leaveRoom'), payload: z.object({}).strict() }).strict(),
@@ -420,10 +409,17 @@ export type ServerMessage = { type: 'playerCodeChanged'; playerCode: string }
   | { type: 'roomChat'; messageId: string; fromUserId: string; seat: number; nickname: string; text: string; timestamp: string }
   | { type: 'directChat'; messageId: string; fromUser: User; text: string; timestamp: string };
 
-export type LoyalGuardian = 'zhubajie' | 'shawujing' | 'bailong' | 'jingang';
-export type FemaleDemon = 'spider' | 'baigu' | 'yutu' | 'laoshu';
 export type Team = 'blue' | 'red';
-export type GamePhase = 'dealing' | 'role_reveal' | 'proposing' | 'discussion' | 'team_vote' | 'guanyin_window' | 'mission' | 'early_window' | 'assassination' | 'finished' | 'aborted';
+export type GamePhase =
+  | 'dealing'
+  | 'role_reveal'
+  | 'proposing'
+  | 'discussion'
+  | 'team_vote'
+  | 'mission'
+  | 'assassination'
+  | 'finished'
+  | 'aborted';
 export type Player = User & { seat: number };
 export interface RoundView {
   number: number; mission: number; captainId: string; team: string[];
@@ -438,85 +434,34 @@ export interface GameResult {
   targetId?: string;
 }
 export interface Inspection { afterMission: number; inspectorId: string; targetId: string }
-export interface PrivateInspection extends Inspection { team: Team }
 export interface EarlyWindow { afterMission: number; afterProposal: number; decision: 'skip' | 'attempt' }
-export interface GuardianClue {
-  kind: LoyalGuardian;
-  title: string;
-  description: string;
-  targetIds: string[];
-}
-export type HeartBellAdvice = 'protect' | 'sabotage';
-export interface HeartBellMessage {
-  mission: number;
-  roundNumber: number;
-  advice: HeartBellAdvice;
-  active: boolean;
-}
-export interface SelfTreasures {
-  enabled: boolean;
-  // Private capability reason; room-wide treasure mode can still be enabled for the other team.
-  disabledReason?: 'guardian_perks';
-  heartBell?: {
-    used: boolean;
-    available: boolean;
-    targetIds: string[];
-    sent?: HeartBellMessage & { targetId: string };
-  };
-  // Only the addressee receives this field; no sender identity or role is disclosed.
-  incomingHeartBell?: HeartBellMessage;
-  tinStaff?: {
-    used: boolean;
-    available: boolean;
-    result?: { targetId: string; team: Team };
-  };
-  guanyinMirror?: {
-    used: boolean;
-    available: boolean;
-    result?: { targetId: string; alignment: 'pure' | 'evil' };
-  };
-  humanBag?: {
-    used: boolean;
-    available: boolean;
-    targetId?: string;
-  };
-  jinguSeal?: {
-    used: boolean;
-    available: boolean;
-    activatedBy?: string;
-  };
-  jinguAllyId?: string;
-  bananaFan?: {
-    used: boolean;
-    armed: boolean;
-    available: boolean;
-  };
-}
 export interface GameView {
   id: string; rulesetVersion: string; phase: GamePhase; players: Player[];
   dealEndsAt?: string;
-  guanyinEndsAt?: string;
   mission: number; missionSizes: number[]; failuresRequired: number; rejectionCount: number;
   captainId: string; captainOrder: string[]; rounds: RoundView[];
   draftTeam?: { playerIds: string[]; direction: RoundView['direction'] };
   teamVote?: { startedAt?: string; votedIds: string[]; ballots?: Record<string, TeamBallot> };
   progress: { confirmed: number; teamVotes: number; missionVotes: number };
-  lady?: { holderId: string; holderIds: string[]; inspections: Inspection[] };
   earlyAssassination?: { used: boolean; windows: EarlyWindow[] };
   assassinationMode?: 'normal' | 'early';
   assassinId?: string;
-  humanBagBannedPlayerId?: string;
-  bananaFanNotice?: string;
-  result?: GameResult; revealedRoles?: Record<string, Role>;
+  result?: GameResult;
+  revealedRoles?: Record<string, Role>;
   revealedBrawlRoles?: Record<string, string>;
   abortPoll?: { requestedBy: string; approvals: number; required: number; voted: boolean };
   brawl?: BrawlGameState;
   selfBrawl?: SelfBrawlView;
-  self?: { role: Role; loyalGuardian?: LoyalGuardian; femaleDemon?: FemaleDemon; team: Team; evilIds: string[]; merlinCandidates: string[]; guinevereCandidates?: string[];
-    guardianClue?: GuardianClue;
-    confirmed: boolean; teamVoted: boolean; missionVoted: boolean;
-    inspections?: PrivateInspection[]; canInspect?: boolean; canConfirmInspection?: boolean; canDecideEarly: boolean;
-    treasures?: SelfTreasures };
+  self?: {
+    role: Role;
+    team: Team;
+    evilIds: string[];
+    merlinCandidates: string[];
+    confirmed: boolean;
+    teamVoted: boolean;
+    missionVoted: boolean;
+    canDecideEarly: boolean;
+  };
 }
 
 export interface Score { completed:number; wins:number; losses:number; aborted:number; winRate:number|null }
@@ -556,4 +501,3 @@ export interface Replay extends GameSummary {
 }
 export interface SettingPreset { id:string; name:string; settings:Settings; updatedAt:string }
 export * from './brawl.js';
-

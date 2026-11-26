@@ -1,4 +1,7 @@
-import type { FemaleDemon, LoyalGuardian, Role } from '@avalon/contracts';
+import type { Role } from '@avalon/contracts';
+
+export type LoyalGuardian = 'zhubajie' | 'shawujing' | 'bailong' | 'jingang';
+export type FemaleDemon = 'spider' | 'baigu' | 'yutu' | 'laoshu';
 
 export const roleNames: Record<Role, string> = {
   merlin: '孙悟空',

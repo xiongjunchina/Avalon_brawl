@@ -24,13 +24,6 @@ import { QuestMedallion } from './QuestMedallion';
 import { BattleHistory } from './BattleRound';
 import { BrawlReplayTimeline } from './BrawlReplayTimeline';
 import { TeamVoteDialog } from './TeamVoteDialog';
-import { GuanyinWindowDialog } from './GuanyinWindowDialog';
-import { GuanyinResultDialog } from './GuanyinResultDialog';
-import { TreasureModal } from './TreasureModal';
-import { treasureAccess } from './treasure-access';
-import { useGuanyinNotice } from './guanyin-notice';
-import { usePrivateNotice } from './private-notice';
-import { HeartBellDialog, heartBellNoticeKey } from './HeartBell';
 import { MissionReportDialog } from './MissionReportDialog';
 import { PartyBanner } from './PlayerToken';
 import { Modal } from './Modal';
@@ -46,9 +39,7 @@ const phaseNames: Record<GameView['phase'], string> = {
   proposing: '队长组队',
   discussion: '真假论道',
   team_vote: '组队表决',
-  guanyin_window: '宝镜决断',
   mission: '取经出征',
-  early_window: '轮间确认中',
   assassination: '刺杀孙悟空',
   finished: '本局结束',
   aborted: '本局中断',
@@ -94,36 +85,8 @@ export function GamePanel({
   const round = g.rounds.at(-1);
   const ended = !!g.result;
   const [identityOpen, setIdentityOpen] = useState(false);
-  const [treasureOpen, setTreasureOpen] = useState(false);
-  const treasureEntry = treasureAccess(g, room.settings.treasuresEnabled);
-  const guanyinNotice = useGuanyinNotice(g, userId, connected);
-  const guanyinResult = self?.role === 'guinevere' ? self.treasures?.guanyinMirror?.result : undefined;
-  const brawlGuanyinResult = g.selfBrawl?.guanyinGanluResult;
-  const bellNotice = usePrivateNotice(heartBellNoticeKey(g, userId), connected);
-  const bellMessage = self?.treasures?.incomingHeartBell;
-  const privateNoticeVisible = guanyinNotice.visible || bellNotice.visible;
-  const privateUnread = guanyinNotice.unread || bellNotice.unread;
-  const privateResultPending = guanyinNotice.unread || privateNoticeVisible;
-  const sendTreasure = (action: Pick<Command, 'type' | 'payload'>) => {
-    if (action.type === 'useTreasure' && 'action' in action.payload && action.payload.action === 'guanyinMirror') {
-      guanyinNotice.allowAutomatic();
-    }
-    send(action);
-  };
   const openTreasure = () => {
-    if (g.selfBrawl) {
-      if (guanyinNotice.unread && brawlGuanyinResult) {
-        guanyinNotice.open();
-        return;
-      }
-      setIdentityOpen(true);
-      return;
-    }
-    if (!treasureEntry.canOpen || !connected) return;
-    if (bellNotice.unread) { bellNotice.open(); return; }
-    if (guanyinResult) { guanyinNotice.open(); return; }
-    if (self?.role === 'guinevere' && g.phase === 'guanyin_window') { setGuanyinWindowDismissed(false); return; }
-    setTreasureOpen(true);
+    setIdentityOpen(true);
   };
   const [historyOpen, setHistoryOpen] = useState(false);
   const [inspectMission, setInspectMission] = useState<number | null>(null);
@@ -132,7 +95,6 @@ export function GamePanel({
   const setSelected = (update: (ids: string[]) => string[]) => send({ type: 'updateTeamDraft', payload: { playerIds: update(selected), direction } });
   const setDirection = (value: 'clockwise' | 'counterclockwise') => send({ type: 'updateTeamDraft', payload: { playerIds: selected, direction: value } });
   const [voteDismissed, setVoteDismissed] = useState(false);
-  const [guanyinWindowDismissed, setGuanyinWindowDismissed] = useState(false);
   const [choice, setChoice] = useState<boolean | null>(null);
   const [blueFailWarning, setBlueFailWarning] = useState(false);
   const [target, setTarget] = useState('');
@@ -143,18 +105,6 @@ export function GamePanel({
   const lastCompletedRound = completedMissions.at(-1);
   const [missionReportRound, setMissionReportRound] = useState<RoundView | null>(null);
   const prevCompletedCountRef = useRef<number | null>(null);
-
-  const jinguAllyId = self?.treasures?.jinguAllyId;
-  const [dismissedJinguAllyId, setDismissedJinguAllyId] = useState<string | null>(null);
-  const isJinguAlertOpen = Boolean(self?.role === 'percival' && jinguAllyId && dismissedJinguAllyId !== jinguAllyId);
-  const chimePlayedRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (isJinguAlertOpen && jinguAllyId && chimePlayedRef.current !== jinguAllyId) {
-      chimePlayedRef.current = jinguAllyId;
-      onSound?.('chime');
-    }
-  }, [isJinguAlertOpen, jinguAllyId, onSound]);
 
   useEffect(() => {
     if (prevCompletedCountRef.current === null) {
@@ -188,33 +138,21 @@ export function GamePanel({
 
   useEffect(() => {
     const hide = () => {
-      if (document.visibilityState !== 'visible') { setIdentityOpen(false); setTreasureOpen(false); }
+      if (document.visibilityState !== 'visible') { setIdentityOpen(false); }
     };
     document.addEventListener('visibilitychange', hide);
     return () => document.removeEventListener('visibilitychange', hide);
   }, []);
 
   useEffect(() => {
-    if (!connected) { setIdentityOpen(false); setTreasureOpen(false); }
+    if (!connected) { setIdentityOpen(false); }
   }, [connected]);
-
-  useEffect(() => {
-    if (privateNoticeVisible) {
-      setIdentityOpen(false);
-      setTreasureOpen(false);
-      setHistoryOpen(false);
-      setInspectMission(null);
-    }
-  }, [privateNoticeVisible]);
-
-  useEffect(() => { setTreasureOpen(false); }, [g.id, userId]);
 
   const prevPhaseRef = useRef(g.phase);
   const autoRevealedGameIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     setVoteDismissed(false);
-    setGuanyinWindowDismissed(false);
     setChoice(null);
     setBlueFailWarning(false);
     setTarget('');
@@ -238,7 +176,6 @@ export function GamePanel({
     setAbortConfirm(Boolean(abortRequester));
     if (abortRequester) {
       setIdentityOpen(false);
-      setTreasureOpen(false);
       setHistoryOpen(false);
       setInspectMission(null);
     }
@@ -387,7 +324,6 @@ export function GamePanel({
   }
 
   const isPlayerBannedForCurrentMission = (playerId: string) =>
-    g.humanBagBannedPlayerId === playerId ||
     g.brawl?.imprisonedTargetId === playerId ||
     g.brawl?.zhizhuBannedTargetId === playerId ||
     g.brawl?.qingshiTuntianTargetId === playerId ||
@@ -421,12 +357,8 @@ export function GamePanel({
   const missionRounds = inspectMission
     ? g.rounds.filter(r => r.mission === inspectMission)
     : [];
-  const revealedLoyalGuardians = !isBrawl && g.revealedRoles
-    ? assignLoyalGuardians(g.id, g.players, g.revealedRoles, g.rulesetVersion)
-    : {};
-  const revealedFemaleDemons = !isBrawl && g.revealedRoles
-    ? assignFemaleDemons(g.id, g.players, g.revealedRoles)
-    : {};
+  const revealedLoyalGuardians: Record<string, any> = {};
+  const revealedFemaleDemons: Record<string, any> = {};
 
   return (
     <div className="game table-game-screen game-play-priority" data-sound="tap" data-phase={effectivePhase} data-player-count={g.players.length}>
@@ -445,7 +377,7 @@ export function GamePanel({
       {ended && g.result ? (
         (() => {
           const myRevealedRole = g.revealedRoles?.[userId] ?? self?.role;
-          const myLoyalGuardian = revealedLoyalGuardians[userId] ?? self?.loyalGuardian;
+          const myLoyalGuardian = revealedLoyalGuardians[userId];
           const myBrawlRoleId = g.revealedBrawlRoles?.[userId] ?? g.selfBrawl?.roleId;
           const myBrawlRole = myBrawlRoleId ? BRAWL_ROLE_REGISTRY[myBrawlRoleId] : undefined;
           const myTeam = myBrawlRole ? myBrawlRole.camp : (myRevealedRole ? roleTeam(myRevealedRole) : self?.team);
@@ -733,24 +665,17 @@ export function GamePanel({
         })()
       )}
 
-      {g.bananaFanNotice && (
-        <div className="table-banana-fan-banner" role="alert">
-          <span>🌪️ {g.bananaFanNotice}</span>
-        </div>
-      )}
-
       {/* 3. Celestial Feast Table Arena (Hidden for non-assassins during assassination phase) */}
       {!(g.phase === 'assassination' && self?.role !== 'assassin') && (() => {
         const renderSeat = (p: Player, flank: 'left' | 'right', style?: React.CSSProperties) => {
           const member = room.members.find(m => m.id === p.id);
           const isCaptain = !ended && g.phase !== 'assassination' && p.id === g.captainId;
-          const isNextCaptain = isCaptain && effectivePhase === 'early_window';
           const isProposed =
             !ended &&
             (effectivePhase === 'proposing'
               ? selected.includes(p.id)
-              : ['discussion', 'team_vote', 'guanyin_window', 'mission'].includes(effectivePhase) && Boolean(round?.team.includes(p.id)));
-          const teamStatus = ['guanyin_window', 'mission'].includes(effectivePhase) ? '出征' : '已选';
+              : ['discussion', 'team_vote', 'mission'].includes(effectivePhase) && Boolean(round?.team.includes(p.id)));
+          const teamStatus = effectivePhase === 'mission' ? '出征' : '已选';
           const isTargeted =
             g.phase === 'assassination' && target === p.id;
           const isDapengExcluded =
@@ -826,7 +751,7 @@ export function GamePanel({
                 {isSpeaking && (
                   <span className="seat-speaking-ring" aria-hidden="true" />
                 )}
-                {(isProposed || isCaptain || (self?.role === 'percival' && jinguAllyId === p.id)) && (
+                {(isProposed || isCaptain) && (
                   <span
                     className={`seat-aura-ring ${isProposed ? 'aura-cyan' : 'aura-gold'}`}
                     aria-hidden="true"
@@ -865,19 +790,11 @@ export function GamePanel({
                 />
                 <div className="seat-status-badges">
                   {isCaptain && (
-                    <span className={`seat-badge ${isNextCaptain ? 'badge-next-captain' : 'badge-captain'}`} title={isNextCaptain ? '候任领队' : '当前队长'}>
-                      {isNextCaptain ? '👑 候任' : '👑 队长'}
+                    <span className="seat-badge badge-captain" title="当前队长">
+                      👑 队长
                     </span>
                   )}
                   {isProposed && <span className="seat-badge badge-team">{teamStatus}</span>}
-                  {self?.role === 'percival' && jinguAllyId === p.id && (
-                    <span className="seat-badge badge-jingu-ally" title="取经护法同修（紧箍佛印自证，百分百纯正蓝方！）">📿 护法</span>
-                  )}
-                  {g.humanBagBannedPlayerId === p.id && (
-                    <span className="seat-badge badge-banned" title="被收入后天人种袋，本轮禁选上车">
-                      🎒 禁选
-                    </span>
-                  )}
                   {g.brawl?.zhizhuBannedTargetId === p.id && (
                     <span className="seat-badge badge-banned" title="被蜘蛛精盘丝结茧，当轮禁止入选车队">
                       🕸️ 结茧
@@ -1006,10 +923,10 @@ export function GamePanel({
                 // 9~12 人局严格落在同一条平滑数学椭圆 (50 + Rx·cosθ, cy + Ry·sinθ) 上，
                 // 仅对角度做极小微调：既与中间椭圆形仙桌自然呼应、不留 1/7 号两侧断层空隙，又确保手机端零重叠
                 const ellipsePresets: Record<number, { rx: number; ry: number; cy: number; angles: number[] }> = {
-                  12: { rx: 39.2, ry: 41.2, cy: 51.0, angles: [-90, -57, -25, 0, 25, 57, 90, 123, 155, 180, 205, 237] },
-                  11: { rx: 39.0, ry: 41.0, cy: 51.0, angles: [-90, -55, -22, 10, 42, 72.5, 107.5, 138, 170, 202, 235] },
-                  10: { rx: 39.0, ry: 40.5, cy: 51.0, angles: [-90, -52, -16, 16, 52, 90, 128, 164, 196, 232] },
-                  9:  { rx: 38.6, ry: 40.0, cy: 51.0, angles: [-90, -48, -10, 29, 69, 111, 151, 190, 228] },
+                  12: { rx: 39.5, ry: 34.0, cy: 50.0, angles: [-90, -60, -30, 0, 30, 60, 90, 120, 150, 180, 210, 240] },
+                  11: { rx: 41.0, ry: 33.5, cy: 50.0, angles: [-90, -57.3, -24.5, 8.2, 40.9, 73.6, 106.4, 139.1, 171.8, 204.5, 237.3] },
+                  10: { rx: 40.5, ry: 33.0, cy: 50.0, angles: [-90, -54, -18, 18, 54, 90, 126, 162, 198, 234] },
+                  9:  { rx: 40.0, ry: 33.0, cy: 50.0, angles: [-90, -50, -10, 30, 70, 110, 150, 190, 230] },
                 };
                 const preset = ellipsePresets[n];
                 let leftPct: number;
@@ -1196,33 +1113,6 @@ export function GamePanel({
           </div>
         )}
 
-        {g.phase === 'guanyin_window' && (
-          <div className="dock-panel guanyin-dock-panel">
-            {self?.role === 'guinevere' ? (
-              <div className="dock-guanyin-active">
-                <button
-                  type="button"
-                  className="btn-primary-cta btn-dragon-cta"
-                  onClick={() => setGuanyinWindowDismissed(false)}
-                >
-                  <span className="btn-cloud-flourish left" aria-hidden="true"><CloudFlourish side="left" /></span>
-                  <span className="btn-cta-text">🪞 打开照妖镜决断面板</span>
-                  <span className="btn-cloud-flourish right" aria-hidden="true"><CloudFlourish side="right" /></span>
-                </button>
-              </div>
-            ) : (
-              <div className="dock-waiting-hero">
-                <span className="dock-waiting-icon" aria-hidden="true">🪞</span>
-                <div className="dock-waiting-body">
-                  <strong className="dock-waiting-title">【佛光宝镜】观音菩萨正在审视出征车队…</strong>
-                  <p className="dock-waiting-desc">
-                    车队表决已通过，观音正在做出决断，即将开启本难出征试炼
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
         {g.phase === 'mission' && (
           <div className="dock-panel mission-vote-dock">
@@ -1358,9 +1248,6 @@ export function GamePanel({
           </div>
         )}
 
-        {privateUnread && !privateNoticeVisible && connected && guanyinNotice.pageVisible && (
-          <p className="treasure-unread-notice" role="status">有一条私密消息，点击「法宝」查看。</p>
-        )}
         {g.selfBrawl && (
           <BrawlPanel
             selfBrawl={g.selfBrawl}
@@ -1416,10 +1303,10 @@ export function GamePanel({
                   )
                 ) ? 'pulse-action' : ''
               }`}
-              disabled={!connected || (!g.selfBrawl && !treasureEntry.canOpen)}
+              disabled={!connected}
               aria-label="法宝"
-              aria-expanded={g.selfBrawl ? identityVisible : (treasureOpen || privateNoticeVisible)}
-              onClick={g.selfBrawl ? () => setIdentityOpen(v => !v) : openTreasure}
+              aria-expanded={identityVisible}
+              onClick={openTreasure}
             >
               法宝
             </button>
@@ -1564,19 +1451,7 @@ export function GamePanel({
         </div>
       </section>
 
-      {g.phase === 'team_vote' && !voteDismissed && !privateNoticeVisible && <TeamVoteDialog game={g} players={publicPlayers} anonymous={room.settings.anonymousTeamVote} userId={userId} serverTime={room.serverTime} disabled={disabled} send={send} onClose={() => setVoteDismissed(true)} />}
-      {g.phase === 'guanyin_window' && !guanyinWindowDismissed && (
-        <GuanyinWindowDialog
-          game={g}
-          players={publicPlayers}
-          userId={userId}
-          serverTime={room.serverTime}
-          disabled={disabled}
-          send={sendTreasure}
-          onTick={() => onSound?.('tick')}
-          onClose={() => setGuanyinWindowDismissed(true)}
-        />
-      )}
+      {g.phase === 'team_vote' && !voteDismissed && <TeamVoteDialog game={g} players={publicPlayers} anonymous={room.settings.anonymousTeamVote} userId={userId} serverTime={room.serverTime} disabled={disabled} send={send} onClose={() => setVoteDismissed(true)} />}
       {!ended && abortConfirm && (
         <Modal label={room.hostId === userId ? '结束游戏' : '申请中止游戏'} scene="sword" onClose={() => setAbortConfirm(false)}>
           <div className="table-modal-sheet abort-confirm-sheet">
@@ -1594,7 +1469,7 @@ export function GamePanel({
       )}
 
       {/* Private Identity Modal Overlay */}
-      {!ended && self && identityVisible && !privateNoticeVisible && (
+      {!ended && self && identityVisible && (
         <Modal label="我的私密身份详情" scene="mirror" onClose={() => setIdentityOpen(false)}>
           <div className="table-modal-sheet identity-content">
             <div className="table-modal-head">
@@ -1624,7 +1499,7 @@ export function GamePanel({
                 players={publicPlayers}
                 game={g}
                 disabled={disabled}
-                send={sendTreasure}
+                send={send}
                 userId={userId}
                 treasuresEnabled={room.settings.treasuresEnabled}
                 onUseBrawlSkill={(skillId, targetId) => send({ type: 'brawlCommand', payload: { action: 'useSkill', skillId, targetPlayerId: targetId } })}
@@ -1650,7 +1525,7 @@ export function GamePanel({
       )}
 
       {/* Settled Mission Report Modal (Auto-pops up upon mission completion or tapping completed mission circle) */}
-      {missionReportRound && missionReportRound.result && !privateResultPending && (
+      {missionReportRound && missionReportRound.result && (
         <MissionReportDialog
           round={missionReportRound}
           players={publicPlayers}
@@ -1659,97 +1534,6 @@ export function GamePanel({
           isBrawl={isBrawl}
           onClose={() => setMissionReportRound(null)}
         />
-      )}
-
-      {self && treasureOpen && treasureEntry.canOpen && connected && guanyinNotice.pageVisible && !privateResultPending && !g.brawl && !g.selfBrawl && (
-        <TreasureModal
-          open
-          onClose={() => setTreasureOpen(false)}
-          self={self}
-          players={publicPlayers}
-          game={g}
-          userId={userId}
-          disabled={disabled || ended}
-          send={sendTreasure}
-          treasuresEnabled={room.settings.treasuresEnabled}
-        />
-      )}
-      {guanyinNotice.visible && (guanyinResult || brawlGuanyinResult) && !abortConfirm && (
-        <GuanyinResultDialog
-          result={guanyinResult}
-          brawlResult={brawlGuanyinResult}
-          players={publicPlayers}
-          onClose={guanyinNotice.acknowledge}
-        />
-      )}
-      {bellNotice.visible && bellMessage && !abortConfirm && (
-        <HeartBellDialog message={bellMessage} onClose={bellNotice.acknowledge} />
-      )}
-
-      {/* Percival Jingu Seal Active Notification Modal */}
-      {isJinguAlertOpen && jinguAllyId && (
-        <Modal
-          label="金箍显圣 · 护法归位"
-          scene="dawn"
-          onClose={() => setDismissedJinguAllyId(jinguAllyId)}
-        >
-          <div className="table-modal-sheet jingu-alert-sheet" onClick={e => e.stopPropagation()}>
-            <div className="table-modal-head">
-              <div className="jingu-alert-icon-ring" aria-hidden="true">
-                <span className="jingu-halo-sparkle">✨</span>
-                <span className="jingu-halo-icon">📿</span>
-                <span className="jingu-halo-sparkle">✨</span>
-              </div>
-              <strong className="jingu-alert-title">金箍显圣 · 护法归位</strong>
-              <p className="jingu-alert-subtitle">阿弥陀佛！绝境之中，真同修舍身自证</p>
-            </div>
-            <div className="jingu-alert-body">
-              {(() => {
-                const ally = g.players.find(p => p.id === jinguAllyId);
-                const allyMember = room.members.find(m => m.id === jinguAllyId);
-                return (
-                  <>
-                    <div className="jingu-ally-card">
-                      <div className="jingu-ally-avatar-wrap">
-                        <PlayerAvatar
-                          avatar={allyMember?.avatar}
-                          avatarUrl={allyMember?.avatarUrl}
-                          wechatAvatarUrl={allyMember?.wechatAvatarUrl}
-                          fallbackKind="cards"
-                        />
-                      </div>
-                      <div className="jingu-ally-info">
-                        <span className="jingu-seat-pill">{ally?.seat} 号位</span>
-                        <strong className="jingu-ally-name">{ally?.nickname}</strong>
-                        <span className="jingu-role-tag">🌟 取经护法同修（纯正蓝方）</span>
-                      </div>
-                    </div>
-                    <div className="jingu-alert-text">
-                      <p>
-                        仙友 <strong>{name(jinguAllyId)}</strong> 已在暗中捏动紧箍佛印向你自证！
-                      </p>
-                      <p className="jingu-alert-highlight">
-                        唐三藏圣僧慧眼洞开：此仙友确系<strong>百分之百纯正取经护法同修</strong>，绝非妖魔潜伏！
-                      </p>
-                      <p className="jingu-alert-tip">
-                        💡 提示：该仙友头上已标注【📿 护法】金印，请全力倚重其发言与投票，护送车队通关。
-                      </p>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-            <footer className="table-modal-foot">
-              <button
-                type="button"
-                className="action-btn is-gold-primary jingu-confirm-btn"
-                onClick={() => setDismissedJinguAllyId(jinguAllyId)}
-              >
-                阿弥陀佛，贫僧知晓了
-              </button>
-            </footer>
-          </div>
-        </Modal>
       )}
 
       {/* Per-Mission Detail Modal (Triggered when tapping any of the 5 Mission Circles) */}

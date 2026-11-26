@@ -376,8 +376,8 @@ export class PostgresStore {
     await c.query('UPDATE rooms SET phase=$2 WHERE id=$1',[roomId,isEnded(game)?'finished':'playing']);
   }
   async pendingDeals(): Promise<{roomId:string;deadline:string}[]> {
-    return this.tx(async c => (await c.query(`SELECT r.id AS "roomId", COALESCE(g.state->>'dealEndsAt', g.state->>'guanyinEndsAt') AS deadline
-      FROM rooms r JOIN games g ON g.id=r.current_game_id WHERE r.phase='playing' AND (g.state->>'phase'='dealing' OR g.state->>'phase'='guanyin_window')`)).rows);
+    return this.tx(async c => (await c.query(`SELECT r.id AS "roomId", g.state->>'dealEndsAt' AS deadline
+      FROM rooms r JOIN games g ON g.id=r.current_game_id WHERE r.phase='playing' AND g.state->>'phase'='dealing'`)).rows);
   }
   async releaseDeal(roomId:string):Promise<{changed:boolean;deadline?:string}> {
     return this.tx(async c=>{
@@ -387,14 +387,6 @@ export class PostgresStore {
         if(!g.dealEndsAt||!Number.isFinite(Date.parse(g.dealEndsAt)))throw new DomainError('SERVICE_UNAVAILABLE',503);
         if(this.now()<Date.parse(g.dealEndsAt))return {changed:false,deadline:g.dealEndsAt};
         g.phase='role_reveal';delete g.dealEndsAt;
-        await this.saveGame(c,roomId,g);
-        await c.query('UPDATE rooms SET version=version+1 WHERE id=$1',[roomId]);
-        return {changed:true};
-      }
-      if(g?.phase==='guanyin_window') {
-        if(!g.guanyinEndsAt||!Number.isFinite(Date.parse(g.guanyinEndsAt)))throw new DomainError('SERVICE_UNAVAILABLE',503);
-        if(this.now()<Date.parse(g.guanyinEndsAt))return {changed:false,deadline:g.guanyinEndsAt};
-        g.phase='mission';delete g.guanyinEndsAt;
         await this.saveGame(c,roomId,g);
         await c.query('UPDATE rooms SET version=version+1 WHERE id=$1',[roomId]);
         return {changed:true};
@@ -533,7 +525,6 @@ export class PostgresStore {
         if(!game) throw new DomainError('WRONG_PHASE',409);
         const next = transition(game,userId,command,members.filter(m=>m.connection_id).map(m=>m.user_id), { hostId: r.host_id, now: this.now() });
         await this.saveGame(c,roomId,next);
-        if (next.guanyinEndsAt) dealEndsAt = next.guanyinEndsAt;
         if (next.result?.reason === 'host_ended') await this.closeRoom(c,roomId);
       }
       await c.query('UPDATE rooms SET version=version+1 WHERE id=$1',[roomId]);

@@ -318,6 +318,45 @@ test('GamePanel 12-player true ellipse coordinates curve smoothly around oval ta
       );
     }
   }
+
+  // 4. Exact zero-overlap verification on compact mobile arena (360x285px) for both live game and end-game
+  const mW = 360, mH = 285;
+  const mCoords = pcts.map(p => ({ x: (p.xPct / 100) * mW, y: (p.yPct / 100) * mH }));
+  const checkOverlap = (b1: [number, number, number, number], b2: [number, number, number, number]) =>
+    !(b1[1] < b2[0] || b1[0] > b2[1] || b1[3] < b2[2] || b1[2] > b2[3]);
+
+  for (let i = 0; i < 12; i++) {
+    for (let j = i + 1; j < 12; j++) {
+      const p1 = mCoords[i], p2 = mCoords[j];
+      // Live game: avatar 28px, nameplate 60x13.5px
+      const a1: [number, number, number, number] = [p1.x - 14, p1.x + 14, p1.y - 21, p1.y + 7];
+      const n1: [number, number, number, number] = [p1.x - 30, p1.x + 30, p1.y + 8, p1.y + 21.5];
+      const a2: [number, number, number, number] = [p2.x - 14, p2.x + 14, p2.y - 21, p2.y + 7];
+      const n2: [number, number, number, number] = [p2.x - 30, p2.x + 30, p2.y + 8, p2.y + 21.5];
+
+      assert.ok(!checkOverlap(a1, a2), `Seat ${i + 1} and ${j + 1} live avatar collision`);
+      assert.ok(!checkOverlap(a1, n2), `Seat ${i + 1} avatar overlaps Seat ${j + 1} nameplate`);
+      assert.ok(!checkOverlap(n1, a2), `Seat ${i + 1} nameplate overlaps Seat ${j + 1} avatar`);
+      assert.ok(!checkOverlap(n1, n2), `Seat ${i + 1} and ${j + 1} nameplates collide`);
+
+      // End-game: avatar 26px, nameplate 60x12.5px, role pill 60x12.5px, pinned badge
+      const ea1: [number, number, number, number] = [p1.x - 13, p1.x + 13, p1.y - 26, p1.y];
+      const en1: [number, number, number, number] = [p1.x - 30, p1.x + 30, p1.y + 1, p1.y + 13.5];
+      const er1: [number, number, number, number] = [p1.x - 30, p1.x + 30, p1.y + 14.5, p1.y + 27];
+      const eb1: [number, number, number, number] = [p1.x - 12, p1.x + 12, p1.y - 26, p1.y - 16];
+
+      const ea2: [number, number, number, number] = [p2.x - 13, p2.x + 13, p2.y - 26, p2.y];
+      const en2: [number, number, number, number] = [p2.x - 30, p2.x + 30, p2.y + 1, p2.y + 13.5];
+      const er2: [number, number, number, number] = [p2.x - 30, p2.x + 30, p2.y + 14.5, p2.y + 27];
+      const eb2: [number, number, number, number] = [p2.x - 12, p2.x + 12, p2.y - 26, p2.y - 16];
+
+      for (const [name1, b1] of [['avatar', ea1], ['name', en1], ['role', er1], ['badge', eb1]] as const) {
+        for (const [name2, b2] of [['avatar', ea2], ['name', en2], ['role', er2], ['badge', eb2]] as const) {
+          assert.ok(!checkOverlap(b1, b2), `Seat ${i + 1} ${name1} collides with Seat ${j + 1} ${name2} in end-game`);
+        }
+      }
+    }
+  }
 });
 
 test('StatisticsView renders 30 Brawl role stats with real portraits instead of collapsing Brawl games into classic loyal/minion', () => {

@@ -4450,26 +4450,26 @@ dialog.table-modal-backdrop::backdrop { background: #081b2d55; }
 .table-seats-grid.altar-dual-flank-arena.grid-12,
 .is-live-table .table-seats-grid.altar-dual-flank-arena.grid-12,
 .is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.grid-12 {
-  height: clamp(255px, 34dvh, 285px) !important;
-  min-height: clamp(255px, 34dvh, 285px) !important;
+  height: clamp(270px, 35.5dvh, 296px) !important;
+  min-height: clamp(270px, 35.5dvh, 296px) !important;
 }
 .table-seats-grid.altar-dual-flank-arena.is-ended-grid,
 .is-live-table .table-seats-grid.altar-dual-flank-arena.is-ended-grid,
 .is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.is-ended-grid {
-  height: clamp(255px, 34dvh, 285px) !important;
-  min-height: clamp(255px, 34dvh, 285px) !important;
+  height: clamp(270px, 35.5dvh, 296px) !important;
+  min-height: clamp(270px, 35.5dvh, 296px) !important;
 }
 .table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-10,
 .is-live-table .table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-10,
 .is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-10 {
-  height: clamp(255px, 34dvh, 285px) !important;
-  min-height: clamp(255px, 34dvh, 285px) !important;
+  height: clamp(270px, 35.5dvh, 296px) !important;
+  min-height: clamp(270px, 35.5dvh, 296px) !important;
 }
 .table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-12,
 .is-live-table .table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-12,
 .is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-12 {
-  height: clamp(255px, 34dvh, 285px) !important;
-  min-height: clamp(255px, 34dvh, 285px) !important;
+  height: clamp(270px, 35.5dvh, 296px) !important;
+  min-height: clamp(270px, 35.5dvh, 296px) !important;
 }
 
 /* 3-Zone / Circular Ring Arena Container */
@@ -8753,20 +8753,20 @@ button.seat-mic-badge:active {
   min-height: clamp(312px, 41.5dvh, 348px) !important;
 }
 .is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.grid-12 {
-  height: clamp(255px, 34dvh, 285px) !important;
-  min-height: clamp(255px, 34dvh, 285px) !important;
+  height: clamp(270px, 35.5dvh, 296px) !important;
+  min-height: clamp(270px, 35.5dvh, 296px) !important;
 }
 .is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.is-ended-grid {
-  height: clamp(255px, 34dvh, 285px) !important;
-  min-height: clamp(255px, 34dvh, 285px) !important;
+  height: clamp(270px, 35.5dvh, 296px) !important;
+  min-height: clamp(270px, 35.5dvh, 296px) !important;
 }
 .is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-10 {
-  height: clamp(255px, 34dvh, 285px) !important;
-  min-height: clamp(255px, 34dvh, 285px) !important;
+  height: clamp(270px, 35.5dvh, 296px) !important;
+  min-height: clamp(270px, 35.5dvh, 296px) !important;
 }
 .is-live-table .game-play-priority .table-seats-grid.altar-dual-flank-arena.is-ended-grid.grid-12 {
-  height: clamp(255px, 34dvh, 285px) !important;
-  min-height: clamp(255px, 34dvh, 285px) !important;
+  height: clamp(270px, 35.5dvh, 296px) !important;
+  min-height: clamp(270px, 35.5dvh, 296px) !important;
 }
 .is-live-table .game-play-priority .scheme-a-main-arena,
 .is-live-table .game-play-priority .circular-ring-arena {
@@ -8814,60 +8814,90 @@ button.seat-mic-badge:active {
   gap: 1px !important;
 }
 .is-live-table .game-play-priority .is-ended-grid .flank-avatar-wrap {
-  width: 32px !important;
-  height: 32px !important;
+  width: 28px !important;
+  height: 28px !important;
 }
 .is-live-table .game-play-priority .is-ended-grid .flank-nameplate {
-  height: 16px !important;
-  font-size: 9px !important;
-  padding: 0 4px !important;
+  height: 13.5px !important;
+  font-size: 8px !important;
+  line-height: 12.5px !important;
+  padding: 0 3px !important;
+  max-width: 60px !important;
 }
 .is-live-table .game-play-priority .is-ended-grid .ended-seat-role-pill {
   margin-top: 0 !important;
-  height: 15px !important;
-  line-height: 14px !important;
-  padding: 0 5px !important;
-  font-size: 9px !important;
+  height: 13px !important;
+  line-height: 12px !important;
+  padding: 0 3px !important;
+  font-size: 8px !important;
+  max-width: 60px !important;
 }
 .is-live-table .game-play-priority .is-ended-grid .seat-status-badges {
-  top: -4px !important;
+  top: -2px !important;
 }
 .is-live-table .game-play-priority .is-ended-grid .flank-avatar-wrap .seat-status-badges .seat-badge {
-  padding: 0.5px 3.5px !important;
-  font-size: 8px !important;
-  line-height: 1.1 !important;
+  padding: 0.5px 3px !important;
+  font-size: 7.5px !important;
+  line-height: 1.05 !important;
 }
 @media (max-width: 480px) {
   .is-live-table .game-play-priority .grid-12 .flank-avatar-wrap {
-    width: 32px !important;
-    height: 32px !important;
+    width: 28px !important;
+    height: 28px !important;
   }
   .is-live-table .game-play-priority .grid-12 .flank-nameplate {
-    height: 16px !important;
-    max-width: 74px !important;
-    padding: 0 4px !important;
-    font-size: 9px !important;
+    height: 13.5px !important;
+    line-height: 12.5px !important;
+    max-width: 60px !important;
+    padding: 0 3px !important;
+    font-size: 8.5px !important;
+  }
+  .is-live-table .game-play-priority .grid-12 .flank-nameplate .flank-nickname {
+    max-width: 32px !important;
+  }
+  .is-live-table .game-play-priority .grid-12 .flank-seat-card {
+    gap: 1px !important;
+  }
+  .is-live-table .game-play-priority .grid-12 .flank-avatar-wrap .seat-status-badges {
+    top: -2px !important;
+  }
+  .is-live-table .game-play-priority .grid-12 .flank-avatar-wrap .seat-status-badges .seat-badge {
+    padding: 0.5px 3px !important;
+    font-size: 7.5px !important;
+    line-height: 1.05 !important;
   }
   .is-live-table .game-play-priority .is-ended-grid.grid-12 .flank-seat-card {
     gap: 1px !important;
   }
   .is-live-table .game-play-priority .is-ended-grid.grid-12 .flank-avatar-wrap {
-    width: 28px !important;
-    height: 28px !important;
+    width: 26px !important;
+    height: 26px !important;
   }
   .is-live-table .game-play-priority .is-ended-grid.grid-12 .flank-nameplate {
-    height: 14px !important;
-    max-width: 74px !important;
-    padding: 0 3.5px !important;
-    font-size: 8.5px !important;
+    height: 12.5px !important;
+    line-height: 11.5px !important;
+    max-width: 60px !important;
+    padding: 0 2.5px !important;
+    font-size: 8px !important;
+  }
+  .is-live-table .game-play-priority .is-ended-grid.grid-12 .flank-nameplate .flank-nickname {
+    max-width: 32px !important;
+  }
+  .is-live-table .game-play-priority .is-ended-grid.grid-12 .flank-avatar-wrap .seat-status-badges {
+    top: -2px !important;
+  }
+  .is-live-table .game-play-priority .is-ended-grid.grid-12 .flank-avatar-wrap .seat-status-badges .seat-badge {
+    padding: 0.5px 3px !important;
+    font-size: 7.5px !important;
+    line-height: 1.05 !important;
   }
   .is-live-table .game-play-priority .is-ended-grid.grid-12 .ended-seat-role-pill {
     margin-top: 0 !important;
-    height: 13.5px !important;
-    line-height: 12.5px !important;
-    padding: 0 4.5px !important;
-    font-size: 8.5px !important;
-    max-width: 74px !important;
+    height: 12.5px !important;
+    line-height: 11.5px !important;
+    padding: 0 2.5px !important;
+    font-size: 8px !important;
+    max-width: 60px !important;
   }
 }
 .brawl-revealed-seat-img {
@@ -8918,9 +8948,9 @@ button.seat-mic-badge:active {
 .is-live-table .game-play-priority .altar-bagua-disc {
   display: none !important;
 }
-.seat-status-badges { position: absolute; top: -6px !important; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; gap: 2px; z-index: 8 !important; pointer-events: none !important; }
+.seat-status-badges { position: absolute; top: -2px !important; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; gap: 1.5px; z-index: 10 !important; pointer-events: none !important; }
 .flank-seat-right .seat-status-badges { left: 50%; right: auto; transform: translateX(-50%); flex-direction: row; }
-.flank-avatar-wrap .seat-status-badges .seat-badge { position: static !important; transform: none !important; padding: 1px 4px !important; font-size: 8.5px !important; line-height: 1.15 !important; pointer-events: none !important; }
+.flank-avatar-wrap .seat-status-badges .seat-badge { position: static !important; transform: none !important; padding: 0.5px 3.5px !important; font-size: 8px !important; line-height: 1.1 !important; border-radius: 999px !important; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45) !important; pointer-events: none !important; }
 .flank-avatar-wrap .seat-badge.badge-team { background: #087f78 !important; border: 1px solid #7ef5dc !important; color: #fff !important; }
 .game-play-priority .is-on-team .flank-nameplate { border-color: #0d9488 !important; background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%) !important; color: #0f766e !important; }
 .game-play-priority .is-on-team .flank-nameplate :is(.flank-seat-num, .flank-nickname, .flank-name-sep) { color: #0f766e !important; }

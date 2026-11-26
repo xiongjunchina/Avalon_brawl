@@ -800,7 +800,7 @@ function resolveTeamVoteIfComplete(g: GameState, _context: { hostId: string; now
     approvals: approves,
     rejections: rejects,
     abstentions,
-    ballots: !g.settings.anonymousTeamVote ? { ...g.teamVotes } : undefined,
+    ballots: { ...g.teamVotes },
   };
 
   if (approved) {
@@ -1113,6 +1113,7 @@ export function transition(
           failures: ordealResult.failures,
           successes: ordealResult.successes,
           masked: shouldHideFailureCountInReport(g.brawl?.ordeals),
+          cards: { ...g.missionVotes },
         };
 
         // 结算【军令状】：成功兑现私密查验（全局限量 1 次）；翻车下难全程禁选上车
@@ -1479,6 +1480,7 @@ export function projectGame(g: GameState, userId?: string): GameView {
   }
 
   const latestRound = g.rounds.at(-1);
+  const canRevealVoteBallots = !g.settings.anonymousTeamVote || isEnded(g);
   const currentTeamVote = g.phase === 'team_vote'
     ? {
         startedAt: g.teamVoteStartedAt,
@@ -1488,7 +1490,7 @@ export function projectGame(g: GameState, userId?: string): GameView {
     : (latestRound?.vote
       ? {
           votedIds: Object.keys(latestRound.vote.ballots ?? {}),
-          ballots: latestRound.vote.ballots,
+          ballots: canRevealVoteBallots && latestRound.vote.ballots ? { ...latestRound.vote.ballots } : undefined,
         }
       : undefined);
 
@@ -1506,12 +1508,22 @@ export function projectGame(g: GameState, userId?: string): GameView {
     captainOrder: g.captainOrder,
     rounds: g.rounds.map(r => {
       let res = r.result ? { ...r.result } : undefined;
-      if (res && !isEnded(g) && res.masked) {
-        res = { ...res, successes: -1, failures: -1 };
+      if (res && !isEnded(g)) {
+        if (res.masked) {
+          res = { ...res, successes: -1, failures: -1 };
+        }
+        const { cards, ...rest } = res;
+        res = rest;
       }
+      const vote = r.vote
+        ? {
+            ...r.vote,
+            ballots: canRevealVoteBallots && r.vote.ballots ? { ...r.vote.ballots } : undefined,
+          }
+        : undefined;
       return {
         ...r,
-        ...(r.vote ? { vote: { ...r.vote, ...(r.vote.ballots ? { ballots: { ...r.vote.ballots } } : {}) } } : {}),
+        ...(vote ? { vote } : {}),
         ...(res ? { result: res } : {}),
       };
     }),

@@ -426,7 +426,7 @@ export interface RoundView {
   direction: 'clockwise' | 'counterclockwise';
   militaryWager?: boolean;
   vote?: { approvals: number; rejections: number; abstentions?: number; passed: boolean; forced?: boolean; ballots?: Record<string, TeamBallot> };
-  result?: { successes: number; failures: number; passed: boolean; masked?: boolean };
+  result?: { successes: number; failures: number; passed: boolean; masked?: boolean; cards?: Record<string, boolean> };
 }
 export interface GameResult {
   winner: Team | null;

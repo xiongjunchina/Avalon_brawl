@@ -358,10 +358,10 @@ export function ReplayView({replay:g}:{replay:Replay}) {
     )}
     <details className="replay-metadata chronicle-details"><summary>时间、编号与规则配置</summary><p className="hint">开始 {date(g.startedAt)}<br/>结束 {date(g.endedAt)} · 你的结果：{outcome(g)}</p><p className="hint game-uid-line">对局编号 ID：<span>{g.id}</span></p>
     <p className="hint">{settingsText(g.settings,g.rulesetVersion)}<br/>规则版本：{g.rulesetVersion}</p>
-    <p className="notice">仅本局参与者可看。{g.settings.anonymousTeamVote?'组队投票仅展示总数。':'组队投票展示当时公开的个人赞反。'}任务出牌始终不对应个人。</p>
+    <p className="notice">仅本局参与者可看。终局复盘已全量解密真实投票与出征队员任务牌底。</p>
 </details>
     <div className="chronicle-section-heading"><h3>逐轮记录</h3><span>{g.rounds.length} 次提案</span></div>{!g.rounds.length&&<p className="muted">本局在第一次组队前结束。</p>}
-    <BattleHistory rounds={g.rounds} players={g.players} anonymous={g.settings.anonymousTeamVote} userId={selfId} brawlActions={g.brawlReplayTimeline}/>
+    <BattleHistory rounds={g.rounds} players={g.players} anonymous={false} userId={selfId} brawlActions={g.brawlReplayTimeline}/>
     {!!g.inspections?.length&&<details className="chronicle-details"><summary>宝镜查验记录</summary>{g.inspections.map(i=><p key={i.afterMission} className="hint">第{i.afterMission}难：{name(i.inspectorId)} 查验 {name(i.targetId)}，随后交接给被查验者。</p>)}</details>}
     {!!g.earlyWindows.length&&<details className="chronicle-details"><summary>轮间确认记录</summary>{g.earlyWindows.map((w,i)=><p key={i} className="hint">第{w.afterProposal}次提案后：{w.decision==='skip'?'跳过提前刺杀':'发起提前刺杀'}（完成任务 {w.afterMission} 后）</p>)}</details>}
   </>;

@@ -34,6 +34,9 @@
   .brawl-summary-badge,
   .brawl-summary-role,
   .brawl-summary-target,
+  .battle-card-badge,
+  .battle-member-card,
+  .battle-member-cards-title,
   .chronicle-state,
   .chronicle-direction,
   .tool-pill,
@@ -66,6 +69,7 @@
   .brawl-chronicle-head,
   .battle-vote-totals,
   .battle-card-counts,
+  .battle-member-cards-grid,
   .battle-captain,
   .guide-role-badges
 ) {

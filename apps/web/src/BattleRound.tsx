@@ -26,7 +26,7 @@ export function BattleRound({ round: r, players, anonymous, userId, brawlActions
         <p className="hint" style={{ color: '#92400e', fontWeight: 600 }}>🔥 两流必发：本难已流局 2 次，第 3 轮跳过组队表决强制发车出征。</p>
       ) : <>
         <div className="battle-vote-totals"><span className="approve">✓ {r.vote.approvals} 赞成</span><span className="reject">× {r.vote.rejections} 反对</span><span className="abstain">− {r.vote.abstentions ?? 0} 弃权</span><strong>{r.vote.passed ? '组队通过' : '组队未通过（流局）'}</strong></div>
-        {ballots ? <details className="chronicle-ballots"><summary>全员公开票型 · {players.length} 人</summary><div className="battle-voters" aria-label="全员公开票型">{players.map(p => <div key={p.id} aria-label={`${p.seat} 号 ${p.nickname}：${ballots[p.id] === true ? '赞成' : ballots[p.id] === false ? '反对' : ballots[p.id] === 'abstain' ? '弃权' : '无票型记录'}`}><PlayerToken player={p} vote={ballots[p.id]} self={p.id === userId} />{ballots[p.id]===undefined&&<span className="chronicle-no-ballot">无记录</span>}</div>)}</div><p className="hint">图标表示组队投票，不代表任务出牌。</p></details> : <p className="hint">{anonymous ? '匿名组队投票，仅展示总票数。' : '本次未记录个人票型，仅展示总票数。'}</p>}
+        {ballots ? <details className="chronicle-ballots"><summary>全员票型实录 · {players.length} 人</summary><div className="battle-voters" aria-label="全员公开票型">{players.map(p => <div key={p.id} aria-label={`${p.seat} 号 ${p.nickname}：${ballots[p.id] === true ? '赞成' : ballots[p.id] === false ? '反对' : ballots[p.id] === 'abstain' ? '弃权' : '无票型记录'}`}><PlayerToken player={p} vote={ballots[p.id]} self={p.id === userId} />{ballots[p.id]===undefined&&<span className="chronicle-no-ballot">无记录</span>}</div>)}</div><p className="hint">图标表示组队投票，记录每位仙友当时选择。</p></details> : <p className="hint">{anonymous ? '匿名组队投票，仅展示总票数。' : '本次未记录个人票型，仅展示总票数。'}</p>}
       </>) : <p className="hint">本次表决未完成，不展示未收齐的个人选择。</p>}
     </section>
     {r.result && <section className={`battle-section battle-result ${r.result.passed ? 'is-pass' : 'is-fail'}`} aria-label="任务结算">
@@ -40,9 +40,30 @@ export function BattleRound({ round: r, players, anonymous, userId, brawlActions
         {r.result.masked && r.result.successes < 0
           ? '本难触发混沌迷雾，终局复盘揭晓真实牌底。'
           : r.result.masked
-            ? '🌫️ 本难原为混沌迷雾，复盘已还原真实成功/失败牌数。任务牌始终匿名，不对应个人。'
-            : '任务牌始终匿名，不对应个人。'}
+            ? '🌫️ 本难原为混沌迷雾，复盘已还原真实成功/失败牌数。'
+            : r.result.cards
+              ? '终局复盘已解密车队队员真实牌底（出牌不计法宝转化，法宝效果见下方斗法实录）。'
+              : '任务牌在对局中匿名，不对应个人。'}
       </p>
+      {r.result.cards && (
+        <div className="battle-member-cards" aria-label="出征队员实际出牌">
+          <p className="battle-member-cards-title">🎴 出征队员实际出牌（终局揭晓）：</p>
+          <div className="battle-member-cards-grid">
+            {r.team.map(id => {
+              const p = playerById(id);
+              const card = r.result!.cards![id];
+              return (
+                <div key={id} className={`battle-member-card ${card === true ? 'is-pass' : card === false ? 'is-fail' : 'is-unknown'}`}>
+                  <span className="battle-member-name">{p.seat > 0 ? `${p.seat}号 · ` : ''}{p.nickname}</span>
+                  <span className={`battle-card-badge ${card === true ? 'badge-pass' : card === false ? 'badge-fail' : 'badge-unknown'}`}>
+                    {card === true ? '✓ 成功' : card === false ? '× 失败' : '未投'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </section>}
     {brawlActions && brawlActions.length > 0 && (
       <section className="battle-section battle-brawl-summary" aria-label="仙妖斗法实录">

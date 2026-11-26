@@ -79,11 +79,11 @@ test('replay allowlist honors anonymous and named ballots and never exposes task
     g.lady={holderId:f.people[1].user.id,holderIds:f.people.map(p=>p.user.id),inspections:[{afterMission:1,inspectorId:f.people[0].user.id,targetId:f.people[1].user.id,team:'red',secret:'private'}]};
     await f.pool.query('UPDATE games SET state=$2 WHERE id=$1',[id,g]);
     const r=(await f.app.inject({url:`/api/games/${id}/replay`,headers:auth})).json<Replay>();
-    assert.equal(r.rounds[0].vote!.ballots===undefined,anonymousTeamVote);
-    if(!anonymousTeamVote)assert.deepEqual(r.rounds[0].vote!.ballots,raw);
-    assert.deepEqual(Object.keys(r.rounds[0].result!).sort(),['failures','passed','successes']);
+    assert.deepEqual(r.rounds[0].vote!.ballots,raw);
+    assert.deepEqual(r.rounds[0].result!.cards,raw);
+    assert.deepEqual(Object.keys(r.rounds[0].result!).sort(),['cards','failures','passed','successes']);
     assert.deepEqual(Object.keys(r.inspections[0]).sort(),['afterMission','inspectorId','targetId']);
-    for(const field of ['missionVotes','teamVotes','cards','self.evilIds','token','invite','roomId','connectionId'])assert.ok(!JSON.stringify(r).includes(field),field);
+    for(const field of ['missionVotes','teamVotes','self.evilIds','token','invite','roomId','connectionId'])assert.ok(!JSON.stringify(r).includes(field),field);
     assert.deepEqual(Object.keys(r).sort(),['id','startedAt','endedAt','rulesetVersion','playerCount','self','result','favorite','settings','players','roles','rounds','inspections','earlyWindows'].sort());
   }
 });

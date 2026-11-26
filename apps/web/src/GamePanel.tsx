@@ -1572,7 +1572,7 @@ export function GamePanel({
                 {WUYUE_MISSIONS[inspectMission - 1]?.title ?? `任务 ${inspectMission}`} 尚未产生组队提案记录。
               </p>
             ) : (
-              <BattleHistory rounds={missionRounds} players={publicPlayers} anonymous={room.settings.anonymousTeamVote} userId={userId} brawlActions={ended ? g.brawl?.replayTimeline : undefined} />
+              <BattleHistory rounds={missionRounds} players={publicPlayers} anonymous={ended ? false : room.settings.anonymousTeamVote} userId={userId} brawlActions={ended ? g.brawl?.replayTimeline : undefined} />
             )}</div>
           </div>
         </Modal>
@@ -1591,7 +1591,7 @@ export function GamePanel({
             <div className="chronicle-scroll-body">{g.rounds.length === 0 ? (
               <p className="muted">尚无已完成的组队提案。</p>
             ) : (
-              <BattleHistory rounds={g.rounds} players={publicPlayers} anonymous={room.settings.anonymousTeamVote} userId={userId} brawlActions={ended ? g.brawl?.replayTimeline : undefined} />
+              <BattleHistory rounds={g.rounds} players={publicPlayers} anonymous={ended ? false : room.settings.anonymousTeamVote} userId={userId} brawlActions={ended ? g.brawl?.replayTimeline : undefined} />
             )}
             <ExtensionHistory game={g} name={name} />
             </div>

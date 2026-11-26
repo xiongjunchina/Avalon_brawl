@@ -413,6 +413,64 @@
 }
 
 /* In-round chronicle list (inside BattleRound) */
+.battle-brawl-summary {
+  background: #fbf5e8;
+  border: 1px dashed #c5a66b;
+  border-radius: 8px;
+  padding: 6px 8px !important;
+  margin-top: 6px !important;
+}
+
+.battle-brawl-summary .brawl-summary-heading {
+  color: #78480e !important;
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  margin: 0 0 5px !important;
+}
+
+.brawl-summary-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.brawl-summary-chip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  background: #fffaf0;
+  border: 1px solid #e1d5bf;
+  border-left: 3px solid #d4af37;
+  border-radius: 5px;
+  padding: 4px 7px;
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+.brawl-summary-chip.outcome-success { border-left-color: #177448; }
+.brawl-summary-chip.outcome-blocked { border-left-color: #8e44ad; }
+.brawl-summary-chip.outcome-info { border-left-color: #2980b9; }
+.brawl-summary-chip.outcome-miss { border-left-color: #95a5a6; }
+
+.brawl-summary-actor { color: #35271f; font-weight: 500; }
+.brawl-summary-role { color: #78480e; font-weight: 700; margin-left: 2px; }
+.brawl-summary-skill { color: #92400e; font-weight: 700; }
+.brawl-summary-target { color: #b45309; font-weight: 600; font-size: 11px; }
+
+.brawl-summary-badge {
+  font-size: 10.5px;
+  padding: 0.5px 5px;
+  border-radius: 4px;
+  font-weight: 700;
+  margin-left: auto;
+  white-space: nowrap;
+}
+.brawl-summary-badge.is-success { background: #e6f0df; color: #177448; }
+.brawl-summary-badge.is-blocked { background: #f4ecf7; color: #8e44ad; }
+.brawl-summary-badge.is-info { background: #ebf5fb; color: #2980b9; }
+.brawl-summary-badge.is-miss { background: #f2f4f4; color: #7f8c8d; }
+
 .battle-brawl-chronicle {
   background: #fbf5e8;
   border: 1px dashed #c5a66b;

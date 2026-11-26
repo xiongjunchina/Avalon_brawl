@@ -383,7 +383,7 @@ test('BrawlReplayTimeline: renders grouped post-game actions with actor, skill, 
   assert.match(html, /一举命中齐天大圣孙悟空/);
 });
 
-test('BattleHistory: renders brawl chronicle with opening, round, assassination, and empty state', () => {
+test('BattleHistory: renders streamlined per-round brawl chronicle without duplicating global timeline', () => {
   const dummyPlayers: Player[] = [
     { id: 'p1', seat: 1, nickname: '玩家1' },
     { id: 'p2', seat: 2, nickname: '玩家2' },
@@ -401,7 +401,7 @@ test('BattleHistory: renders brawl chronicle with opening, round, assassination,
     },
   ];
 
-  // 1. When brawlActions is [] (empty)
+  // 1. When brawlActions is [] (empty), BattleHistory stays clean without redundant filler banners
   const emptyHtml = renderToStaticMarkup(
     createElement(BattleHistory, {
       rounds: dummyRounds,
@@ -411,7 +411,8 @@ test('BattleHistory: renders brawl chronicle with opening, round, assassination,
       brawlActions: [],
     })
   );
-  assert.match(emptyHtml, /本局全场玩家均未施展主动法宝或触发暗算/);
+  assert.ok(emptyHtml.includes('第 1 次提案'), 'Renders round proposal card');
+  assert.ok(!emptyHtml.includes('仙妖斗法实录'), 'Hides chronicle when round had no actions');
 
   // 2. When brawlActions has opening (0), round 1, and assassination
   const actions: BrawlReplayAction[] = [
@@ -465,7 +466,7 @@ test('BattleHistory: renders brawl chronicle with opening, round, assassination,
     },
   ];
 
-  const fullHtml = renderToStaticMarkup(
+  const roundHtml = renderToStaticMarkup(
     createElement(BattleHistory, {
       rounds: dummyRounds,
       players: dummyPlayers,
@@ -475,10 +476,14 @@ test('BattleHistory: renders brawl chronicle with opening, round, assassination,
     })
   );
 
-  assert.match(fullHtml, /初始天机 · 开局窥探实录/);
-  assert.match(fullHtml, /镇元大仙/);
-  assert.match(fullHtml, /仙妖斗法实录/);
-  assert.match(fullHtml, /百眼魔君/);
-  assert.match(fullHtml, /终局决战 · 刺杀大圣实录/);
-  assert.match(fullHtml, /红孩儿/);
+  // BattleHistory embeds round 1 action compactly, while excluding duplicate opening & assassination blocks
+  assert.ok(roundHtml.includes('仙妖斗法实录'), 'Embeds per-round chronicle summary in proposal');
+  assert.ok(roundHtml.includes('百眼魔君') && roundHtml.includes('黄花毒茶'), 'Shows round 1 actor & skill');
+  assert.ok(!roundHtml.includes('初始天机 · 开局窥探实录'), 'Does NOT duplicate opening block in round history');
+  assert.ok(!roundHtml.includes('终局决战 · 刺杀大圣实录'), 'Does NOT duplicate assassination block in round history');
+
+  // Verify BrawlReplayTimeline holds the full narrative timeline independently
+  const timelineHtml = renderToStaticMarkup(createElement(BrawlReplayTimeline, { actions }));
+  assert.ok(timelineHtml.includes('初始天机 · 开局窥探') && timelineHtml.includes('镇元大仙'), 'Global timeline holds opening');
+  assert.ok(timelineHtml.includes('终局决战 · 刺杀大圣') && timelineHtml.includes('红孩儿'), 'Global timeline holds assassination');
 });
